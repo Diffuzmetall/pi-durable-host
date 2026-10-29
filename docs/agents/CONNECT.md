@@ -18,7 +18,7 @@
 
 ## Контекст и границы
 
-Прочитай docs/CONNECTING_CLIENTS.md, docs/STATUS.md и README нужного адаптера. Для BB требуется trusted native profile и настоящий Core/native owner proof; минимальный CLI не обещает эти capabilities. BB /compact явно unsupported. Для iii сначала проверь, завершена ли текущая сквозная приёмка.
+Прочитай docs/CONNECTING_CLIENTS.md, docs/STATUS.md и README нужного адаптера. Для BB требуется trusted native profile и настоящий Core/native owner proof; минимальный CLI не обещает эти capabilities. BB /compact явно unsupported. Для iii локальная signed/native приёмка завершена; используй точный trusted config/delegated binding и `dpi-iii-worker`, не выдавай loopback fixture за production engine. Сначала сверь текущий docs/STATUS.md и реально установленные exports/CLI.
 
 Не делай observer/delegated credential «человеческим», не передавай authority через body, не меняй server grants самовольно. Не открывай server SQLite локально. Не записывай credential в URL, Git, screenshot или отчёт. Вне доверенного loopback требуй HTTPS/ограниченную сеть.
 

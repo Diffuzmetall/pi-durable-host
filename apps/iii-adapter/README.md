@@ -2,18 +2,37 @@
 
 A signed iii 0.24.6 function worker for delegated jobs in an **already-running Durable host**. The client uses public `dpi-sdk`; the server owns native job conversations, request fingerprints, receipts, parent controls and persisted answers. This package does not start/resume a host, open native session files, choose a model, create another scheduler, or import terminal/BB adapters.
 
-This is a local P5 candidate, not permission to activate production, use a personal session, call a live model, or publish the private source port. See `NOTICE.md` and `SOURCE.json`.
+The local signed/native P5 flow and standalone installation have passed independent acceptance and a post-final evidence review. This is not production-engine certification or permission to activate production, use a personal session, or call a live model. The selected source owner confirmed MIT publication rights; that does not authorize deployment. See [current scope](../../docs/STATUS.md), `NOTICE.md` and `SOURCE.json`.
 
 ## Install only this client
 
-Use Node 22.19+ and the exact immutable SDK/adapter archives from the accepted candidate. In an empty disposable directory, with a temporary HOME:
+Use Node 22.19+ and the exact immutable SDK/adapter archives from the accepted candidate. Set `CLIENT_HOME` and `CLIENT_DIR` to separate empty disposable directories and `SDK_TGZ` / `III_TGZ` to absolute archive paths. The normal installation needs access to the npm registry for `iii-sdk` and its dependencies; the two local archives do not bundle them.
 
 ```sh
 mkdir -p "$CLIENT_HOME" "$CLIENT_DIR"
-HOME="$CLIENT_HOME" npm --prefix "$CLIENT_DIR" install --offline --ignore-scripts \
+HOME="$CLIENT_HOME" npm --prefix "$CLIENT_DIR" install --ignore-scripts \
   --no-audit --no-fund "$SDK_TGZ" "$III_TGZ"
 HOME="$CLIENT_HOME" "$CLIENT_DIR/node_modules/.bin/dpi-iii-worker" --help
 ```
+
+**Offline installation requires an explicitly prepared, complete npm cache.** It does not work with an empty HOME/cache and only these two archives. To prepare one while registry access is available, choose new absolute `CACHE_HOME`, `CACHE_SEED_DIR` and `NPM_CACHE` directories:
+
+```sh
+mkdir -p "$CACHE_HOME" "$CACHE_SEED_DIR" "$NPM_CACHE"
+HOME="$CACHE_HOME" npm --cache "$NPM_CACHE" --prefix "$CACHE_SEED_DIR" install \
+  --ignore-scripts --no-audit --no-fund "$SDK_TGZ" "$III_TGZ"
+```
+
+Then install into a different empty `CLIENT_DIR` / `CLIENT_HOME` without registry access:
+
+```sh
+mkdir -p "$CLIENT_HOME" "$CLIENT_DIR"
+HOME="$CLIENT_HOME" npm --cache "$NPM_CACHE" --prefix "$CLIENT_DIR" install \
+  --offline --ignore-scripts --no-audit --no-fund "$SDK_TGZ" "$III_TGZ"
+HOME="$CLIENT_HOME" "$CLIENT_DIR/node_modules/.bin/dpi-iii-worker" --help
+```
+
+Keep the cache compatible with the selected archives/dependencies; `ENOTCACHED` means preparation is incomplete. Verification of offline installs uses such an explicit prepared cache, never a claim of uncached offline bootstrap.
 
 No backend, terminal adapter or BB adapter belongs in this client installation. `iii-sdk@0.24.6` is the pinned transport dependency. It uses its ordinary iii process marker under `HOME/.iii/run`; this is not a Durable session/DB. Tests give it a temporary HOME and remove inherited iii credentials.
 
@@ -110,7 +129,7 @@ From this fork, the normal client checks are:
 npm --prefix apps/iii-adapter run check
 npm --prefix apps/iii-adapter test
 npm --prefix apps/iii-adapter run build
-npm --prefix apps/iii-adapter pack --pack-destination "$ARTIFACT_DIR"
+(cd apps/iii-adapter && npm pack --pack-destination "$ARTIFACT_DIR")
 ```
 
 The actual-native installed-archive check is separate and has no moving-source fallback:
@@ -123,4 +142,8 @@ npm --prefix apps/iii-adapter run test:native
 
 `BACKEND_INSTALL` is a separate disposable installation of the exact backend archive; it is **not** part of the iii client installation. The test uses the backend's public server/profile exports, genuine existing Harness/storage, explicit in-memory credentials and only the faux provider. It generates its own temporary native data/workspace/keys and loopback ports. Node's parent-URL import resolver is enabled only by the native-test script to honor public import-only package exports.
 
-The loopback engine fixture uses the actual pinned iii WebSocket SDK/protocol, disposable Ed25519 keys and temporary HOME. It is not a production iii engine. Native job/retry/control/result claims additionally require the actual disposable faux-provider host and the exact installed backend/SDK archives. Source compilation or the pure ingress/transport checks alone do not accept ISC-32/33/34; the independent iii/final gate records the immutable tuple and limitations.
+The loopback engine fixture uses the actual pinned iii WebSocket SDK/protocol, disposable Ed25519 keys and temporary HOME. It is not a production iii engine. Strict compilation against the installed immutable SDK, twelve component tests, and the installed iii-only CLI/native fixture passed on the producer candidate. The latter exercises lost acknowledgement, four identical retries, owner reopen and late immutable answer paging, stale/foreign/revoked controls, genuine native child creation and pending-stop receipt reconciliation. The server's public coarse conflict/denial messages are checked without expecting private internal causes.
+
+Independent final acceptance exercised those installed signed/native scenarios on one frozen five-package tuple, separately accepted the nonauthor-reviewed client auth/canonical boundary, and checked unchanged-terminal + BB mixed versions. A subsequent detailed review confirmed source/lock/archive/installed closure and five strict typechecks. Production engine, live providers, actual historical migration/old-version restore and running-BB UI remain untested. The source protocol is not an automatic chat/Console wake.
+
+`SOURCE.json` retains the original producer archive references as historical provenance. Public documentation metadata can change newly built archive hashes without changing runtime JavaScript: record the actual SHA-256 of your local tarballs and verify those bytes, not only version `0.1.0`. [Overall checks and limitations](../../docs/STATUS.md).

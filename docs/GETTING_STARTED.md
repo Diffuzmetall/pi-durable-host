@@ -99,6 +99,18 @@ node client.mjs
 
 Ключи примера намеренно стабильны. Повтор в **той же** data directory с теми же ключами и телом должен сверить существующую работу. Для другого эксперимента используйте новые ключи или новую disposable directory. Не меняйте тело принятого запроса, сохраняя прежний ключ.
 
+## 5. Получить receipt и итог через curl без SDK
+
+Во втором shell с тем же `DPI_TOKEN` выполните буквальный HTTP-рецепт из checkout:
+
+```sh
+DPI_URL="$DPI_BASE" DPI_CWD="$DPI_START_DIRS" \
+DPI_MODEL_PROVIDER=faux DPI_MODEL_ID=echo DPI_REQUEST_KEY=first-http-v1 \
+  sh "$REPO/apps/dpi-sdk/examples/http-client.sh"
+```
+
+Рецепт использует только curl и Node для JSON: protocol → create → submit → receipt → terminal result. Credential передаётся curl через stdin header, а не URL/аргумент токена. Для retry оставьте тот же `DPI_REQUEST_KEY` и payload; ответ содержит `status:"done"` и текст native результата.
+
 ## Что считать успешной установкой
 
 - Host слушает только ожидаемый loopback-адрес.

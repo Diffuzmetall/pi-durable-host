@@ -1,42 +1,60 @@
-# Проверено и остаётся открытым
+# Проверенный scope и ограничения
 
-**Это source checkpoint, не finished release.** Публикация Git-репозитория не равна приёмке всех пакетов, публикации в npm, deployment или переносу рабочих данных.
+**Локальная приёмка P0–P5 завершена; повторное итоговое ревью не установило новых дефектов.** Проверены backend, SDK, terminal, BB и iii на Pi Durable **1.4.0**. Это не production deployment, публикация npm-пакетов или сертификация произвольных native extensions.
 
-## Текущий срез
+Из 53 исходных критериев **51 PASS, 2 PARTIAL, 0 UNKNOWN, 0 FAIL** в описанном ниже scope. Два частично проверенных критерия относятся к выбранной исторической session и возврату её исходного runtime: выполнена лишь disposable closed-owner same-version репетиция. Рабочие данные не переносились.
 
-| Часть | Доказано | Ещё не доказано |
+## Что проверено
+
+| Часть | Подтверждённый сценарий | Граница доказательства |
 |---|---|---|
-| Backend source | Typecheck и 114/114 тестов; исправлены HTTP initialization/cached errors, SSE diagnostics и case-sensitive routing | Единая свежая packaged-приёмка финального backend/SDK со всеми адаптерами |
-| Security fixes | Независимый HTTP/cache/reopen/SSE/provider/projection прогон 11/11; отдельно auth-case 18/18 и 18 дополнительных отрицательных GET/HEAD сценариев | Это не полный security audit и не свидетельство безопасности любой extension |
-| Native profile | Исторические изолированные native models/tools/memory/guards/Goal fixtures | Любые частные плагины и настройки пользователя автоматически совместимыми не становятся |
-| Terminal | Историческая независимая TUI/reconnect/tool-stream/standalone проверка | Mixed-version на новом общем финальном tuple ещё требуется |
-| BB | Исторический local milestone: Root/child binding, canonical retries, native control, CAS history | Smoke с полной совместимой работающей BB перед production replacement |
-| iii | Подписанный ingress, экспериментальные backend/SDK/client interfaces | Реализация приостановлена; полный P5, immutable result/recovery и iii-only clean-install ещё не приняты |
-| Исторические данные | Disposable closed-owner same-version backup/restore rehearsal и runbook | Настоящая выбранная историческая session и cross-version restore — отдельно согласуемая работа |
-| Production | Не активирован | Этот checkpoint ничего не переключает |
+| Backend/SDK | Native ownership, exact saved model/profile IDs, tools, canonical receipts, retry/conflict/cache-expiry, crash/reopen | Изолированные native/faux sessions, не произвольные исторические registry |
+| Security | Observer/delegated/human boundaries, revoke reads/mutations/open streams; безопасные HTTP/cache/reopen/SSE/provider diagnostics; healthy opaque JSON | Не полный security audit или сертификат любых plugins |
+| Native profile | Явная server composition, models/skills/context, native guards/CodeMode/Goal/schedules, session-local Hindsight/Mail | Локальные recording/loopback transports, без личных banks и живых платных API |
+| Terminal | Editor/navigation/tool stream/interrupt/steer/attention/reconnect; standalone install | UI/PTY baseline связан с неизменённым принятым terminal archive; на новом host свежие controller/mixed проверки, не новый полный PTY-прогон |
+| BB | Exact thread/root/child binding, native control/outcomes, canonical retry и history CAS/lost ACK | Настоящий native host + Core API fixture; не полный running-BB UI smoke |
+| iii | Signed identity, native isolated jobs, same-key retries, conflicts, foreign/stale/revoked controls, late immutable answerRef, restart и pending-stop reconciliation | Настоящий pinned iii-sdk + loopback function transport + native faux host, не production engine |
+| Независимая установка | Terminal-only, BB-only, iii-only со своим SDK; каждый без backend/Harness и двух других клиентов | Реальные offline tarball installs с явно подготовленным npm cache, побайтовая archive closure |
+| Mixed-version | Неизменённый terminal/старый SDK и новый BB/SDK получают native ответы в той же host/session/conversation | Два одновременных frontend — terminal и BB; iii отдельно на том же backend/SDK tuple |
+| История/production | Только disposable offline backup/restore runbook | Реальная historical/cross-version миграция и production не выполнялись |
 
-Полный набор из 53 исходных критериев сохраняется во внутреннем каноне проекта. Эта публичная сводка не заменяет его и не переопределяет открытые критерии. Приватные review reports, внутренние probes, пути машины проверки и операторские сообщения не публикуются.
+## Проверки
 
-## Проверки этого source checkpoint
+На одном замороженном source/all-lockfile/five-package tuple прошли пять strict typechecks и **193/193 source-теста без пропусков**: SDK 23, backend 114, terminal 19, BB 25, iii 12. Проверки используют пустой HOME/dataDir, read-only source и OS sandbox с loopback; в публичных BB tests находятся переносимые contract fixtures.
 
-На отдельном публикационном checkout прошли typecheck всех пяти пакетов и **193/193 source-теста**, без пропусков: SDK 23, backend 114, terminal 19, BB 25, iii 12. Проверки использовали пустой временный HOME, faux и loopback; переносимые BB fixtures не требуют исходной машины.
+Дополнительно проверены настоящие установленные пакеты: signed iii CLI/native flow; полный native iii HTTP scenario; 15 security regressions; минимальный CLI с буквальным curl-рецептом, повтором и owner reopen; отдельные установки клиентов; mixed-version поток. Контрольный специальный request key отклоняется до создания native ресурсов. Незаинтересованный reviewer отдельно проверил client auth/canonical JSON и actual compiled modules; исправленные security участки приняты не их авторами.
 
-Также прошёл `npm run package-smoke`: backend и SDK заново упакованы и установлены в отдельный временный HOME; проверены CLI/HTTP/SDK, native tool result, потерянный ответ и SIGKILL/reopen, явный native profile, scoped models/skills, parent/BB bindings, coherent outcome и native iii job/result/reopen. Все пять локальных tarballs успешно собраны.
+Повторное итоговое ревью заново сверило 407 файлов, все восемь repository lockfiles, hashes пяти архивов, содержимое установок, 53 исходных leaf criteria и их шестиколоночную Test Strategy; повторило пять no-emit typechecks. Уже выполненные runtime tests на неизменившихся байтах не названы вторым запуском. Приватные отчёты, raw logs, security proof material и пути машины проверки не публикуются.
 
-Это **не** итоговый P5 verdict: полная signed client/recovery матрица, iii-only install и единый packaged mixed-version gate остаются отдельными требованиями. Source tests и ограниченный package smoke не заменяют их.
+### Производительность
 
-## Ограничения
+На 50 actual native read-tool commits измерен **тот же commit → BB API-visible delta**: baseline p95 **0,050321 мс**, remote p95 **49,123057 мс**, бюджет `1.2 × baseline + 50 ms` = **50,0603852 мс**. Запас — около **0,94 мс** в этой среде. Это не production SLA, latency модели или полный BB UI repaint.
 
-- BB `/compact` **unsupported**: отказ до native effects и accepted ACK. Публичный native compaction API пока не даёт канонического idempotency key. Терминал и native SDK сохраняют свой API.
-- Историческое BB-измерение — 50 native read-tool commits → BB API-delta, p95 **38,506202 мс** при бюджете **50,0585288 мс**. Это не latency модели и не полный UI repaint.
-- Compile success не доказывает native Durable recovery compatibility.
-- Нельзя открывать рабочую SQLite параллельно с её действующим владельцем. Quick start создаёт новую изолированную базу.
-- Текущая версия пакета не идентифицирует его содержимое: нужны hashes исходников, lockfiles и реальных tarballs.
+У неизменённого terminal archive сохранён прежний независимый commit → PTY результат: p95 **4,278373 мс** при бюджете **51,9471548 мс**. Эти две метрики не взаимозаменяемы.
 
-## Что требуется перед release-ready
+## Проверка публичной сборки
 
-Один неизменяемый source/lockfiles/tarball tuple; typecheck пяти пакетов; полные применимые faux/loopback suites; свежая установка упакованных backend/SDK/BB/iii; mixed-version с неизменённым принятым терминалом; отрицательные security scenarios. Проверяющий не принимает собственный исправленный участок.
+После обновления документации заново собраны и offline установлены все пять публичных tarballs с заранее подготовленным npm cache. Это не uncached bootstrap: local tarballs не включают все сторонние npm dependencies. На них повторно выполнены буквальные JS-примеры из GETTING_STARTED/CUSTOM_RUNTIME/BUILDING_ADAPTERS, curl-рецепт, default minimal CLI/reopen, signed iii CLI/native flow, native iii HTTP scenario, 15 security regressions и mixed terminal + BB. Все проверки прошли; исходные assertions не ослаблялись. Только тестовые endpoints/порты и install roots выбраны disposable.
 
-Для iii отдельно нужны signed delegated identity, identical retries и changed-payload conflicts, revoke, foreign child/stale revision, owner restart, неизменяемый late answerRef и установка без terminal/BB. Реальные данные, production и платные модели этим планом не разрешаются.
+| Локальный публичный архив | SHA-256 проверенных байтов |
+|---|---|
+| backend | `a7405fead09463a54c6de91211df27b6c5600ae3f6f585dea01de41c94d5fc88` |
+| SDK | `351054859022ae202fbdc429e73da441bc90295e4717342652079c3ea0906abd` |
+| terminal | `1f1b74fa2b515b55bf280113d91116c267755973b5ed76ce9a6389174c235bde` |
+| BB | `fffc8f239c35862a5e130533da2fb338f315ec57891cac90d431b68009a1e661` |
+| iii | `17479a5dd8facb35eecff6311e3f3b718bc9bb607c02f7bcb54f78045fe58761` |
 
-[План](PLAN.md) · [Первый запуск](GETTING_STARTED.md) · [Архитектура](ARCHITECTURE.md)
+В iii-рецепте отдельно исправлена cold-HOME установка: обычный путь использует npm registry, а offline-вариант требует явно подготовленного полного cache. Буквальные normal install и cache preparation прошли с новыми пустыми HOME; затем тот же исправленный архив установлен без сети в OS sandbox с подготовленным cache. CLI `--help` прошёл, backend/terminal/BB не устанавливались. Изменились только README и его SOURCE hash; runtime JS/declarations совпадают побайтово, поэтому неизменные functional cases не названы новым повторным запуском.
+
+Это hashes локально проверенной source-сборки, не ссылки на опубликованные npm/binary releases. Runtime JavaScript и public declarations сохранены относительно принятого local tuple; отличия provenance/docs/package metadata проверены отдельно. Два неэкспортируемых build-time contract-check файла отсутствуют в чистой публичной backend-сборке; они не импортируются runtime и не входят в его public exports.
+
+## Что не обещается
+
+- BB `/compact` **unsupported**: отказ до native effect и accepted ACK. Публичный native compaction API не даёт canonical idempotency key. Терминал и SDK сохраняют свой API.
+- Полный совместимый running-BB smoke нужен перед production replacement.
+- Нет автоматической совместимости обычных Pi extensions, частных model IDs, произвольных registry или исторической recovery по одному успешному compile.
+- iii transport ACK — не completed job. Pending stop — не подтверждение native stop effect; потеря временного cursor не отменяет persisted `answerRef`.
+- Реальные модели/API, личные memory banks, deployment, рабочие DB и historical/cross-version migration требуют отдельного решения оператора.
+- `0.1.0` не идентифицирует содержимое архива: для установки фиксируйте source revision, lockfiles и SHA-256 собственных tarballs. Метаданные публичной документации могут отличать архив от внутренней проверочной сборки; не переносите verdict на новые байты автоматически.
+
+[План](PLAN.md) · [Первый запуск](GETTING_STARTED.md) · [Клиенты](CONNECTING_CLIENTS.md) · [Архитектура](ARCHITECTURE.md)

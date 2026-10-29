@@ -1,4 +1,4 @@
-# Архитектура без лишней магии
+# Архитектура: отдельные клиенты, один native owner
 
 ## Три слоя
 
@@ -49,6 +49,28 @@ flowchart TD
 
 Поля `human`, `actor`, `source`, имя worker или инструменты в JSON не меняют серверный grant. Клиентская metadata — данные, не authority. Для child control нужны реальные parent/child/execution/request IDs и актуальная revision; generic abort не подменяет native stop.
 
+## iii: подпись, job и сохранённый результат
+
+```mermaid
+sequenceDiagram
+  participant E as iii caller
+  participant W as Signed worker
+  participant H as Host / current grant
+  participant N as Native job journal
+  E->>W: Signed session + function + payload + expiry
+  W->>W: Verify Ed25519 / canonical JSON
+  W->>H: SDK operation on trusted native root
+  H->>H: Namespace / config / signer / delegated scope
+  H->>N: Stable request key + fingerprint
+  N-->>E: Canonical admission receipt
+  N->>N: Execute and persist native answer
+  E->>W: Signed requests::get / result
+  W->>H: Reauthorize same binding / answerRef
+  H-->>E: Immutable answer and verified pages
+```
+
+Disconnect ожидания не отменяет принятый job. `answerRef` адресует сохранённый native ответ в разрешённом binding; временный page cursor может сброситься при owner restart. Тогда чтение начинается заново с тем же reference, а не новым job key. У stop отдельно существуют принятый intent, pending receipt и реально завершённый native effect.
+
 ## Profile и изоляция
 
 Каждая session получает собственные model capability, environment, MCP resources и пути логов. Нельзя выдавать успешный single-session тест за доказательство безопасности process-global интеграции в нескольких sessions.
@@ -63,4 +85,4 @@ flowchart TD
 - Доказательство полного BB UI repaint по измерению API-delta.
 - Production readiness по одному локальному faux smoke.
 
-Подробное обоснование: [каноническая архитектура](host-design/ARCHITECTURE.md), [выбор решения](host-design/THINK.md), [план](host-design/PLAN.md), [критерии](../ISA.md).
+[План](PLAN.md) · [Проверенный scope](STATUS.md) · [Runtime profile](CUSTOM_RUNTIME.md) · [Новый адаптер](BUILDING_ADAPTERS.md). Приватная ISA и raw review-материалы не входят в публичную поставку.

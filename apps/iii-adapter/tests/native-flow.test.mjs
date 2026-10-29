@@ -67,7 +67,7 @@ test('installed iii-only CLI: actual native admission, lost ACK/reopen, immutabl
   assert.ok(Number.isSafeInteger(pending.submissionId)); assert.ok(pending.conversationId > 1);
   assert.notEqual(pending.receipt?.status, 'done');
   const foreignTarget = { binding: fixture.config.sessionId, session: fixture.config.sessionId, type: 'conversation', conversationId: 1 };
-  await assert.rejects(call('controls::inspect', { target: foreignTarget }), /PARENT_CONTROL_DENIED|CONTROL_TARGET_DENIED|scope|403/i);
+  await assert.rejects(call('controls::inspect', { target: foreignTarget }), { message: 'Grant does not permit this operation' });
   await stopWorker(firstWorker);
   releaseHeld();
   const persisted = await fixture.waitSubmission(pending.submissionId);
@@ -80,7 +80,7 @@ test('installed iii-only CLI: actual native admission, lost ACK/reopen, immutabl
   const answerRef = result.resultInfo.answerRef, pageInput = { requestId: intent.requestId, answerRef, limit: 4096 };
   const oldPage = await call('requests::result', pageInput); assert.ok(oldPage.cursor);
   await fixture.reopen();
-  await assert.rejects(call('requests::result', { ...pageInput, cursor: oldPage.cursor }), /CURSOR_CONFLICT/);
+  await assert.rejects(call('requests::result', { ...pageInput, cursor: oldPage.cursor }), { message: 'Native iii request conflicts with saved state' });
   let combined = '', cursor;
   do {
     const page = await call('requests::result', { ...pageInput, ...(cursor === undefined ? {} : { cursor }) });
@@ -89,12 +89,12 @@ test('installed iii-only CLI: actual native admission, lost ACK/reopen, immutabl
     combined += page.text; cursor = page.cursor;
   } while (cursor !== null);
   assert.equal(combined, large);
-  await assert.rejects(call('requests::result', { ...pageInput, answerRef: 'tree-invalidation:1' }), /RESULT_REFERENCE_CONFLICT/);
+  await assert.rejects(call('requests::result', { ...pageInput, answerRef: 'tree-invalidation:1' }), { message: 'Native iii request conflicts with saved state' });
   const retries = await Promise.all(Array.from({ length: 4 }, () => call('start', intent, { authority: 'human' })));
   for (const retry of retries) { assert.equal(retry.submissionId, pending.submissionId); assert.equal(retry.fingerprint, result.fingerprint); }
   assert.equal(fixture.generations.get(heldContent), 1);
-  await assert.rejects(call('start', { ...intent, content: 'CHANGED_BODY' }), /REQUEST_PAYLOAD_CONFLICT|conflict/i);
-  await assert.rejects(call('steer', { ...intent, jobId: intent.requestId }), /REQUEST_PAYLOAD_CONFLICT|conflict/i);
+  await assert.rejects(call('start', { ...intent, content: 'CHANGED_BODY' }), { message: 'Native iii request conflicts with saved state' });
+  await assert.rejects(call('steer', { ...intent, jobId: intent.requestId }), { message: 'Native iii request conflicts with saved state' });
   for (const extra of [{ authority: 'human' }, { source: 'terminal' }, { tools: ['bash'] }, { namespace: 'default' }, { _caller_worker_id: 'root' }]) {
     await assert.rejects(call('start', { requestId: 'forged', content: 'MUST_NOT_EXECUTE', ...extra }), /UNKNOWN_INPUT_FIELD/);
   }

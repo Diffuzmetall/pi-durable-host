@@ -48,7 +48,25 @@ BB adapter — provider-процесс с JSON-RPC по stdin/stdout. Не за�
 
 iii подключается как отдельный адаптер с подписанным ingress и server-owned delegated binding. Ключевые проверки: namespace/config identity, устойчивый job request key, настоящий native parent-control и immutable answer reference.
 
-**Смотрите [текущий статус](STATUS.md):** до завершения сквозной приёмки это не готовая инструкция для production engine. Конфигурация клиента или `_caller_worker_id` не заменяет серверную авторизацию. Закрытие iii transport не должно отменять native job.
+Локальная сквозная приёмка пройдена: настоящий pinned `iii-sdk@0.24.6`, signed function transport на loopback, native faux host, retry/conflict/revoke/control/restart и immutable result. Production engine и живые модели не проверялись. Конфигурация клиента или `_caller_worker_id` не заменяет серверную авторизацию; закрытие transport не отменяет принятый native job.
+
+После сборки SDK по [quick start](GETTING_STARTED.md), из корня checkout:
+
+```sh
+(cd apps/iii-adapter && npm ci --ignore-scripts)
+(cd apps/iii-adapter && npm pack --pack-destination ../../artifacts)
+```
+
+В отдельном install-каталоге:
+
+```sh
+npm install --ignore-scripts /PATH/dpi-sdk-0.1.0.tgz /PATH/dpi-iii-adapter-0.1.0.tgz
+./node_modules/.bin/dpi-iii-worker --help
+```
+
+Для запуска сначала оператор готовит trusted server composition с `native-iii.v2`, точный native root и delegated `binding.iii`. В private config входят opt-in, namespace, полный config hash, public Ed25519 signer и имя token environment variable. Сам token и private signing key в config/Git не помещаются. Полный формат, signed invocation и команда `dpi-iii-worker --config FILE`: [iii README](../apps/iii-adapter/README.md).
+
+`start` возвращает admission, `run` ждёт native результат, `requests::get` сверяет прежний key. Для чтения после restart сохраняйте `answerRef`; при потере временного cursor начните paging заново с тем же reference. Pending stop не означает завершённый stop effect. Возможности и границы: [статус](STATUS.md).
 
 ## Прямой SDK/HTTP
 

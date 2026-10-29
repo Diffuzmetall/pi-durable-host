@@ -1,5 +1,5 @@
 {
-  "scope": "P5 standalone signed iii SDK client candidate; full new-SDK/native/independent acceptance pending",
+  "scope": "P5 standalone signed iii client; independently accepted local native/faux/loopback scope; production and real historical migration unverified",
   "sourceRoot": "donor-iii://src",
   "sources": [
     {
@@ -89,7 +89,7 @@
     },
     {
       "path": "tests/native-flow.test.mjs",
-      "sha256": "db87e59279ff206ee0bb491a17f018ae2cc9c936114a26c0bc51e1b13428307a"
+      "sha256": "05bf744a3d43a33eef92f7b674a7002050787c4ced05adc4f454ab5c5e48db73"
     },
     {
       "path": "tests/helpers/echo-worker.mjs",
@@ -105,11 +105,11 @@
     },
     {
       "path": "README.md",
-      "sha256": "9b688811cebde37d652c209ea48e5aced327fd82ac63e9a402eabbf4163c7b7c"
+      "sha256": "695cfb670bde91cdc1d470c2a75e38080ff8b764733b9316fdaf0bb397ead831"
     },
     {
       "path": "NOTICE.md",
-      "sha256": "348878465c2f10734f0acb088d81877fbe35605d21ec5831c1ed55f9b8c03c0d"
+      "sha256": "825e81dfe3e76cb28d2fbfee6e31d378492403dbe1212a6c26a4147e1bd46c1b"
     },
     {
       "path": "LICENSE",
@@ -132,8 +132,25 @@
       "sha256": "1c6dc1bea5c747eb555002bd632b77fc5d57783153c915d7f1a011af8f5d9737"
     }
   ],
+  "checks": {
+    "strict": "PASS full npm run check against actual installed SDK archive; not a source symlink or path alias",
+    "components": "PASS 12/12, zero skipped; generated-key ingress/config/input and actual pinned iii SDK namespace/reconnect",
+    "native": "PASS 1/1, zero skipped; signed installed iii-only CLI through actual iii-sdk loopback transport to separately installed native faux host",
+    "backendArchiveSha256": "1df78d0f7ae265adf2a46b966cf8f12842fd2748900f48724dcf4bc887426410",
+    "sdkArchiveSha256": "351054859022ae202fbdc429e73da441bc90295e4717342652079c3ea0906abd",
+    "nativeCommand": "DPI_III_TEST_BACKEND_ROOT=\"$BACKEND_INSTALL/node_modules/dpi-backend\" DPI_III_TEST_CLIENT_BIN=\"$CLIENT_DIR/node_modules/dpi-iii-adapter/dist/main.js\" npm --prefix apps/iii-adapter run test:native",
+    "coverage": [
+      "Trusted namespace/config/delegated proof before transport registration; unsigned caller metadata never authority",
+      "Lost ACK, replaced client, owner reopen, four identical retries and one native generation",
+      "Immutable late answerRef, hash/length-preserving pages after process-local cursor reset; tree cursor refused",
+      "Changed body/mode conflicts; forged input fields rejected",
+      "Foreign/stale/revoked controls, genuine native child receipt and pending-stop receipt before actual abort; completed stop survives reopen"
+    ],
+    "fixtureChanges": "Assertions now match fixed safe public conflict/denial messages, not internal cause strings. Native behavior and original positive/no-extra-generation checks retained.",
+    "independentAcceptance": "PASS independent local five-package signed/native/standalone acceptance and post-final review; exact scope and current public build checks in docs/STATUS.md"
+  },
   "remaining": [
-    "Full strict compilation against the new native-iii.v2 public SDK",
-    "Actual new immutable native job/control/retry/reopen/paging test and installed client-only closure"
+    "Actual selected historical/cross-version migration and original-version restoration remain unverified",
+    "Production iii engine, live providers and running-BB UI smoke remain unverified"
   ]
 }

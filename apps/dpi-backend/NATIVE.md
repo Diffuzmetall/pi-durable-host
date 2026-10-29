@@ -211,7 +211,7 @@ adapter. `bindingId` is the original logical worker binding, not a native sessio
 
 Public `AgentHandle` methods, all requiring this capability before the request, are
 `iiiInfo()`, `iiiSubmit({requestId,content,operation?,jobId?,mode?})`,
-`iiiRequest(requestId)`, `iiiResult({requestId,answerRef,cursor?,limit?})`,
+`iiiRun(input,{signal?,timeoutMs?})`, `iiiRequest(requestId)`, `iiiResult({requestId,answerRef,cursor?,limit?})`,
 `iiiControl(operation,payload)`, `iiiControlReceipt(controlId)`,
 `iiiJobStop({jobId,controlId,expectedGeneration})` and `iiiJobStopReceipt(controlId)`.
 `operation` is `start`, `follow_up` or `steer`; start creates an original isolated
@@ -244,8 +244,9 @@ reconciliation are retained. Read-model/tree-event/recovery-console extras are n
 ported or advertised (`treeEvents:false`, `recovery:false`); those flags do not disable
 the original native job/stop recovery. Signed ingress/engine completion delivery belongs
 to the separate iii client adapter; the server does not load an engine, launcher or
-personal worker/session files. Selected private prototype code is authorized for this
-local candidate only; see its source notice before any separate publication decision.
+personal worker/session files. The selected iii source owner confirmed MIT publication
+rights; its source notice preserves that grant and the distinct original/local hashes.
+Source publication does not authorize production or real-session migration.
 
 ## Candidate boundaries
 
