@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "upstream": "donor-source://src/context7-mcp.ts",
+      "upstreamSha256": "ccff70e81441c50870a5a914177b8efe737847c73839cc93b61f6fe14f13167e",
+      "local": "context7/context7-mcp.ts",
+      "localSha256": "bed0ab72de55de13c0c2578ad3d9280bb0c336e3bc1b97a4be22a13056d02c02"
+    }
+  ],
+  "testedDependencies": {
+    "pi-ai": "1.4.0",
+    "pi-durable": "1.4.0",
+    "pi-mcp": "1.0.2",
+    "chord": "1.4.0"
+  },
+  "limits": "Actual localized factory tests only; no live provider auth, production or full-profile acceptance."
+}

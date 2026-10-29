@@ -14,6 +14,7 @@ export interface BackendConfig {
   dataDir: string;
   startDirs: string[];
   provider: "openrouter" | "faux";
+  profile: "minimal" | "playground";
   token: string;
 }
 
@@ -30,6 +31,8 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Bac
   const home = expand(env.DPI_HOME ?? join(homedir(), ".dpi"));
   const envFile = expand(flag("--env-file", env.DPI_ENV_FILE ?? join(home, "backend.env")));
   if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const profile = env.DPI_PROFILE ?? "minimal";
+  if (profile !== "minimal" && profile !== "playground") throw Error(`Unknown DPI_PROFILE: ${profile}`);
   const config: BackendConfig = {
     name: flag("--name", env.DPI_DEVICE_NAME ?? hostname().replace(/\.local$/, "")),
     host: flag("--host", env.DPI_HOST ?? "127.0.0.1"),
@@ -42,6 +45,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Bac
       .filter(Boolean)
       .map((p) => resolve(expand(p))),
     provider: (env.DPI_PROVIDER ?? "openrouter") === "faux" ? "faux" : "openrouter",
+    profile,
     token: env.DPI_TOKEN ?? "",
   };
   if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535)

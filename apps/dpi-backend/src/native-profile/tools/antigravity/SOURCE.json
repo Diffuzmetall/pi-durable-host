@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "upstream": "donor-source://src/index.ts",
+      "upstreamSha256": "93fe5be1f7587fce7fb4ca53271de5517f4bd0cca8258a41a01d7f986cd859e3",
+      "local": "antigravity/index.ts",
+      "localSha256": "facd9f95e695778124cd1b7bfee2cc021fc613bf3ca1b3c79e8dcde51024078a"
+    },
+    {
+      "upstream": "donor-source://src/save.ts",
+      "upstreamSha256": "912a60d9de60afb7c8f218114692e57f7a33bbf6aa8a83e6b82ef666f87533bd",
+      "local": "antigravity/save.ts",
+      "localSha256": "912a60d9de60afb7c8f218114692e57f7a33bbf6aa8a83e6b82ef666f87533bd"
+    }
+  ],
+  "testedDependencies": {
+    "pi-ai": "1.4.0",
+    "pi-durable": "1.4.0",
+    "pi-mcp": "1.0.2",
+    "chord": "1.4.0"
+  },
+  "limits": "Actual localized factory tests only; no live provider auth, production or full-profile acceptance."
+}

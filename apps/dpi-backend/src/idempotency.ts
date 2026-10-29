@@ -1,20 +1,33 @@
-import type { RequestHandler } from "express";
-import type { Store } from "./store.js";
+import { createHash } from "node:crypto";
+import { invalid } from "./errors.js";
 
-/** Replays the stored response for a repeated `Idempotency-Key` on create routes. */
-export function idempotent(store: Store): RequestHandler {
-  return (req, res, next) => {
-    const key = req.get("idempotency-key");
-    if (!key) return next();
-    if (key.length > 128) return void res.status(400).json({ error: { code: "invalid", message: "Idempotency-Key too long" } });
-    const route = `${req.method} ${req.baseUrl}${req.path}`;
-    const stored = store.replay(key, route);
-    if (stored) return void res.status(stored.status).set("Idempotent-Replay", "true").json(stored.body);
-    const json = res.json.bind(res);
-    res.json = (body: unknown) => {
-      if (res.statusCode < 400) store.remember(key, route, res.statusCode, body);
-      return json(body);
-    };
-    next();
-  };
+/** Supplied by trusted server policy, never copied from an HTTP request body. */
+export interface AdmissionIdentity {
+  actor: string;
+  source: string;
+  authority: string;
+  assertCurrent: () => void;
+  signal?: AbortSignal;
+  /** Semantic server policy reference, generated from the authenticated handle, never the body. */
+  policyReference?: string;
+}
+
+export function requestKey(key: unknown): string {
+  if (typeof key !== "string" || !key || key.length > 128)
+    throw invalid("requestId or Idempotency-Key is required (≤128 chars)");
+  return key;
+}
+
+/** JSON-equivalent bodies compare equally despite object property order. */
+export function fingerprint(value: unknown): string {
+  const canonical = JSON.stringify(value, (_key, item: unknown) =>
+    item && typeof item === "object" && !Array.isArray(item)
+      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))
+      : item,
+  );
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
+export function nativeRequestKey(actor: string, operation: string, key: string): string {
+  return `host:${fingerprint([actor, operation, requestKey(key)])}`;
 }

@@ -1,0 +1,58 @@
+{
+  "implementation": "Public native SDK ownership seam, not a copy of the private CLI model/config runtime",
+  "reference": {
+    "path": "donor-host-package://coding-agent/src/core/model-runtime.ts",
+    "sha256": "de28a51492788e7f5f4d6f20a57fa8b08e32fd9e766a365211b54a3f3959a177",
+    "seams": [
+      "createModels({credentials, modelsStore})",
+      "builtinProviderCatalog.builtinProviders()",
+      "refresh({allowNetwork: false})"
+    ],
+    "license": "MIT, copyright 2025 Mario Zechner"
+  },
+  "dependency": {
+    "package": "@earendil-works/pi-ai",
+    "version": "1.4.0",
+    "license": "MIT (package metadata)",
+    "exports": [
+      ".",
+      "./providers/all"
+    ],
+    "inspectedImplementation": "node_modules/@earendil-works/pi-ai/dist/models.js",
+    "inspectedSha256": "de6323034ca216eefecdfc44dd5c93f22713b34a01f2eb21a6d0a5ce85f9bb19"
+  },
+  "deltas": [
+    "Require an explicit trusted native CredentialStore and close default AuthContext environment/file discovery",
+    "Use a fresh public provider set and native Models container per session without provider/model aliases",
+    "Restore native model cache without network or OAuth refresh at startup",
+    "Project only safe chat-model metadata and the two explicit default-reference fields",
+    "Require exact native model availability before Harness.open/resume; never pick a replacement",
+    "Leave auth resolution, OAuth locks/refresh, dynamic cache, model filters and request dispatch in the SDK"
+  ],
+  "files": [
+    {
+      "path": "index.ts",
+      "sha256": "f618932caad9a243bed8182f4bc1f9a098cd84ba7e662f799b1fc1134361ccc0"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "d5d1095bd4fa8a9a64254b39ca1720621e0735893c54c4adb7aac361442c764e"
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "463c898a77a6414b8db4b77c60690c51fc1e4fad2a493030696f8d3e54bc05c5"
+    }
+  ],
+  "test": {
+    "path": "apps/dpi-backend/tests/native-models.test.mjs",
+    "sha256": "88cda855ff686fffbbaa4f2debece3df0d2ff7a542c73a7ca99aff4797506aa4",
+    "command": "cd apps/dpi-backend && node --import tsx --test tests/native-models.test.mjs",
+    "result": "3/3 PASS, actual two-Harness/SQLite/faux/loopback and native builtin/OAuth tests"
+  },
+  "limits": [
+    "No personal credential/config files, login, live model or external auth calls in verification",
+    "CLI models.json/virtual-model/private extension composers are not bundled; supply native providers with their exact original IDs",
+    "Profile Store integration, configured package and independent milestone acceptance are separate owner/gate work",
+    "No universal model-output/error credential-redaction claim from this metadata projection test"
+  ]
+}

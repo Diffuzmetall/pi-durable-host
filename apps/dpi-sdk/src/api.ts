@@ -1,13 +1,21 @@
 // The Durable Agent Network wire contract: every JSON body and stream frame between
 // dpi-backend and its clients. Types only, so browsers, Node and the TUI share it.
 //
-// Agent events are pi-durable 1.0.3's `watchEvents()` output passed through verbatim.
+// Agent events follow pi-durable 1.4.0's `watchEvents()` shape. Private provider
+// failure details are coarsened at the host's public projection boundary.
 // The Wire* event types below copy their JSON shape; apps/dpi-backend/src/contract-check.ts
 // fails the build if pi-durable's own types stop fitting them.
 
 import type { JobDef } from "./jobs.js";
+export type { NativeIiiJson, NativeIiiInput, NativeIiiInfo, NativeIiiRequest, NativeIiiResultInfo, NativeIiiResultQuery, NativeIiiResultPage, NativeIiiControlOperation, NativeIiiTarget, NativeIiiJobStop, NativeIiiJobStopReceipt } from './iii.js';
 
 export const API_VERSION = 1 as const;
+
+/** Public discovery metadata; contains no host paths, credentials or session data. */
+export interface ProtocolInfo {
+  apiVersion: number;
+  capabilities: readonly string[];
+}
 
 export type DeviceKind = "local" | "ssh" | "exe-dev" | "url";
 export type DeviceStatus =
@@ -27,7 +35,7 @@ export type ErrorCode =
   | "unavailable"
   | "internal"
   | "offline";
-export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export const THINKING_LEVELS: readonly ThinkingLevel[] = [
   "off",
   "minimal",
@@ -35,6 +43,7 @@ export const THINKING_LEVELS: readonly ThinkingLevel[] = [
   "medium",
   "high",
   "xhigh",
+  "max",
 ];
 export type WhenBusy = "followUp" | "steer" | "reject";
 
@@ -52,7 +61,66 @@ export interface ModelInfo {
   icon: string;
   contextWindow: number;
   reasoning: boolean;
+  /** Authoritative native model levels; optional only for older v1 hosts. */
+  supportedThinkingLevels?: readonly ThinkingLevel[];
+  /** Discovery metadata only; actual session authorization is checked before use. */
+  available?: boolean;
   cost: { input: number; output: number };
+}
+
+export interface NativeParentTarget {
+  key: string;
+  conversationId: number;
+  executionId?: string;
+  requestId?: string;
+}
+export type NativeParentCommand = { controlId: string; expectedRevision: string } & (
+  | { action: 'spawn'; name: string; task: string; tools?: string[] }
+  | { action: 'send'; target: NativeParentTarget; task: string; followUp?: boolean }
+  | { action: 'stop'; target: NativeParentTarget; scope: 'child-tree' }
+  | { action: 'reply'; target: NativeParentTarget; replyTo: string; message: string }
+);
+export interface NativeBbBinding {
+  providerId: string;
+  sessionId: string;
+  conversationId: number;
+  bbThreadId: string;
+  parentThreadId?: string;
+}
+export type NativeBbOutcome =
+  | { status: 'unknown'; reason: string }
+  | { status: 'working'; reason: string; entries?: readonly WireEntry[]; inputs?: readonly { entryId: string; requestId: string }[]; agent?: { model: string; thinkingLevel: string } }
+  | { status: 'completed' | 'failed' | 'interrupted'; conversationId: number; parentConversationId: number; anchorTaskId: number;
+      requestId: string; submissionId: number; entries: readonly WireEntry[]; inputs?: readonly { entryId: string; requestId: string }[];
+      agent?: { model: string; thinkingLevel: string }; answer?: number };
+export type NativeBbBindingCommand = { kind: 'root' } | { kind: 'child'; target: Required<NativeParentTarget> };
+export interface NativeParentState { parentId: number; revision: string }
+export interface NativeParentReceipt {
+  version: 'native-parent-control/v1';
+  controlId: string;
+  action: 'spawn' | 'send' | 'stop' | 'reply';
+  parentId: number;
+  conversationId?: number;
+  childKey?: string;
+  executionId?: string;
+  requestId?: string;
+  priorExecutionId?: string;
+  retryContext?: { expectedRevision: string; target: Required<NativeParentTarget> };
+  replyTo?: string;
+  admitted?: boolean;
+  scope?: 'child-tree';
+  stopped?: boolean;
+}
+
+export interface SkillInfo {
+  name: string;
+  description: string;
+  filePath: string;
+  baseDir: string;
+  disableModelInvocation: boolean;
+}
+export interface SkillBody extends SkillInfo {
+  content: string;
 }
 
 export interface DeviceInfo {
@@ -67,10 +135,12 @@ export interface DeviceInfo {
   startDirs: string[];
   models: ModelInfo[];
   defaultModel: string;
+  /** Exact configured default; disambiguates identical IDs in different providers. */
+  defaultModelRef?: { provider: string; modelId: string };
   storage: { dataDir: string; catalogPath: string; appStatePath: string };
   /** The checkout the backend runs from (repo root locally, `code_dir` on deployed devices). */
   codeDir?: string;
-  capabilities: Array<"events" | "docs" | "demo" | "jobs">;
+  capabilities: string[];
   /** Durable jobs any agent on this device can run (`POST .../demo/jobs` or the run_durable_job tool). */
   jobs?: JobDef[];
 }
@@ -192,6 +262,8 @@ export interface AgentExtensions {
 
 export interface AgentDetail extends AgentSummary {
   sessionId: string;
+  /** Only these profile-owned kinds may be requested from docs/events. */
+  documentKinds?: readonly string[];
   config: AgentConfig;
   /**
    * Every tool of the agent's extensions. `parameters` is its JSON Schema, as the model sees it; `writes` marks tools
@@ -231,6 +303,16 @@ export type SendResult =
   | { submissionId: number; status: "queued" | "pending" }
   | { submissionId: number; status: "done"; answer: { entryId: number; text: string } }
   | { submissionId: number; status: "unanswered"; reason: string };
+
+export interface GoalOperatorReceipt {
+  /** Canonical native request key, not a credential. */
+  requestId: string;
+  conversationId: number;
+  taskId: number;
+  status: "queued" | "started" | "done" | "failed" | "uncertain";
+  text?: string;
+  error?: string;
+}
 
 export interface ForkBody {
   entryId: number;
@@ -490,6 +572,7 @@ export interface NetworkDevice {
 }
 
 export type Frame =
+  | { type: 'bb.outcome'; threadId: string; outcome: NativeBbOutcome }
   | { type: "hello"; apiVersion: typeof API_VERSION; serverTime: number; scope: StreamScope }
   | { type: "fault"; error: { code: ErrorCode; message: string } }
   // device scope

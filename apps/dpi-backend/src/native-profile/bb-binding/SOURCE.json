@@ -1,0 +1,11 @@
+{
+  "upstream": "donor-bb://src/store/binding-store.ts",
+  "upstreamSha256": "91006dcc3a94a9208ed3d1940f34d20de4107a26fbf65a0a9b0d21e53a033d96",
+  "local": "binding-store.ts",
+  "localSha256": "8b6bcbf922df0ef796ec083916d22d9f576ccf359af33958cb376555416686a3",
+  "fixture": "../../../tests/native-bb-binding.test.ts",
+  "fixtureSha256": "dbd15985977a39479eac78be5ef5ecbc4c654d43cfe7a511e925b5c33073815d",
+  "delta": "SDK1.4 checkpointWhen:()=>false on both actual documents. Export BindingDoc and factor the original unchanged validation/index/document CAS into putDurableBinding(actualNativeTx,binding); original active-tool factory calls that same helper. The HTTP owner uses its genuine existing Harness Tx with current authorization, never a fabricated ToolExecutionApi. Kinds/versions/history/fork/identity/CAS unchanged.",
+  "publicRuntime": "@earendil-works/pi-durable@1.4.0",
+  "verification": "Original active-tool Harness/SQLite/faux 1/1 PASS; scoped native owner HTTP/SDK BB and parent-control plus original input/binding 6/6 PASS private-verification-artifact; full ordered P4 adapter acceptance remains separate"
+}

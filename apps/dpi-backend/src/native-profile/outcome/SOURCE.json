@@ -1,0 +1,37 @@
+{
+  "source": "donor-bb://src",
+  "sdk": "1.4.0",
+  "changes": [
+    "Relative imports use local .js paths and the actual localized native subagent docs.",
+    "coherent latest user also recognizes host.input only through canonical native input receipt membership, not arbitrary entry data.",
+    "history capture is extracted from original read-service.readOutcomeHistory; existing owner supplies its genuine Harness and original Storage, without Hindsight lifecycle registration or another runtime.",
+    "SDK1.4 permits unnamed native input receipts: the latest unnamed input yields receipt-unavailable rather than attributing an older named receipt. Only named canonical entries enter the input mapping.",
+    "Original bounded scans, commit consistency guard, native ownership/execution fence, unknown semantics and terminal reason mapping remain."
+  ],
+  "files": [
+    {
+      "path": "coherent.ts",
+      "upstream": "outcome/coherent.ts",
+      "sourceSha256": "99a323369906cbbe36bfb6a921ad1c344342bfebc90a1e69127bf3177645b0ff",
+      "localSha256": "a937ee940e8c4c400c59ee5404e2f52317a3bb798f8a434897db25a5ab0e849b"
+    },
+    {
+      "path": "resolver.ts",
+      "upstream": "outcome/resolver.ts",
+      "sourceSha256": "02959f24d437d57f0e0941d0628b45613277fbb046c4a2e8c1028130227e41ca",
+      "localSha256": "02959f24d437d57f0e0941d0628b45613277fbb046c4a2e8c1028130227e41ca"
+    },
+    {
+      "path": "child-scope.ts",
+      "upstream": "native/child-scope.ts",
+      "sourceSha256": "e9b21872fcef8e9679c59a00745790f22adee0e3dc1b008c2372b7c4d7b3c9f1",
+      "localSha256": "f5054d14fc372891fb48c7ca3e1cae532d137ad4b8c007941d34f06f300ab20d"
+    },
+    {
+      "path": "history.ts",
+      "upstream": "local-host/read-service.ts#readOutcomeHistory",
+      "sourceSha256": "31d490f0ad682db344114376a8ba600057b68c1bc0eb1f585f3fec38593473fc",
+      "localSha256": "f8467d58ca78c5da752d0aa3f3ace0c368d372cb30258a9486af4809df0f9927"
+    }
+  ]
+}
