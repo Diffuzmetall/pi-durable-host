@@ -25,6 +25,12 @@ __pycache__/
 # agent scratch space for the e2e scenario (tests/e2e-network.mjs)
 /e2e/
 
+# private review copies: public plan/status live in docs/PLAN.md and docs/STATUS.md
+/ISA.md
+/OBSERVE.md
+/docs/host-design/
+/artifacts/
+
 # local artifacts
 test-results/
 tmp/
