@@ -1,0 +1,8 @@
++export function nativeControlWasAdmitted(control: { requestId: string; input: unknown }, snapshot: HistoricalSnapshot): boolean {
++  const receipt = snapshot.inputs?.find(receipt => receipt.requestId === `bb-child:${control.requestId}`);
++  const nativeText = receipt && snapshot.items.filter(item => item.source.entryId === receipt.entryId && item.item.type === 'userMessage')
++    .flatMap(item => item.item.type === 'userMessage' ? item.item.content.map(block => block.text) : []).join('\n').trim();
++  const controlText = Array.isArray(control.input) && control.input.every(block => block?.type === 'text' && typeof block.text === 'string')
++    ? control.input.map(block => block.text).join('\n').trim() : undefined;
++  return receipt !== undefined && nativeText === controlText;
++}

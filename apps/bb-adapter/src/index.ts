@@ -1,0 +1,14 @@
+export { BbProviderBridge } from './provider-bridge.js';
+export type { BbBridgeOptions } from './provider-bridge.js';
+export { BbThreadSession, ownerScopeFrom } from './session.js';
+export type { BbRootOptions, BbCore, ProviderOwnerScope } from './session.js';
+export { BbChildSession } from './child-session.js';
+export type { ChildCapture } from './child-session.js';
+export { RootDeltas } from './root-deltas.js';
+export type { ThreadDelta } from './types.js';
+export { openHistorySink } from './history-sink.js';
+export type { HistoryRequester, CoreResult } from './history-sink.js';
+export { projectHostHistory, projectCoherentHistory, projectChildHistory } from './history-projector.js';
+export type { HistoricalSnapshot, HistoricalItem } from './history-types.js';
+export { projectNativeChildInBb, nativeChildKey, nativeChildRegistrationRequestId } from './native-child-binding.js';
+export type { NativeChildDescriptor, NativeChildOwner, NativeChildProjectionResult, RegisterExistingRequest } from './native-child-binding.js';

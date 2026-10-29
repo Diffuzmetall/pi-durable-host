@@ -1,0 +1,20 @@
+{
+  "origin": "donor-bb: selected MIT provider/Core integration, Copyright (c) 2026 Diffuzmetall",
+  "purpose": "Test-only verbatim selected Core contract/predicate; no machine-local donor tree is required. This predicate is provenance after Core authorization, not an authority check.",
+  "files": [
+    {
+      "path": "native-history-contract.ts",
+      "source": "src/bb-compat/native-history-contract.ts",
+      "sha256": "81dfbda6b6892b4803cbc89aef5b938a8aac7d81294b9641c29a6663560f4c61",
+      "adaptation": "None; verbatim source. Uses the selected exact zod dev dependency."
+    },
+    {
+      "path": "native-control.patch",
+      "source": "compat/source/bb-0.47.1.patch:2665-2672",
+      "sourceSha256": "3c7d9eceb1950e44e17d3b9399ec3e1c1345ab2f05bc829928cc81665391b078",
+      "sha256": "3247676287a1dd34ac2988ab3c172c3cd68bc015c540a85f2d359493710ddb4c",
+      "adaptation": "Only the eight original added lines containing nativeControlWasAdmitted; function unchanged, original patch markers retained."
+    }
+  ],
+  "license": "MIT; package LICENSE and HISTORY-NOTICE.md retain the selected source notice. Fixtures are not runtime package dependencies."
+}
