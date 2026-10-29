@@ -1,0 +1,27 @@
+{
+  "name": "dpi-iii-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Signed iii function transport to delegated jobs in the existing Durable host, through public dpi-sdk only.",
+  "license": "MIT",
+  "bin": { "dpi-iii-worker": "./dist/main.js" },
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md", "NOTICE.md", "SOURCE.json", "LICENSE"],
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "tsx --test tests/*.test.mts tests/engine.test.mjs tests/adapter.test.mjs",
+    "test:native": "node --experimental-import-meta-resolve --import tsx --test tests/native-flow.test.mjs",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": { "dpi-sdk": "0.1.0" },
+  "dependencies": { "iii-sdk": "0.24.6" },
+  "devDependencies": {
+    "dpi-sdk": "file:../dpi-sdk",
+    "@types/node": "^24.0.0",
+    "ws": "8.22.0",
+    "tsx": "^4.20.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "scope": "P5 standalone signed iii SDK client candidate; full new-SDK/native/independent acceptance pending",
+  "sourceRoot": "donor-iii://src",
+  "sources": [
+    {
+      "path": "auth.ts",
+      "sha256": "d20007b609d5ea649f5ae26b229e2dfd54fa8c488fbea52ef43975a185838e62"
+    },
+    {
+      "path": "domain.ts",
+      "sha256": "3dba5188a02c75e05284f211cff1e6dcd5eecef8df994336dfbd1180b4959426"
+    },
+    {
+      "path": "session-binding.ts",
+      "sha256": "0054bb13bf1663556d1d07dae02c1b6b0f7567d76712cbc8391915b3f36b3446"
+    },
+    {
+      "path": "worker.ts",
+      "sha256": "ad8c8c55575d78b76915c81ac287ced713a923269d8fdc92d5ef33eb550140a4"
+    },
+    {
+      "path": "control-domain.ts",
+      "sha256": "a7555a000772eb728312501ffa7821c72ef28c14c2c342dd8c27ee2de554aa3b"
+    }
+  ],
+  "license": {
+    "fork": "MIT, copyright 2026 IndyDevDan retained verbatim",
+    "selectedWorker": "MIT; Copyright (c) 2026 Diffuzmetall",
+    "permission": "Selected source owner separately confirmed ownership and MIT publication rights; no deployment or production grant."
+  },
+  "runtimeDependencies": [
+    "dpi-sdk@0.1.0 (public HTTP/SSE SDK only)",
+    "iii-sdk@0.24.6 (function transport)",
+    "Node standard library"
+  ],
+  "deltas": [
+    "Original auth verifier and sparse-array correction preserved; signed-only standalone registration",
+    "Original pure Input/requestKey/input helpers, namespace restriction and full-config fingerprint preserved",
+    "Filesystem native launch/binding ticket/runtime ownership replaced with explicit trusted remote session/root/delegated grant proof",
+    "Signer digest is fingerprint(public PEM), never iii caller-worker metadata; secret bearer selected through tokenEnv outside JSON",
+    "Original supported function IDs map to typed public iii SDK calls; native journals, receipt IDs, control scope/revisions and immutable answers remain server-owned",
+    "No client polling, native Storage/Harness/DB, generic abort, session launcher, local request ledger or receipt aliases",
+    "Server-only fixture uses separately installed backend public exports; no native test helper is packaged"
+  ],
+  "files": [
+    {
+      "path": "src/auth.ts",
+      "sha256": "2316eb22d9dc596690017ad843815df662825641f3705762759d1c605fc41ebb"
+    },
+    {
+      "path": "src/config.ts",
+      "sha256": "37fe0ace156bfa63de2532859d35d23110bb676d9136856877cabaf6c6b48d5f"
+    },
+    {
+      "path": "src/domain.ts",
+      "sha256": "95c8b386f3a9cd0dbf9a2797468b445f8b2f59e80d48768390eda3443968ec38"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "7538a76a498b27cf0d03e939abbd9173278af8ebfbfcb1ebdd81d7b34e087aed"
+    },
+    {
+      "path": "src/main.ts",
+      "sha256": "bb88d08500e4ee3680e3272df470433eca7758776a92dcd1fd050bc6f7cd22d0"
+    },
+    {
+      "path": "src/worker.ts",
+      "sha256": "74207986f8f2d0d483b5d51b54fd9f479dfb1ae3f081a42ce87c1d70e11373f9"
+    },
+    {
+      "path": "tests/auth.test.mts",
+      "sha256": "754f4342f27c90ded8ef783da2e220497089c540fe0b10e9f0f83a8d3ade0b1d"
+    },
+    {
+      "path": "tests/config.test.mts",
+      "sha256": "2902c4b065f8b6a3c7d6f5cca601876d7882398d763616524530d63da2197536"
+    },
+    {
+      "path": "tests/input.test.mts",
+      "sha256": "f1b2ff1ac017fdbaebee713867524e3f001bf7acf00db07820ad2b7bd2a2bd0d"
+    },
+    {
+      "path": "tests/adapter.test.mjs",
+      "sha256": "93d6439a39c46a06e99be04e91c110c81871edf9607ce6cbddfb9719c658f473"
+    },
+    {
+      "path": "tests/engine.test.mjs",
+      "sha256": "cf2ccdf4e14c3c30cfdac50f5f76be612afeec0d4c5177ba2177ab02e3456391"
+    },
+    {
+      "path": "tests/native-flow.test.mjs",
+      "sha256": "db87e59279ff206ee0bb491a17f018ae2cc9c936114a26c0bc51e1b13428307a"
+    },
+    {
+      "path": "tests/helpers/echo-worker.mjs",
+      "sha256": "7ae7e992eb7f38d94e8e5e7537b1733fda387022764161542cd64fe8001c0fe8"
+    },
+    {
+      "path": "tests/helpers/engine.mjs",
+      "sha256": "acf7058f540010038dff1c8043a34d0c5f599c73631a53eb5b44b846aa524799"
+    },
+    {
+      "path": "tests/helpers/native-fixture.mjs",
+      "sha256": "7696d5ff1f11efb32e5468e6b0b9d7ba984244c7885d638e75406c205a2c4325"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9b688811cebde37d652c209ea48e5aced327fd82ac63e9a402eabbf4163c7b7c"
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "348878465c2f10734f0acb088d81877fbe35605d21ec5831c1ed55f9b8c03c0d"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "3a347ae7d8ea4672d822f4d320e406662556927febfcd51d9cf1e517272ed8da"
+    },
+    {
+      "path": "package.json",
+      "sha256": "1220bea5707a2e8055c5fca8f7917dc2ee631f52607ff43b3d2c4dcfb8cbdd21"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "f3c68ad8d386f783bfcb0a4610071df8d416a1dffdc30b1e71eb205d6b745e87"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "1f0c386073b4f90b78372fa40744fa7a69c45119b068cc02a6b5a1c108f8ee42"
+    },
+    {
+      "path": "tsconfig.build.json",
+      "sha256": "1c6dc1bea5c747eb555002bd632b77fc5d57783153c915d7f1a011af8f5d9737"
+    }
+  ],
+  "remaining": [
+    "Full strict compilation against the new native-iii.v2 public SDK",
+    "Actual new immutable native job/control/retry/reopen/paging test and installed client-only closure"
+  ]
+}
