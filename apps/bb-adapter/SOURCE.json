@@ -119,6 +119,16 @@
       "adaptation": "Pure public wire interfaces only; actual runtime schema imported read-only by tests, not shipped."
     }
   ],
+  "localRuntimeSha256": {
+    "src/session.ts": "1f74bdc7d4388b2e49fac71faf18dab49c79f862a5a5534ccc30cce5d68df35b",
+    "src/provider-bridge.ts": "67bb867f930ca3496eb265b1960798fffd9a605af88cf597cadf801ea5bb3eb2",
+    "src/child-session.ts": "85816d6f7603c7ac7e8dcd4e19f93c8ccd13ac7644f37b099232bc5278fa814f"
+  },
+  "lifecycleAdaptations": [
+    "Explicit cached reopen retries the immutable pending history body before fresh capture; concurrent consumers join the same ACK barrier.",
+    "Native child connection diagnostics stay out of Core-owned transcript history; Root diagnostics remain live.",
+    "Core launch metadata is validated and discarded, never inherited as native execution environment or policy."
+  ],
   "newGlue": [
     "src/root-deltas.ts",
     "src/child-locators.ts",

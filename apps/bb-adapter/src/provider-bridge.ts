@@ -13,6 +13,8 @@ function record(value: unknown): Record<string, unknown> {
 }
 const pendingKey = (id: string | number) => `${typeof id}:${String(id)}`;
 const levels = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
+// BB Core's transport routing fields are never native execution configuration.
+const coreEnvKeys = new Set(['BB_CLI', 'BB_SERVER_URL', 'BB_HOST_DAEMON_PORT', 'BB_PROJECT_ID', 'BB_THREAD_STORAGE', 'BB_THREAD_ID', 'BB_ENVIRONMENT_ID']);
 
 /** Selected provider JSON-RPC framing and method names; only its transport/ownership composition changes. */
 export class BbProviderBridge {
@@ -22,6 +24,7 @@ export class BbProviderBridge {
   private root?: Promise<BbThreadSession>;
   private selection?: { model: { provider: string; modelId: string }; thinkingLevel: ThinkingLevel };
   private closed = false;
+  private readonly launchPath = process.env.PATH;
   private readonly core: BbCore;
   constructor(private readonly sendRaw: (json: string) => void, private readonly options: BbBridgeOptions) {
     this.core = {
@@ -54,12 +57,17 @@ export class BbProviderBridge {
   private async ensureRoot(bindFirst = false): Promise<BbThreadSession> {
     if (!this.root) {
       const pending = (async () => {
-        if (bindFirst && this.options.rootAttachment) {
+        if (bindFirst) {
           const native = await this.options.client.agent(this.options.sessionId, this.options.conversationId).get();
           if (native.sessionId !== this.options.sessionId || native.id !== this.options.conversationId || native.kind !== 'root' || native.ownerAgentId !== undefined || native.config.cwd !== this.options.cwd)
             throw Error('BB_OWNER_NATIVE_SESSION_MISMATCH');
-          const receipt = record(await this.reverseRequest('thread/confirmRootAttachment', { providerThreadId: this.options.sessionId, ...this.options.rootAttachment }));
-          if (Object.keys(receipt).length !== 1 || receipt.threadId !== this.options.threadId) throw Error('BB_OPERATOR_ROOT_CONFIRMATION_MISMATCH');
+          if (this.options.rootAttachment) {
+            const receipt = record(await this.reverseRequest('thread/confirmRootAttachment', { providerThreadId: this.options.sessionId, ...this.options.rootAttachment }));
+            if (Object.keys(receipt).length !== 1 || receipt.threadId !== this.options.threadId) throw Error('BB_OPERATOR_ROOT_CONFIRMATION_MISMATCH');
+          }
+          // Core can acknowledge owner scope only after admitting this native identity.
+          // This is a locator, not authorization: bindRoot still checks Core scope and the server grant.
+          this.notify('thread/identity', { threadId: this.options.threadId, providerThreadId: this.options.sessionId, sessionRestorable: true });
         }
         const options = { ...this.options, core: this.core };
         return bindFirst ? BbThreadSession.bindRoot(options) : BbThreadSession.open(options);
@@ -70,6 +78,10 @@ export class BbProviderBridge {
     return this.root;
   }
   private unavailable(threadId: string) {
+    if (threadId !== this.options.threadId) {
+      process.stderr.write('Native child connection unavailable; existing history retained; reconnect required.\n');
+      return;
+    }
     this.notify('thread/delta', { threadId, deltas: [{ kind: 'item.close', key: { channel: 'pi-durable-connection' }, status: 'pending', item: {
       type: 'backgroundTask', familyId: 'pi-durable-connection', taskType: 'pi-durable-connection', skipTranscript: true,
       description: 'Native connection', status: 'pending', taskStatus: 'pending', summary: 'Native connection is unavailable. Existing work was not replayed.',
@@ -108,10 +120,17 @@ export class BbProviderBridge {
   }
   private validateContext(params: Record<string, unknown>) {
     const options = params.options === undefined ? {} : record(params.options);
-    const cwd = params.cwd ?? options.cwd;
-    if (cwd !== undefined && cwd !== this.options.cwd) throw Error('BB_OWNER_CWD_IMMUTABLE');
-    const env = params.shellEnvOverrides ?? options.envVars;
-    if (env !== undefined && Object.keys(record(env)).length) throw Error('BB_SHARED_HOST_ENV_IMMUTABLE');
+    for (const cwd of [params.cwd, options.cwd])
+      if (cwd !== undefined && cwd !== this.options.cwd) throw Error('BB_OWNER_CWD_IMMUTABLE');
+    if (params.shellEnvOverrides !== undefined && Object.keys(record(params.shellEnvOverrides)).length)
+      throw Error('BB_SHARED_HOST_ENV_IMMUTABLE');
+    if (options.envVars !== undefined) {
+      for (const [key, value] of Object.entries(record(options.envVars))) {
+        if (typeof value !== 'string' || (key === 'PATH' ? value !== this.launchPath : !coreEnvKeys.has(key)) ||
+          (key === 'BB_THREAD_ID' && value !== params.threadId)) throw Error('BB_SHARED_HOST_ENV_IMMUTABLE');
+      }
+    }
+    // Validated Core metadata is discarded, never forwarded to the native host or applied to process.env.
     return options;
   }
   private async readSelection(params: Record<string, unknown>) {
@@ -167,7 +186,10 @@ export class BbProviderBridge {
         }
         case 'provider/health':
           await this.options.client.agent(this.options.sessionId, this.options.conversationId).get();
-          this.result(id, { status: 'ready', statusMessage: 'Selected native host is reachable; thread attachment requires current Core and native binding authorization.' }); return;
+          this.result(id, { supported: true, health: { status: 'ready',
+            statusMessage: 'Selected native host is reachable; thread attachment requires current Core and native binding authorization.',
+            accountEmail: null, planLabel: null, installedVersion: null, minimumSupportedVersion: null,
+            canInstall: false, canUpdate: false, loginCommand: null } }); return;
         case 'provider/usage': this.result(id, { supported: false }); return;
         case 'thread/start': case 'thread/resume': {
           if (typeof params.threadId !== 'string' || !params.threadId) throw Error('BB_THREAD_ID_REQUIRED');

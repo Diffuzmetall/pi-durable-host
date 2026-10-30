@@ -14,7 +14,18 @@
       "sourceSha256": "3c7d9eceb1950e44e17d3b9399ec3e1c1345ab2f05bc829928cc81665391b078",
       "sha256": "3247676287a1dd34ac2988ab3c172c3cd68bc015c540a85f2d359493710ddb4c",
       "adaptation": "Only the eight original added lines containing nativeControlWasAdmitted; function unchanged, original patch markers retained."
+    },
+    {
+      "path": "provider-health-contract.mjs",
+      "source": "@get-bb/plugin-sdk@0.6.79/dist/provider-bridge.js#providerHealthSchema,providerHealthResultSchema",
+      "sourceSha256": "378f10039cb855e985ad64a86e45d307a4839ced8a5e86bf3f85108162ded26f",
+      "sha256": "5f6ad4635f7690a967614be32ae54e5e7a20c90d4a89e20256104749d026fc81",
+      "adaptation": "Two verbatim bundled declarations with a test-local import/export wrapper. Upstream MIT retained in CORE-LICENSE.txt."
     }
   ],
+  "healthSchemaLicense": {
+    "path": "CORE-LICENSE.txt",
+    "sha256": "d10816aa30183af920bdd789a81b16847bcf3e287e1b3419dd7d85f6e3e8e7b0"
+  },
   "license": "MIT; package LICENSE and HISTORY-NOTICE.md retain the selected source notice. Fixtures are not runtime package dependencies."
 }

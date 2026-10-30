@@ -2,7 +2,7 @@
 
 A standalone BB provider client of **public `dpi-sdk` only**. The backend remains the sole native Durable owner. The package contains no Harness, SQLite, provider runner, private runtime loader, compatibility archive or execution queue.
 
-P4 implementation candidate. Independent BB milestone acceptance, iii and live-data activation are separate gates; component tests do not accept them.
+Local functional acceptance used actual BB Core 0.47.1/Chrome and a native faux host, with a retained unexplained initial UI timeout and two successful bounded controls. This is not production activation or a latency SLA. See the source checkout's [status](../../docs/STATUS.md) and [portable Core compatibility guide](../../compat/bb-0.47.1-native-child/README.md): stock BB lacks the prerequisite native interfaces; full upstream source rebuild was not tested.
 
 ## Run through the existing BB Core transport
 
@@ -33,7 +33,7 @@ Supported selected-provider methods: `initialize`, `model/list`, `provider/healt
 - `prompt(text, clientRequestId)` / `steer(text, clientRequestId)` retain genuine Core `creq_…` IDs as `bb-root:<CREQ>` in the request metadata. Native canonical receipt IDs remain native hashes; the client does not rename them.
 - `observe(signal)` translates native Root frames through the selected BB message/tool presentations, discovers native child locators, proves each with native `inspect(target)` **before** real Core registration, persists only the real Core ACK, and observes coherent child history. No input or unknown command is replayed on reconnect.
 - `registerChild(exactNativeTarget)` never creates a native child. Lost Core registration ACK retries the same namespaced request; no ordinary provider/session fallback exists.
-- `openChild(threadId)` requires current Root and child Core scopes plus the server's persisted binding. It reuses a live child sink, including any immutable unacknowledged history attempt.
+- `openChild(threadId)` requires current Root and child Core scopes plus the server's persisted binding. Explicit cached reopen retries the original immutable unacknowledged history attempt before fresh capture; concurrent opens await the same acknowledgement and return the same child.
 - `configureSelection(model, thinkingLevel)` is explicit Root execution configuration. IDs and levels come from this native container; unsupported or missing saved selections are errors, never replaced by a first available model.
 - `interrupt()` interrupts the exact Root only. Child controls use native parent `stop(scope: 'child-tree')`, never generic child abort.
 
@@ -43,11 +43,13 @@ The actual native BB input receipt is `bb-child:<CREQ>` and satisfies the unchan
 
 Child `captureHistory()` and `observe(signal)` accept **only** coherent native outcomes. `unknown` and working captures without entries are not terminal success. Canonical receipt entry membership, not raw `host.input` metadata, admits presentation normalization. Native hashed request IDs are preserved. Thinking is omitted with source-only accounting; unsupported history rejects the whole capture.
 
+Child connection diagnostics go to coarse stderr, never an unowned live Core transcript item that would poison native-history CAS. Root retains its ordinary connection diagnostic.
+
 A lost history ACK freezes one immutable snapshot and expected digest. `retryHistory()` sends that exact attempt; it does not read a new digest, recapture or rebase. A Root/child view release only detaches observation. A running child interrupt needs the Core's stable active-turn ID; already-authoritative terminal work is not interrupted again. A pending native stop is not reported as a completed child outcome.
 
 ## Source and verification boundaries
 
-See `NOTICE.md`, `SOURCE.json`, `HISTORY-NOTICE.md`, `NATIVE-CHILD-NOTICE.md` and the producer verification report. Selected/master and installed releases are read-only sources, not runtime dependencies. `tests/` may import the owning backend and read original Core contracts; those fixtures are excluded from the package.
+See `NOTICE.md`, `SOURCE.json`, `HISTORY-NOTICE.md` and `NATIVE-CHILD-NOTICE.md`. The source checkout includes licensed portable Core patches and verbatim test-local history/admission/provider-health contracts with provenance; no private donor filesystem is required. `tests/` may import the sibling backend; those fixtures and the Core patches are not adapter runtime dependencies.
 
 Use `npm run check`, `npm test`, `npm run build` and `npm pack`. Tests use disposable native Harness/SQLite stores, the real native parent/binding/coherent services, deterministic faux providers, loopback fake Core, the original Core schema/admission predicate and generated identities. They do not use a live BB service, real model, external paid API, production DB or personal memory bank.
 

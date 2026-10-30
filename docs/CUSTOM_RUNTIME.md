@@ -77,6 +77,7 @@ DPI_TOKEN="$DPI_TOKEN" node custom-host.mjs
 - `policy` и `owner` задаёт сервер; body запроса не может назначить себе authority, tool scope или policy reference.
 - `models.create(context)` возвращает изолированную capability для каждой session. CredentialStore и разрешённые providers передаются явно. Отсутствующая сохранённая модель — ошибка, не повод подобрать похожую.
 - `connectMcp(context)` создаёт отдельные подключения и возвращает `close`. Память и логи привязаны к session; process-global окружение не используется как изоляция.
+- `github(context)` принимает явные session-local environment/transport; перед write после awaited read повторно проверяется current root authority. `tracing(context)` принимает явный session-local metadata-only SDK; ни ambient credentials, ни message/tool payloads не подхватываются. Не настроенные capability остаются unavailable/disabled.
 - Новый native registry регистрирует настоящие task/document definitions. Успешная компиляция extension не доказывает, что её сохранённые задачи можно восстановить.
 - Shell остаётся за fail-closed guard. Не отключайте DCG или admission ради зелёного smoke-теста.
 - `bind` выполняется до resume, затем owner управляет shutdown/cleanup. Ошибка bootstrap не должна оставлять второй owner или утекшие подключения.

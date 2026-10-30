@@ -1,60 +1,63 @@
-# Проверенный scope и ограничения
+# Проверенный scope и ограничения
 
-**Локальная приёмка P0–P5 завершена; повторное итоговое ревью не установило новых дефектов.** Проверены backend, SDK, terminal, BB и iii на Pi Durable **1.4.0**. Это не production deployment, публикация npm-пакетов или сертификация произвольных native extensions.
+**Локальная функциональная приёмка terminal → BB → iii завершена в описанном scope.** Native Pi Durable **1.4.0** остаётся единственным владельцем исполнения и recovery. Это не production deployment, npm release, совместимость любых plugins или разрешение мигрировать рабочие данные.
 
-Из 53 исходных критериев **51 PASS, 2 PARTIAL, 0 UNKNOWN, 0 FAIL** в описанном ниже scope. Два частично проверенных критерия относятся к выбранной исторической session и возврату её исходного runtime: выполнена лишь disposable closed-owner same-version репетиция. Рабочие данные не переносились.
+Из 53 исходных критериев — **51 PASS / 2 PARTIAL**. Историческая/cross-version миграция и возврат исходного runtime проверены только на disposable closed-owner same-version копиях; реальные session data не переносились.
 
-## Что проверено
+## Выполненные проверки
 
 | Часть | Подтверждённый сценарий | Граница доказательства |
 |---|---|---|
-| Backend/SDK | Native ownership, exact saved model/profile IDs, tools, canonical receipts, retry/conflict/cache-expiry, crash/reopen | Изолированные native/faux sessions, не произвольные исторические registry |
-| Security | Observer/delegated/human boundaries, revoke reads/mutations/open streams; безопасные HTTP/cache/reopen/SSE/provider diagnostics; healthy opaque JSON | Не полный security audit или сертификат любых plugins |
-| Native profile | Явная server composition, models/skills/context, native guards/CodeMode/Goal/schedules, session-local Hindsight/Mail | Локальные recording/loopback transports, без личных banks и живых платных API |
-| Terminal | Editor/navigation/tool stream/interrupt/steer/attention/reconnect; standalone install | UI/PTY baseline связан с неизменённым принятым terminal archive; на новом host свежие controller/mixed проверки, не новый полный PTY-прогон |
-| BB | Exact thread/root/child binding, native control/outcomes, canonical retry и history CAS/lost ACK | Настоящий native host + Core API fixture; не полный running-BB UI smoke |
-| iii | Signed identity, native isolated jobs, same-key retries, conflicts, foreign/stale/revoked controls, late immutable answerRef, restart и pending-stop reconciliation | Настоящий pinned iii-sdk + loopback function transport + native faux host, не production engine |
-| Независимая установка | Terminal-only, BB-only, iii-only со своим SDK; каждый без backend/Harness и двух других клиентов | Реальные offline tarball installs с явно подготовленным npm cache, побайтовая archive closure |
-| Mixed-version | Неизменённый terminal/старый SDK и новый BB/SDK получают native ответы в той же host/session/conversation | Два одновременных frontend — terminal и BB; iii отдельно на том же backend/SDK tuple |
-| История/production | Только disposable offline backup/restore runbook | Реальная historical/cross-version миграция и production не выполнялись |
+| Backend/SDK | Native ownership, exact saved model/profile IDs, canonical receipts/retry/conflict, crash/reopen, typed private-diagnostic projection | Изолированные SQLite/faux sessions; не произвольные исторические registry |
+| Security | Observer/delegated/human boundaries, revoke reads/mutations/streams, безопасные ошибки и healthy application JSON | Не полный security audit любых plugins |
+| Native profile | Реальная композиция 19 extensions, две Store/Harness sessions, session-local MCP/Mail/Hindsight, вложенный revoke и раздельный shutdown | Локальные recording/loopback transports; не личные banks или платные API |
+| Triggers/tracing | GitHub transport с явным environment и повторной проверкой revoke после awaited GET; metadata-only injected Langfuse SDK | Никакого GitHub write, живого Langfuse export, ambient credentials или model payload capture |
+| Terminal | Настоящий installed TUI/PTY: восемь групп editor/navigation/tools/interrupt/rename/detach/reconnect/new-session | Faux only; runtime archive неизменён, не повторный PTY после GitHub-only delta |
+| BB | Реальные изолированные Core 0.47.1/Chrome: Root answer/steer/stop, FIRST child stop до follow-up, тот же child, provider SIGKILL/reopen/reload/reconnect без повторного initial task | Exact compatibility overlay; функциональный PASS с timing-оговоркой ниже, не stock BB или любая source-сборка |
+| iii | Настоящие локальные engine и SDK 0.24.6, установленный signed worker/native faux host: retries/one execution, changed payload/signature refusal, worker/owner restart, immutable Unicode answer paging и revoke | Не production deployment, живые модели или автоматический Console/chat wake |
+| Standalone installs | SDK + terminal-only, BB-only или iii-only; clean HOME, offline tarballs, точные archive/installed members | Заранее подготовленный полный npm cache; не uncached bootstrap |
+| Mixed-version | Terminal и BB на одном host/session/conversation; iii отдельно на том же backend/SDK runtime | Не одновременная нагрузочная приёмка трёх frontend |
 
-## Проверки
+### Явная оговорка по BB timing
 
-На одном замороженном source/all-lockfile/five-package tuple прошли пять strict typechecks и **193/193 source-теста без пропусков**: SDK 23, backend 114, terminal 19, BB 25, iii 12. Проверки используют пустой HOME/dataDir, read-only source и OS sandbox с loopback; в публичных BB tests находятся переносимые contract fixtures.
+Первый полный Core/Chrome запуск завершился таймаутом ожидания нового child answer в UI через 25 секунд. Два последующих bounded контроля, включая **точную исходную Root steer/stop prehistory**, показали answer live и после reload, тот же native child, четыре уникальных input и единственный новый answer в Core timeline. Исходный RED сохранён и остаётся **необъяснённым**, не назван исправленным или никогда не происходившим.
 
-Дополнительно проверены настоящие установленные пакеты: signed iii CLI/native flow; полный native iii HTTP scenario; 15 security regressions; минимальный CLI с буквальным curl-рецептом, повтором и owner reopen; отдельные установки клиентов; mixed-version поток. Контрольный специальный request key отклоняется до создания native ресурсов. Незаинтересованный reviewer отдельно проверил client auth/canonical JSON и actual compiled modules; исправленные security участки приняты не их авторами.
+В исходном wire log нет времени native terminal publication, поэтому поздний successful history ACK не доказывает, что UI отставал от native completion на 25 секунд. Дополнительная реальная Native/SSE проверка дала 16/16 terminal frames; инструментированные восемь случаев после Root steer/stop дали 19–31 мс и все run/turn-end события, без наблюдаемого empty-input run. Гипотеза потерянного terminal-wake не подтвердилась; speculative patch/polling не добавлялись. Независимые проверяющие приняли **функциональный scope**, но не end-to-end latency SLO, отсутствие flaky timing или успешность всех запусков.
 
-Повторное итоговое ревью заново сверило 407 файлов, все восемь repository lockfiles, hashes пяти архивов, содержимое установок, 53 исходных leaf criteria и их шестиколоночную Test Strategy; повторило пять no-emit typechecks. Уже выполненные runtime tests на неизменившихся байтах не названы вторым запуском. Приватные отчёты, raw logs, security proof material и пути машины проверки не публикуются.
+## Регрессии и переносимость
 
-### Производительность
+Приняты **214/214 source-тестов без пропусков**: SDK 23, backend 133, terminal 19, BB 27, iii 12; пять strict typechecks. Неизменённые четыре пакета — 187 тестов и четыре проверки — переиспользованы по byte identity; после последнего BB fix повторён только BB. Отдельные 16 Core compatibility unit checks не прибавлены к 214 и не подменяют real Core/Chrome evidence.
 
-На 50 actual native read-tool commits измерен **тот же commit → BB API-visible delta**: baseline p95 **0,050321 мс**, remote p95 **49,123057 мс**, бюджет `1.2 × baseline + 50 ms` = **50,0603852 мс**. Запас — около **0,94 мс** в этой среде. Это не production SLA, latency модели или полный BB UI repaint.
+Публичные BB regression tests используют локальные verbatim contract fixtures с лицензией и provenance, без private donor imports. Для новой public-сборки проверяются затронутая переносимая часть и совпадение runtime JavaScript/declarations с принятыми архивами. Private raw logs, machine paths, session data, auth/config и внутренние audit-материалы не публикуются. [Runtime correlation](verification/RUNTIME_CORRELATION.json) фиксирует отдельные public archive hashes; изменение README/provenance не превращается в новый runtime-прогон.
 
-У неизменённого terminal archive сохранён прежний независимый commit → PTY результат: p95 **4,278373 мс** при бюджете **51,9471548 мс**. Эти две метрики не взаимозаменяемы.
+### Принятые installed runtime inputs
 
-## Проверка публичной сборки
-
-После обновления документации заново собраны и offline установлены все пять публичных tarballs с заранее подготовленным npm cache. Это не uncached bootstrap: local tarballs не включают все сторонние npm dependencies. На них повторно выполнены буквальные JS-примеры из GETTING_STARTED/CUSTOM_RUNTIME/BUILDING_ADAPTERS, curl-рецепт, default minimal CLI/reopen, signed iii CLI/native flow, native iii HTTP scenario, 15 security regressions и mixed terminal + BB. Все проверки прошли; исходные assertions не ослаблялись. Только тестовые endpoints/порты и install roots выбраны disposable.
-
-| Локальный публичный архив | SHA-256 проверенных байтов |
+| Архив | SHA-256 |
 |---|---|
-| backend | `a7405fead09463a54c6de91211df27b6c5600ae3f6f585dea01de41c94d5fc88` |
+| Backend | `36b4f6e989eb6dcc8bd14dd450fd55eeb0a4a39d360936c4b0e9dc32a046c6bd` |
 | SDK | `351054859022ae202fbdc429e73da441bc90295e4717342652079c3ea0906abd` |
-| terminal | `1f1b74fa2b515b55bf280113d91116c267755973b5ed76ce9a6389174c235bde` |
-| BB | `fffc8f239c35862a5e130533da2fb338f315ec57891cac90d431b68009a1e661` |
-| iii | `17479a5dd8facb35eecff6311e3f3b718bc9bb607c02f7bcb54f78045fe58761` |
+| Terminal | `1f1b74fa2b515b55bf280113d91116c267755973b5ed76ce9a6389174c235bde` |
+| BB | `b82eb8d3ca9dbac0e0d85b8d07919d26c74171943be17a2a1f79732a554349df` |
+| iii | `75da7623ae10c1a79fe2415d36ddcd22be4a779a4d1160cd94371301dc5eff33` |
 
-В iii-рецепте отдельно исправлена cold-HOME установка: обычный путь использует npm registry, а offline-вариант требует явно подготовленного полного cache. Буквальные normal install и cache preparation прошли с новыми пустыми HOME; затем тот же исправленный архив установлен без сети в OS sandbox с подготовленным cache. CLI `--help` прошёл, backend/terminal/BB не устанавливались. Изменились только README и его SOURCE hash; runtime JS/declarations совпадают побайтово, поэтому неизменные functional cases не названы новым повторным запуском.
+Terminal/реальный iii run использовали предыдущий backend; сравнение полных архивов доказывает единственный последующий runtime delta — optional `github-triggers.mjs`, не включённый в эти сценарии. Изменённый GitHub revoke boundary независимо проверен на source и новом compiled archive. Это переиспользование неизменённого execution path, не новый engine/PTY запуск на последних байтах.
 
-Это hashes локально проверенной source-сборки, не ссылки на опубликованные npm/binary releases. Runtime JavaScript и public declarations сохранены относительно принятого local tuple; отличия provenance/docs/package metadata проверены отдельно. Два неэкспортируемых build-time contract-check файла отсутствуют в чистой публичной backend-сборке; они не импортируются runtime и не входят в его public exports.
+## Совместимый BB Core
+
+[Переносимая поставка](../compat/bb-0.47.1-native-child/README.md) содержит prerequisite и lifecycle source patches для pinned upstream get-bb/bb, MIT license, provenance, guarded binary builder и focused tests. Stock `bb-app@0.47.1` **не** содержит нужные prerequisite interfaces.
+
+Оба source patches применены к чистому pinned upstream snapshot; шесть итоговых файлов совпали с подготовленным source. **Полный upstream dependency bootstrap/typecheck/rebuild не выполнялся.** Actual Core/Chrome verdict относится к отдельно проверенному exact binary overlay, а не переносится автоматически на произвольную source-сборку. Builder отвергает неизвестные baseline hashes и не активирует результат.
+
+## Производительность — разные метрики
+
+На 50 actual native read-tool commits прежний **commit → BB API-visible delta** дал baseline p95 0,050321 мс, remote p95 49,123057 мс при бюджете 50,0603852 мс; запас около 0,94 мс в той среде. У неизменённого terminal archive прежний commit → PTY p95 4,278373 мс при бюджете 51,9471548 мс. Ни одна метрика не является model latency, admission → answer, полным BB UI repaint или production SLA.
 
 ## Что не обещается
 
-- BB `/compact` **unsupported**: отказ до native effect и accepted ACK. Публичный native compaction API не даёт canonical idempotency key. Терминал и SDK сохраняют свой API.
-- Полный совместимый running-BB smoke нужен перед production replacement.
-- Нет автоматической совместимости обычных Pi extensions, частных model IDs, произвольных registry или исторической recovery по одному успешному compile.
-- iii transport ACK — не completed job. Pending stop — не подтверждение native stop effect; потеря временного cursor не отменяет persisted `answerRef`.
-- Реальные модели/API, личные memory banks, deployment, рабочие DB и historical/cross-version migration требуют отдельного решения оператора.
-- `0.1.0` не идентифицирует содержимое архива: для установки фиксируйте source revision, lockfiles и SHA-256 собственных tarballs. Метаданные публичной документации могут отличать архив от внутренней проверочной сборки; не переносите verdict на новые байты автоматически.
+- BB `/compact` unsupported: отказ до эффекта и accepted ACK; native API не даёт canonical idempotency key. SDK/terminal сохраняют свой compaction API.
+- Pending iii stop — не подтверждённый stop effect; transport ACK — не completed job. После потери cursor используйте прежний immutable `answerRef`, не повторный input.
+- Нет автоматической совместимости обычных Pi extensions, частных model IDs, arbitrary registries или historical recovery по успешному compile.
+- Live providers/API, личные memory banks, production, installed activation, реальные DB и cross-version migration требуют отдельного решения оператора.
+- `0.1.0` не идентифицирует байты. Сохраняйте source revision, lockfiles и SHA-256 tarballs; source publication, package release и deployment — разные действия.
 
-[План](PLAN.md) · [Первый запуск](GETTING_STARTED.md) · [Клиенты](CONNECTING_CLIENTS.md) · [Архитектура](ARCHITECTURE.md)
+[План](PLAN.md) · [Первый запуск](GETTING_STARTED.md) · [Клиенты](CONNECTING_CLIENTS.md) · [Происхождение](PROVENANCE.md)

@@ -3,9 +3,13 @@ import { defineExtension, hook, ToolTask, type Harness } from '@earendil-works/p
 import { createSessionGoalService } from './session-goals.js';
 import { createNativeGoalControl } from './native-goal-control.js';
 import { createSchedules, cancelScheduleTask } from './schedules.js';
+import { createTriggersExtension } from './triggers.mjs';
+import { createGitHubTriggerCapabilities } from './github-triggers.mjs';
+
+export type GitHubTriggerOptions = Omit<NonNullable<Parameters<typeof createGitHubTriggerCapabilities>[0]>, 'authorizeRoot' | 'admission'>;
 
 /** Localized installed automation composition: lifecycle/authority are owned by the host, not memory. */
-export function createAutomation(options: Parameters<typeof createSessionGoalService>[0]) {
+export function createAutomation(options: Parameters<typeof createSessionGoalService>[0] & { github?: GitHubTriggerOptions }) {
   if (typeof options.admit !== 'function') throw Error('Automation requires trusted host input admission');
   const admit = options.admit;
   let host: Harness | undefined;
@@ -34,8 +38,15 @@ export function createAutomation(options: Parameters<typeof createSessionGoalSer
       await cancelScheduleTask(host, conversationId, taskId, context);
     },
   });
+  const triggers = createTriggersExtension(options.github ? createGitHubTriggerCapabilities({
+    ...options.github, authorizeRoot: authorize, admission: { admit: async (conversation: Parameters<typeof admit>[0], requestId: string, context: Parameters<typeof admit>[2]) => {
+      await requireRoot(conversation.id, context);
+      await admit(conversation, requestId, context);
+      await requireRoot(conversation.id, context);
+    } },
+  }) : {});
   return {
-    extensions: [authority, schedules, goals.archiveExtension, goals.extension, createNativeGoalControl(goals, authorize)],
+    extensions: [authority, schedules, triggers, goals.archiveExtension, goals.extension, createNativeGoalControl(goals, authorize)],
     goals,
     async bind(value: Harness) {
       if (closed || host) throw Error('Automation lifecycle already bound or closed');

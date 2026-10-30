@@ -26,6 +26,8 @@ import createWebTools, { type WebToolsOptions } from './tools/web/web-tools.js';
 import createCodexApi, { type CodexHost } from './tools/codex/index.js';
 import { createNativeSkills, type NativeSkillsOptions } from './skills/index.js';
 import { createNativeIii } from './iii/index.js';
+import { WatchesDoc } from './automation/triggers.mjs';
+import { createLangfuseTracing } from './tracing/index.mjs';
 
 export { resolveAvailableModel } from './subagents/model-policy.js';
 export { createNativeModels } from './models/index.js';
@@ -52,6 +54,8 @@ export interface NativeProfileOptions {
   resolveSkill?: Parameters<typeof createAutomation>[0]['resolveSkill'];
   skills?(context: RuntimeProfileContext): Omit<NativeSkillsOptions, 'cwd'> | Promise<Omit<NativeSkillsOptions, 'cwd'>>;
   dcg?: DcgEvaluatorOptions;
+  github?(context: RuntimeProfileContext): NonNullable<Parameters<typeof createAutomation>[0]['github']> | Promise<NonNullable<Parameters<typeof createAutomation>[0]['github']>>;
+  tracing?(context: RuntimeProfileContext): Omit<NonNullable<Parameters<typeof createLangfuseTracing>[0]>, 'sessionId'> | Promise<Omit<NonNullable<Parameters<typeof createLangfuseTracing>[0]>, 'sessionId'>>;
   context7?(context: RuntimeProfileContext): Context7Options | Promise<Context7Options>;
   antigravity?(context: RuntimeProfileContext): AntigravityOperations | Promise<AntigravityOperations>;
   web?(context: RuntimeProfileContext): Omit<WebToolsOptions, 'directory'> | Promise<Omit<WebToolsOptions, 'directory'>>;
@@ -78,6 +82,7 @@ export function createNativeProfile(options: NativeProfileOptions) {
   return Object.assign(async (context: RuntimeProfileContext): Promise<NativeComposition> => {
     let host: Harness | undefined;
     let memory: SessionMemory | undefined;
+    let tracing: Awaited<ReturnType<typeof createLangfuseTracing>> | undefined;
     let closed = false;
     const target = { sessionId: context.sessionId, conversationId: ROOT_CONVERSATION_ID as number };
     const assertOwner = () => {
@@ -101,6 +106,10 @@ export function createNativeProfile(options: NativeProfileOptions) {
     try {
       const registry = createRegistry();
       registry.install(CodingTools);
+      if (options.tracing) {
+        tracing = await createLangfuseTracing({ ...await options.tracing(context), sessionId: context.sessionId });
+        if (tracing.extension) registry.install(tracing.extension);
+      }
       registry.install(createSearchHistory());
       const skills = options.skills ? createNativeSkills({ ...await options.skills(context), cwd: context.cwd }) : undefined;
       if (skills) {
@@ -152,8 +161,9 @@ export function createNativeProfile(options: NativeProfileOptions) {
       }))));
       const composed = installSubagents(registry, admit, { resolveModel: options.resolveModel });
       const subagent = composed.snapshot().installed().find(extension => extension.name === 'subagent')!;
+      const github = await options.github?.(context);
       const automation = createAutomation({
-        admit,
+        admit, github,
         authorize: async id => {
           if (closed || !host || id !== ROOT_CONVERSATION_ID) return false;
           try { return options.policy.assert(options.owner, 'human-accept', target).authority === 'human'; }
@@ -207,6 +217,7 @@ export function createNativeProfile(options: NativeProfileOptions) {
         ['bb.subagent-supervisor', (h, c, ctx) => h.snapshot(SupervisorDoc, c.id, ctx)],
         ['bb.subagent-parent', (h, c, ctx) => h.snapshot(ChildBindingDoc, c.id, ctx)],
         ['durable.schedules', (h, c, ctx) => h.snapshot(ScheduleDoc, c.id, ctx)],
+        ['durable.triggers.watches', (h, c, ctx) => h.snapshot(WatchesDoc, c.id, ctx)],
         ['durable-goals.runtime', async (h, c, ctx) => {
           const owners = await h.snapshot(NativeGoalsDoc, ctx);
           const runtime = await h.snapshot(NativeGoalRuntime, ctx);
@@ -255,6 +266,7 @@ export function createNativeProfile(options: NativeProfileOptions) {
             if (!storage) throw Error('NATIVE_PROFILE_ORIGINAL_STORAGE_REQUIRED');
             await memory.bind({ session: value, storage, context: ctx });
           }
+          await tracing?.bind(value, ctx);
           await automation.bind(value);
           operator.bind(value, automation.goals, ROOT_CONVERSATION_ID);
           await iii.bind(value, ctx);
@@ -277,7 +289,8 @@ export function createNativeProfile(options: NativeProfileOptions) {
         async shutdown(ctx) {
           closed = true;
           operator.shutdown();
-          try { await iii.close(); await automation.shutdown(ctx); } finally { await memory?.close(); }
+          try { await iii.close(); await automation.shutdown(ctx); }
+          finally { try { await memory?.close(); } finally { await tracing?.close(); } }
         },
         async cleanup(ctx) {
           try { await mcp.close(ctx); } finally { await guard.cleanup(ctx); }
@@ -286,13 +299,14 @@ export function createNativeProfile(options: NativeProfileOptions) {
           goals: automation.goals,
           parentControl,
           inventory: {
-            present: [...(context.models ? ['native session-local provider/auth catalogue'] : []), 'native CodingTools', 'native own-conversation search_history', 'native Web tools', ...(skills ? ['native skills/context/Goal resolver'] : []), ...(codex ? ['native Codex tools'] : []), 'native Context7 tools', ...(antigravity ? ['native Antigravity tools'] : []), 'native ExistingInputs policy', 'native subagents/parent-control', 'native Goal/operator', 'native schedules', 'DCG fail-closed env', 'native CodeMode/models:false', ...(memory ? ['session-local native Hindsight'] : []), ...mcp.sources.map(source => `MCP:${source.server}`)],
-            unavailable: [...(context7?.resolveCredential ? [] : ['Context7 credential resolver unconfigured']), ...(antigravity ? [] : ['Antigravity operations unconfigured']), ...(codex ? [] : ['CodexHost explicitly unconfigured']), ...(skills ? [] : ['native skills explicitly unconfigured']), ...(memory ? [] : ['Hindsight explicitly unconfigured']), ...(mcp.sources.some(source => source.server === 'mcp-agent-mail') ? [] : ['Mail explicitly unconfigured']), ...(context.models ? [] : ['selected host provider/auth catalogue unconfigured']), 'legacy arbitrary registries'],
+            present: [...(context.models ? ['native session-local provider/auth catalogue'] : []), 'native CodingTools', 'native own-conversation search_history', 'native Web tools', ...(skills ? ['native skills/context/Goal resolver'] : []), ...(codex ? ['native Codex tools'] : []), 'native Context7 tools', ...(antigravity ? ['native Antigravity tools'] : []), 'native ExistingInputs policy', 'native subagents/parent-control', 'native Goal/operator', 'native schedules', 'native bounded GitHub triggers', ...(tracing?.enabled ? ['session-local metadata-only Langfuse'] : []), 'DCG fail-closed env', 'native CodeMode/models:false', ...(memory ? ['session-local native Hindsight'] : []), ...mcp.sources.map(source => `MCP:${source.server}`)],
+            unavailable: [...(github ? [] : ['GitHub trigger transport explicitly unconfigured']), ...(tracing?.enabled ? [] : ['Langfuse SDK explicitly unconfigured']), ...(context7?.resolveCredential ? [] : ['Context7 credential resolver unconfigured']), ...(antigravity ? [] : ['Antigravity operations unconfigured']), ...(codex ? [] : ['CodexHost explicitly unconfigured']), ...(skills ? [] : ['native skills explicitly unconfigured']), ...(memory ? [] : ['Hindsight explicitly unconfigured']), ...(mcp.sources.some(source => source.server === 'mcp-agent-mail') ? [] : ['Mail explicitly unconfigured']), ...(context.models ? [] : ['selected host provider/auth catalogue unconfigured']), 'legacy arbitrary registries'],
           },
         },
       };
     } catch (error) {
-      try { await memory?.close(); } finally { await mcp.close(BACKGROUND_CONTEXT); }
+      try { await memory?.close(); }
+      finally { try { await tracing?.close(); } finally { await mcp.close(BACKGROUND_CONTEXT); } }
       throw error;
     }
   }, { id: 'native@1', models: options.models, capabilities: ['delegated-input.v1', 'profile-documents.v1', 'goal-operator.v1', 'native-parent-control.v1', 'native-bb-binding.v1', 'native-bb-outcome.v1', 'native-parent-target.v1', 'native-bb-input.v1', 'native-iii.v2', ...(options.skills ? ['skills.v1'] : [])] }) satisfies RuntimeProfileFactory;

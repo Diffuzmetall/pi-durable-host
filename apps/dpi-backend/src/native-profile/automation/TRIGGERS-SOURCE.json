@@ -1,0 +1,19 @@
+{
+  "origin": "pi-durable-extensions",
+  "release": "20261028-4rmMfRfc",
+  "sdk": "1.4.0",
+  "files": {
+    "packages/durable-triggers/src/index.mjs": "b08fee3d3ef5645251879484d993c5668ac3515d462284d0dea651cd916ef9bc",
+    "packages/local-host/src/github-triggers.mjs": "c1a545c928381ea7bf548b53d346bda93337109e2f7f04c9e9b29945d66a6251"
+  },
+  "localSha256": {
+    "github-triggers.mjs": "5517734a963792cc297c8b3016d5ea46c68b5c61ea2527b1b15731d535586ee9",
+    "triggers.mjs": "b08fee3d3ef5645251879484d993c5668ac3515d462284d0dea651cd916ef9bc"
+  },
+  "adaptations": [
+    "Session-bound authorization/admission; no memory dependency.",
+    "Explicit GitHub HOME/GH_CONFIG_DIR environment; no process.env inheritance.",
+    "Current root authority is rechecked after awaited GET before a comment/write effect, including revoke during the read."
+
+  ]
+}

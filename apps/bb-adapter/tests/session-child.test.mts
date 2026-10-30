@@ -9,6 +9,7 @@ import ts from 'typescript';
 import { DpiClient } from 'dpi-sdk/client';
 import type { NativeParentReceipt, NativeParentTarget } from 'dpi-sdk/api';
 import { BbThreadSession, type BbCore } from '../src/session.js';
+import { BbChildSession } from '../src/child-session.js';
 import type { HistoricalSnapshot } from '../src/history-types.js';
 
 const { Store } = await import(new URL('../../dpi-backend/src/store.ts', import.meta.url).href);
@@ -50,6 +51,7 @@ test('actual native child registration/history/control: original Core predicate,
   let pendingControl: { requestId: string; input: { type: string; text: string }[] } | undefined;
   let pendingAdmitted = false;
   const notifications: unknown[] = [];
+  const announcedChildren = new Set<string>();
   const coreServer = createServer(async (req, res) => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
     const { method, params } = JSON.parse(Buffer.concat(chunks).toString());
@@ -57,7 +59,7 @@ test('actual native child registration/history/control: original Core predicate,
     if (!coreAllowed) { res.writeHead(403); res.end('{}'); return; } // BEFORE digest/idempotent no-op too.
     if (method === 'thread/getOwnerScope') {
       const child = [...aliases.values()].find(a => `${A.id}:${a.conversationId}` === params.providerThreadId);
-      if (params.providerThreadId !== A.id && !child) { res.writeHead(403); res.end('{}'); return; }
+      if (params.providerThreadId !== A.id && (!child || !announcedChildren.has(params.providerThreadId))) { res.writeHead(403); res.end('{}'); return; }
       res.end(JSON.stringify({ providerId: 'pi-durable', threadId: child?.threadId ?? 'root-a', providerThreadId: params.providerThreadId, parentThreadId: child ? 'root-a' : null }));
     } else if (method === 'thread/registerExisting') {
       assert.equal(params.sessionId, A.id); assert.equal(params.parentThreadId, 'root-a'); assert.equal(params.parentProviderThreadId, A.id);
@@ -92,7 +94,15 @@ test('actual native child registration/history/control: original Core predicate,
   };
   const core: BbCore = { getOwnerScope: providerThreadId => rpc('thread/getOwnerScope', { providerThreadId }),
     registerExisting: params => rpc('thread/registerExisting', params), reconcileExisting: rpc,
-    notify: (method, params) => { notifications.push({ method, params }); } };
+    notify: (method, params) => {
+      notifications.push({ method, params });
+      if (method === 'thread/identity') {
+        const alias = [...aliases.values()].find(a => a.threadId === params.threadId);
+        assert.ok(alias, 'only a Core-acknowledged child can be announced');
+        assert.equal(params.providerThreadId, `${A.id}:${alias.conversationId}`);
+        announcedChildren.add(String(params.providerThreadId));
+      }
+    } };
   const start = async () => {
     server = createHttpServer(store, policy);
     server.on('request', (req: { url?: string }) => { if (req.url?.endsWith('/outcome') || req.url?.endsWith('/outcomes')) nativeCaptures++; });
@@ -122,6 +132,23 @@ test('actual native child registration/history/control: original Core predicate,
     await child.retryHistory();
     assert.equal(mutations, mutationBeforeRetry); assert.equal(digestReads, readsBeforeRetry); assert.equal(nativeCaptures, capturesBeforeRetry);
     assert.deepEqual(writes.at(-1), first, 'lost ACK retry owns ORIGINAL snapshot and expected CAS digest');
+
+    // A detached Core scope may reject an in-flight history response. Explicit
+    // reconnect must finish that exact attempt, not start another observation.
+    loseHistoryAck = true;
+    await assert.rejects(child.captureHistory());
+    const reconnectAttempt = structuredClone(writes.at(-1)!);
+    const reconnectMutations = mutations, reconnectReads = digestReads, reconnectCaptures = nativeCaptures;
+    loseHistoryAck = true;
+    await assert.rejects(root.openChild('child-a'));
+    assert.equal(child.historyRetryReady, true, 'failed reconnect retains the uncertain original');
+    const writesBeforeConcurrentOpen = writes.length;
+    const [attachedOne, attachedTwo] = await Promise.all([root.openChild('child-a'), root.openChild('child-a')]);
+    assert.equal(attachedOne, child); assert.equal(attachedTwo, child);
+    assert.equal(child.historyRetryReady, false);
+    assert.equal(writes.length, writesBeforeConcurrentOpen + 1, 'concurrent reconnect coalesces one retry');
+    assert.deepEqual(writes.at(-1), reconnectAttempt);
+    assert.equal(mutations, reconnectMutations); assert.equal(digestReads, reconnectReads); assert.equal(nativeCaptures, reconnectCaptures);
 
     const inputId = 'creq_23456789ab', task = 'slow: ' + 'NATIVE-CHILD-WORKING '.repeat(300);
     pendingControl = { requestId: inputId, input: [{ type: 'text', text: task }] };
@@ -180,4 +207,33 @@ test('actual native child registration/history/control: original Core predicate,
     root?.close(); coreServer.closeAllConnections(); await new Promise<void>(r => coreServer.close(() => r()));
     await stop(); await temp.cleanup();
   }
+});
+
+test('concurrent cached opens BOTH await the original history ACK before exposing the child', async () => {
+  // Retained form of the independent compiled reproducer: only binding transport
+  // and the deferred ACK are fixtures; openChild and retryHistory are production.
+  let acknowledge = () => {}; let applies = 0, captures = 0;
+  const ack = new Promise<void>(resolve => { acknowledge = resolve; });
+  const binding = { sessionId: 'fixture-session', conversationId: 2, parentThreadId: 'fixture-root', bbThreadId: 'fixture-child' };
+  const parent = { signal: new AbortController().signal, bindingForChild: async () => binding,
+    native: { bbOutcome() { captures++; throw Error('Unexpected native capture'); } },
+    children: new Map<string, Promise<BbChildSession>>() };
+  const pending = Object.freeze({ fixture: 'original-uncertain-history-attempt' });
+  const child = Reflect.construct(BbChildSession, [parent, binding, { async apply(body: unknown) {
+    assert.equal(body, pending); applies++; await ack; return { status: 'applied' };
+  } }]) as BbChildSession;
+  Reflect.set(child, 'pending', pending);
+  parent.children.set(binding.bbThreadId, Promise.resolve(child));
+  const settled = [false, false];
+  const opens = [0, 1].map(i => (Reflect.apply(BbThreadSession.prototype.openChild, parent, [binding.bbThreadId]) as Promise<BbChildSession>)
+    .then(value => { settled[i] = true; return value; }));
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  const beforeAck = [...settled];
+  acknowledge();
+  const results = await Promise.all(opens);
+  assert.deepEqual(beforeAck, [false, false], 'neither concurrent consumer may observe an unconfirmed child');
+  assert.equal(applies, 1); assert.equal(captures, 0);
+  assert.ok(results.every(value => value === child));
+  assert.equal(Reflect.get(child, 'pending'), undefined);
+  child.close();
 });

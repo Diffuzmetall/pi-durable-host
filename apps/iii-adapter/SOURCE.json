@@ -1,5 +1,5 @@
 {
-  "scope": "P5 standalone signed iii client; independently accepted local native/faux/loopback scope; production and real historical migration unverified",
+  "scope": "P5 standalone signed iii client; independently accepted local actual-engine/native/faux scope; production and historical migration unverified",
   "sourceRoot": "donor-iii://src",
   "sources": [
     {
@@ -105,7 +105,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "695cfb670bde91cdc1d470c2a75e38080ff8b764733b9316fdaf0bb397ead831"
+      "sha256": "27ed82c5b15bc70667135c093ac7bece5bbc74c37981b0313b9d6fe5472e2cc4"
     },
     {
       "path": "NOTICE.md",
@@ -151,6 +151,6 @@
   },
   "remaining": [
     "Actual selected historical/cross-version migration and original-version restoration remain unverified",
-    "Production iii engine, live providers and running-BB UI smoke remain unverified"
+    "Production deployment and live providers remain unverified; actual local iii engine and qualified compatible BB Core/Chrome evidence are scoped in docs/STATUS.md"
   ]
 }

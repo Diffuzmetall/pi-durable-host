@@ -131,7 +131,20 @@ export class BbThreadSession {
     const previous = this.children.get(threadId);
     if (previous) {
       const child = await previous;
-      if (!child.closed) return child; // Preserve any unacknowledged immutable history attempt.
+      const current = this.children.get(threadId);
+      if (current && current !== previous) return current; // Join a recovery installed while this caller awaited the old cache.
+      if (!child.closed) {
+        if (!child.historyRetryReady) return child;
+        // Reopening retries the ORIGINAL uncertain attempt before any fresh capture.
+        // Cache the recovery promise so concurrent attaches do not race that retry.
+        const recovery = child.retryHistory().then(() => child);
+        this.children.set(threadId, recovery);
+        try { return await recovery; }
+        finally {
+          // Retain the same child and pending attempt even when the retry fails.
+          if (this.children.get(threadId) === recovery) this.children.set(threadId, previous);
+        }
+      }
       if (this.children.get(threadId) === previous) this.children.delete(threadId);
       return this.openChild(threadId);
     }
@@ -210,6 +223,9 @@ export class BbThreadSession {
     if (projection.status === 'registered') {
       await this.checkRoot();
       await this.native.bindBbThread(projection.binding.bbThreadId, { kind: 'child', target: exact });
+      // Publish the acknowledged locator before asking Core for its current owner scope.
+      this.options.core.notify('thread/identity', { threadId: projection.binding.bbThreadId,
+        providerThreadId: `${sessionId}:${exact.conversationId}`, sessionRestorable: true });
     } else this.registrations.delete(nativeChildKey(child));
     return projection;
   }

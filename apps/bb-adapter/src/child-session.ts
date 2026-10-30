@@ -128,6 +128,7 @@ export class BbChildSession {
       return result;
     } finally { this.busy = false; }
   }
+  get historyRetryReady(): boolean { return this.pending !== undefined && !this.busy; }
   get observing(): boolean { return this.watching; }
   get closed(): boolean { return this.lifetime.signal.aborted || this.parent.signal.aborted; }
   close(): void { this.lifetime.abort(); }

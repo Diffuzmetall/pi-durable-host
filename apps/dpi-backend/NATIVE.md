@@ -92,6 +92,8 @@ is the same Store/Harness as before, not a second runtime. The package exports t
   native `api.models` remains the actual session capability. Authorization is checked
   before effects; image reads/saves also require filesystem permission. No login,
   credential discovery or real-provider fallback is supplied by this factory.
+- `github(context)` optionally returns an explicit `env` and `execFile` transport for bounded GitHub triggers. Supply session-local HOME/GH_CONFIG_DIR and only approved credentials; ambient `process.env` is not inherited. Current root authority is checked again after awaited reads, before a comment/write effect. Without configuration the transport is explicitly unavailable.
+- `tracing(context)` optionally supplies a session-local `TraceSdk` (`start`, `flush`, `close`) and safe `report`. The native generation/tool hooks export metadata only, never messages, arguments, results or exception payloads. No ambient SDK/credential discovery occurs; absent SDK means disabled. SDK failures are nonfatal and shutdown is session-local.
 - The optional integrations are not silently enabled. Inspect the composition's
   `native.inventory` for present and unavailable components.
 
@@ -254,7 +256,7 @@ The source-backed composition contains CodingTools, native input policy, subagen
 parent-control, Goal, schedules, own-conversation history, Context7, native Web,
 explicitly configured Codex/Antigravity, native skills/context and session Models,
 final-exec DCG, native CodeMode (`models:false`), and explicitly configured
-session-local Hindsight/Mail. Child ports retain source hashes,
+session-local Hindsight/Mail, bounded GitHub triggers and metadata-only tracing. Child ports retain source hashes,
 notices and upstream licenses under `dist/dpi-backend/src/native-profile/`.
 
 The scoped local factories support **one in-process layout**, not the unmodified installed
@@ -263,5 +265,4 @@ workspaces, loopback memory/Mail endpoints and logs, plus close/reopen and crede
 child execution. This is not acceptance of historical arbitrary registries, real-provider
 credentials/catalogues, live session migration, SIGKILL recovery of every unsafe effect,
 or arbitrary CLI/private-extension provider composers. Native parent/BB HTTP transport
-has isolated faux/SQLite/SDK fixture coverage, not full downstream adapter acceptance. Do not enable those by treating
-compilation as compatibility. Full terminal/BB/iii acceptance remains separate.
+has isolated faux/SQLite/SDK fixture coverage. Separate installed terminal PTY, actual compatible BB Core/Chrome and local iii engine checks are recorded in the source checkout's docs/STATUS.md, including the retained unexplained BB timing observation. Do not enable integrations by treating compilation, a source-patch application or that qualified local verdict as production compatibility.

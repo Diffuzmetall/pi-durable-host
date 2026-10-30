@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { publicProjection } from '../src/public-projection.js';
+import type { ConversationId, HarnessInspection, TaskId } from '@earendil-works/pi-durable';
+import type { JsonValue } from '@earendil-works/chord';
+import * as projection from '../src/public-projection.js';
+const { publicProjection } = projection;
 
 const document = { role: 'assistant', stopReason: 'error', content: [{ type: 'text', text: 'BENIGN_BUSINESS_DATA' }], errorMessage: 'business diagnostic' };
 const failed = { role: 'assistant', stopReason: 'error', provider: 'fixture', model: 'exact-id', content: [{ type: 'text', text: 'PRIVATE_FAILED_BODY' }], errorMessage: 'PRIVATE_OLD_CREDENTIAL' };
@@ -41,4 +44,89 @@ test('native event envelopes mask errors without recursively changing tool block
   assert.deepEqual(projected[5], events[5]); assert.deepEqual(projected[6], events[6]);
   assert.deepEqual(projected[8].record, { id: 7, status: 'failed' });
   assert.equal(events[8].record?.detail, 'PRIVATE_SUBMISSION');
+});
+
+test('native compaction and task diagnostics are private on live events and reconnect snapshots', () => {
+  const cause = 'SYNTHETIC_PRIVATE_COMPACTION_CAUSE';
+  const failure = { taskId: 81, reason: 'manual', error: cause };
+  const summary = { isError: true, durationMs: 12, usage: { tokens: 3 }, error: cause };
+  const opaque = { type: 'compaction_end', error: 'application-owned error', summary: { error: 'opaque tool data' } };
+  const events = [
+    { type: 'compaction_end', ...failure },
+    { type: 'snapshot', entries, compactions: [], compactionFailure: failure,
+      nestedTools: [{ taskId: 82, callId: 'native/nested', parentCallId: 'native', parentTaskId: 80, arguments: opaque, summary }] },
+    { type: 'task_failed', taskId: 83, kind: 'pi.compaction', message: cause },
+    { type: 'compaction_end', taskId: 84, reason: 'background' },
+    { type: 'tool_execution_update', details: opaque },
+  ] as const;
+  const original = JSON.stringify(events), projected = publicProjection(events, 'events');
+  assert.equal(JSON.stringify(projected).includes(cause), false);
+  assert.deepEqual(projected[0], { ...events[0], error: 'Provider request failed; details are private.' });
+  assert.deepEqual(projected[1].compactionFailure, { ...failure, error: projected[0].error });
+  assert.deepEqual(projected[1].nestedTools?.[0].summary, { ...summary, error: 'Task failed; details are private.' });
+  assert.deepEqual(projected[1].nestedTools?.[0].arguments, opaque);
+  assert.deepEqual(projected[2], { ...events[2], message: 'Task failed; details are private.' });
+  assert.deepEqual(projected.slice(3), events.slice(3));
+  assert.equal(JSON.stringify(events), original, 'native persisted history and event inputs are not rewritten');
+  assert.deepEqual(publicProjection(events[1], 'events'), projected[1], 'single reconnect snapshot uses the same typed boundary');
+});
+
+test('typed task state hides failure causes but keeps status, scheduling and opaque results', () => {
+  const cause = 'SYNTHETIC_PRIVATE_TASK_CAUSE';
+  const opaque = { status: 'failed', error: { message: cause, detail: { application: true } }, checkpoint: { overflow: cause } };
+  const checkpoint = { phase: 'prepare', overflow: cause, application: opaque };
+  const completed = { status: 'terminal', outcome: { status: 'completed', result: opaque } } as const;
+  const extension = { status: 'sleeping', until: 123, checkpoint } as const;
+  assert.deepEqual(projection.publicTaskState(completed, 'pi.tool'), completed, 'tool/application results remain opaque');
+  assert.deepEqual(projection.publicTaskState(extension, 'application.example'), extension, 'extension checkpoints are not recursively scrubbed');
+  for (const status of ['terminal', 'completing'] as const) {
+    for (const outcome of [
+      { status: 'failed', error: { message: cause, detail: { cause, stack: cause } }, result: { healthy: true } },
+      { status: 'faulted', error: { message: cause, detail: { cause, stack: cause } } },
+    ] as const) {
+      const state = { status, outcome };
+      const original = JSON.stringify(state), projected = projection.publicTaskState(state, 'pi.compaction');
+      assert.equal(JSON.stringify(projected).includes(cause), false);
+      assert.deepEqual(projected, { status, outcome: { ...outcome, error: { message: 'Task failed; details are private.' } } });
+      assert.equal(JSON.stringify(state), original);
+    }
+    for (const outcomeStatus of ['aborted', 'orphaned'] as const) {
+      const state = { status, outcome: { status: outcomeStatus, reason: cause } };
+      const projected = projection.publicTaskState(state, 'pi.compaction');
+      assert.equal(JSON.stringify(projected).includes(cause), false);
+      assert.equal(projected.status, status);
+      assert.equal(projected.outcome?.status, outcomeStatus);
+    }
+  }
+  const native = projection.publicTaskState(extension, 'pi.generation');
+  assert.deepEqual(native, { ...extension, checkpoint: { ...checkpoint, overflow: 'Provider request failed; details are private.' } });
+  assert.equal(extension.checkpoint.overflow, cause);
+});
+
+test('scheduler inspection projects only native diagnostic slots and preserves input, memos and scheduling', () => {
+  const cause = 'SYNTHETIC_PRIVATE_INSPECTION_CAUSE';
+  const opaque = { error: { message: 'OPAQUE_APPLICATION_MESSAGE' }, phase: 'prepare', overflow: 'application value' };
+  const base = { id: 91 as TaskId<JsonValue>, conversationId: 1 as ConversationId, kind: 'pi.generation', version: 1,
+    input: opaque, background: false, abortRequested: false };
+  const inspection: HarnessInspection = {
+    scheduling: 'paused', submissions: [], tasks: [
+      { record: { ...base, memos: { application: opaque }, state: { status: 'pending', checkpoint: { phase: 'prepare', attempt: 1, overflow: cause } } },
+        state: { kind: 'blocked', reason: 'migration_failed', error: { message: cause, stack: cause } } },
+      { record: { ...base, id: 92 as TaskId<JsonValue>, kind: 'application.example', memos: { application: opaque },
+        state: { status: 'pending', checkpoint: opaque } }, state: { kind: 'ready', migrates: false } },
+      { record: { ...base, id: 93 as TaskId<JsonValue>, state: { status: 'completing', outcome: { status: 'failed', error: { message: cause, detail: { cause } } } } },
+        state: { kind: 'completing' } },
+    ],
+  };
+  const original = JSON.stringify(inspection), projected = projection.publicInspection(inspection);
+  assert.equal(JSON.stringify(projected).includes(cause), false);
+  assert.equal(projected.scheduling, inspection.scheduling);
+  assert.deepEqual(projected.submissions, inspection.submissions);
+  assert.deepEqual(projected.tasks.map(item => [item.record.id, item.record.conversationId]), [[91, 1], [92, 1], [93, 1]]);
+  assert.deepEqual(projected.tasks[0].record.input, opaque);
+  assert.deepEqual(projected.tasks[0].record.memos, { application: opaque });
+  assert.deepEqual(projected.tasks[0].state, { kind: 'blocked', reason: 'migration_failed', error: 'Task failed; details are private.' });
+  assert.deepEqual(projected.tasks[1], inspection.tasks[1], 'extension checkpoint/input/memos are not diagnostic fields');
+  assert.deepEqual(projected.tasks[2].state, inspection.tasks[2].state);
+  assert.equal(JSON.stringify(inspection), original);
 });

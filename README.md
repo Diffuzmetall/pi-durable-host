@@ -4,7 +4,7 @@
 
 Это fork [disler/durable-pi](https://github.com/disler/durable-pi), а не новый agent framework. Он сохраняет backend, SDK, Git-историю и MIT notices upstream; native **Pi Durable 1.4.0** владеет sessions, tasks, документами и восстановлением. Pocket не используется.
 
-> **Локальная приёмка P0–P5 пройдена.** Проверены пять отдельных пакетов, **193/193 теста**, установка из tarballs, native HTTP/SSE, signed iii jobs и mixed-version terminal + BB. Из 53 критериев подтверждён 51; два миграционных проверены лишь на disposable same-version копиях. Это не production-сертификация, npm release или разрешение переносить рабочие данные. [Точный scope и ограничения](docs/STATUS.md).
+> **Локальная приёмка P0–P5 пройдена.** Проверены пять отдельных пакетов, **214/214 тестов**, установка из tarballs, native HTTP/SSE, signed iii jobs и mixed-version terminal + BB. Из 53 критериев подтверждён 51; два миграционных проверены лишь на disposable same-version копиях. Это не production-сертификация, npm release или разрешение переносить рабочие данные. [Точный scope и ограничения](docs/STATUS.md).
 
 ## Что можно делать
 
@@ -68,8 +68,8 @@ Observer читает разрешённое состояние; delegated worke
 ## Границы проверки
 
 - **BB `/compact` unsupported:** отказ до эффекта и accepted ACK. Native compaction API не даёт canonical idempotency key; SDK и терминал сохраняют свой compaction API.
-- BB проверен с настоящим native host и изолированным Core API fixture. Полный совместимый running-BB smoke ещё нужен перед production replacement.
-- iii проверен через настоящий pinned `iii-sdk`, подписанный ingress и loopback function transport с native faux host. Это не тест production iii engine или живых моделей.
+- BB проверен с настоящими BB Core 0.47.1, Chrome и native faux host: Root/child stop, follow-up, restart/reload без повторного initial task. Нужны [переносимые Core patches](compat/bb-0.47.1-native-child/README.md), stock BB недостаточно. Один исходный 25-секундный UI timeout остаётся необъяснённым; два контрольных запуска прошли, latency SLA не заявляется.
+- iii проверен через настоящий локальный engine/SDK 0.24.6, подписанный worker и native faux host: retry, restart, revoke и immutable result. Это не production iii deployment или тест живых моделей.
 - Mixed-version проверка соединяет terminal + BB с одним host/session/conversation. iii проверяется отдельным потоком на том же backend/SDK tuple; одновременная работа всех трёх не заявляется.
 - Историческая/cross-version миграция, рабочие SQLite, production, личные memory banks и произвольные plugins не считаются проверенными. Compile success не доказывает native recovery compatibility.
 

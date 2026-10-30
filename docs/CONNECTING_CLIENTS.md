@@ -42,13 +42,15 @@ BB adapter — provider-процесс с JSON-RPC по stdin/stdout. Не за�
 
 Соберите BB пакет и установите его вместе с SDK в отдельный каталог. Provider command: `dpi-bb-provider`. Его stdout занят JSON-RPC: не добавляйте туда приветствия, debug logs или shell banner. Подробный контракт и ограничения: [BB README](../apps/bb-adapter/README.md).
 
-**Текущие ограничения:** `/compact` отклоняется до эффекта и ACK; локальная приёмка не заменяет smoke на полной совместимой работающей версии BB. Случайный «похожий» BB thread или native child не должен автоматически создаваться вместо недоступного binding.
+**Совместимый Core:** для BB 0.47.1 примените [оба переносимых source patch](../compat/bb-0.47.1-native-child/README.md) к указанному upstream commit в отдельном disposable checkout. Stock `bb-app@0.47.1` не содержит prerequisite native interfaces. Source patches проверены на применение; полный upstream rebuild не выполнялся. Реальные Core/Chrome проверки относятся к точному hash-guarded binary overlay, а не к любой сборке патчей.
+
+**Текущие ограничения:** `/compact` отклоняется до эффекта и ACK. Независимая локальная функциональная приёмка Core/Chrome пройдена с [оговоркой по исходному UI timeout](STATUS.md); это не production activation или latency SLA. Случайный «похожий» BB thread или native child не должен автоматически создаваться вместо недоступного binding.
 
 ## iii
 
 iii подключается как отдельный адаптер с подписанным ingress и server-owned delegated binding. Ключевые проверки: namespace/config identity, устойчивый job request key, настоящий native parent-control и immutable answer reference.
 
-Локальная сквозная приёмка пройдена: настоящий pinned `iii-sdk@0.24.6`, signed function transport на loopback, native faux host, retry/conflict/revoke/control/restart и immutable result. Production engine и живые модели не проверялись. Конфигурация клиента или `_caller_worker_id` не заменяет серверную авторизацию; закрытие transport не отменяет принятый native job.
+Локальная сквозная приёмка пройдена: настоящий engine `iii --version` 0.24.6 и pinned `iii-sdk@0.24.6`, signed worker на loopback, native faux host, retry/conflict/revoke/control/restart и immutable result. Production deployment и живые модели не проверялись. Конфигурация клиента или `_caller_worker_id` не заменяет серверную авторизацию; закрытие transport не отменяет принятый native job.
 
 После сборки SDK по [quick start](GETTING_STARTED.md), из корня checkout:
 

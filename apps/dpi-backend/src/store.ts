@@ -35,8 +35,8 @@ import { GrantDenied } from "./grants.js";
 import { ApiFault, invalid, notFound, publicErrorMessage, reportError } from "./errors.js";
 import { DatabaseSync } from "node:sqlite";
 import { mkdir, readdir, realpath, rename as renamePath, stat } from "node:fs/promises";
-import { mkdirSync, writeFileSync, readFileSync, unlinkSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { mkdirSync, writeFileSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
+import { join, dirname, basename, resolve } from "node:path";
 import { homedir, hostname, platform } from "node:os";
 import { randomUUID } from "node:crypto";
 import { BACKGROUND_CONTEXT as ctx, withAbortSignal } from "@earendil-works/chord/context";
@@ -66,7 +66,7 @@ import { Workspace, type SpawnSession } from "./extensions.js";
 import { JobRuns, JOB_DEFS, jobDef, resolveJobInput } from "./jobs.js";
 import { ADDON_INFO, PROMPTS, PromptChecklist } from "./addons.js";
 import { playgroundProfile, type RuntimeComposition, type RuntimeModels, type RuntimeProfileFactory } from "./runtime-profile.js";
-import { publicProjection } from "./public-projection.js";
+import { publicProjection, publicTaskState, publicInspection } from "./public-projection.js";
 import type { Authorization } from './auth.js';
 import { selectChildTools, validateParentCommand, validateParentTarget, ownedChild, type ParentCommand } from './native-profile/subagents/parent-control.js';
 import { bindExistingInput } from './native-profile/admission/input-policy.js';
@@ -126,6 +126,15 @@ const AGENT_DOCS = { [JOB_RUNS_DOC]: JobRuns, "demo.workspace": Workspace } as c
 export const AGENT_DOC_KINDS = Object.keys(AGENT_DOCS);
 export const DEVICE_DOC_KINDS = ["app.shared-state"];
 
+/** Lock and open the same physical SQLite path, including existing file symlinks. */
+function databasePath(path: string): string {
+  try { return realpathSync(path); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return join(realpathSync(dirname(path)), basename(path));
+  }
+}
+
 export function lockFile(path: string) {
   mkdirSync(dirname(path), { recursive: true });
   const take = () => writeFileSync(path, String(process.pid), { flag: "wx", mode: 0o600 });
@@ -141,11 +150,14 @@ export function lockFile(path: string) {
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "ESRCH") alive = true;
     }
-    if (alive && pid !== process.pid) throw Error(`Database already owned by process ${pid}: ${path}`);
+    if (alive) throw Error(`Database already owned by process ${pid}: ${path}`);
     unlinkSync(path);
     take();
   }
+  let released = false;
   return () => {
+    if (released) return;
+    released = true;
     try {
       if (readFileSync(path, "utf8") === String(process.pid)) unlinkSync(path);
     } catch {}
@@ -228,23 +240,31 @@ export class Store {
       });
     }
     mkdirSync(options.dataDir, { recursive: true, mode: 0o700 });
-    this.unlockCatalog = lockFile(`${this.catalogPath}.lock`);
-    this.catalog = new DatabaseSync(this.catalogPath);
-    this.catalog.exec(`PRAGMA journal_mode=WAL;
-      CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY,name TEXT NOT NULL,cwd TEXT NOT NULL,dbPath TEXT NOT NULL UNIQUE,createdAt INTEGER NOT NULL,model TEXT NOT NULL,provider TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS conversation_names(sessionId TEXT NOT NULL,conversationId INTEGER NOT NULL,name TEXT NOT NULL,PRIMARY KEY(sessionId,conversationId));
-      CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS requests(key TEXT PRIMARY KEY,route TEXT NOT NULL,status INTEGER NOT NULL,body TEXT NOT NULL,createdAt INTEGER NOT NULL);
-      CREATE TABLE IF NOT EXISTS session_spawns(key TEXT PRIMARY KEY,sessionId TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS session_compaction(sessionId TEXT PRIMARY KEY,settings TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS session_create_intents(actor TEXT NOT NULL,key TEXT NOT NULL,fingerprint TEXT NOT NULL,resourceId TEXT NOT NULL UNIQUE,state TEXT NOT NULL,PRIMARY KEY(actor,key));
-      CREATE TABLE IF NOT EXISTS session_profiles(sessionId TEXT PRIMARY KEY,profileId TEXT NOT NULL);`);
-    const uid = this.catalog.prepare("SELECT value FROM meta WHERE key='device_uid'").get() as
-      | { value: string }
-      | undefined;
-    this.uid = uid?.value ?? randomUUID();
-    if (!uid) this.catalog.prepare("INSERT INTO meta(key,value) VALUES('device_uid',?)").run(this.uid);
-    this.catalog.prepare("DELETE FROM requests WHERE createdAt < ?").run(Date.now() - 24 * 3600_000);
+    const catalogPath = databasePath(this.catalogPath);
+    this.unlockCatalog = lockFile(`${catalogPath}.lock`);
+    let catalog: DatabaseSync | undefined;
+    try {
+      this.catalog = catalog = new DatabaseSync(catalogPath);
+      this.catalog.exec(`PRAGMA journal_mode=WAL;
+        CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY,name TEXT NOT NULL,cwd TEXT NOT NULL,dbPath TEXT NOT NULL UNIQUE,createdAt INTEGER NOT NULL,model TEXT NOT NULL,provider TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS conversation_names(sessionId TEXT NOT NULL,conversationId INTEGER NOT NULL,name TEXT NOT NULL,PRIMARY KEY(sessionId,conversationId));
+        CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS requests(key TEXT PRIMARY KEY,route TEXT NOT NULL,status INTEGER NOT NULL,body TEXT NOT NULL,createdAt INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS session_spawns(key TEXT PRIMARY KEY,sessionId TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS session_compaction(sessionId TEXT PRIMARY KEY,settings TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS session_create_intents(actor TEXT NOT NULL,key TEXT NOT NULL,fingerprint TEXT NOT NULL,resourceId TEXT NOT NULL UNIQUE,state TEXT NOT NULL,PRIMARY KEY(actor,key));
+        CREATE TABLE IF NOT EXISTS session_profiles(sessionId TEXT PRIMARY KEY,profileId TEXT NOT NULL);`);
+      const uid = this.catalog.prepare("SELECT value FROM meta WHERE key='device_uid'").get() as
+        | { value: string }
+        | undefined;
+      this.uid = uid?.value ?? randomUUID();
+      if (!uid) this.catalog.prepare("INSERT INTO meta(key,value) VALUES('device_uid',?)").run(this.uid);
+      this.catalog.prepare("DELETE FROM requests WHERE createdAt < ?").run(Date.now() - 24 * 3600_000);
+    } catch (error) {
+      catalog?.close();
+      this.unlockCatalog();
+      throw error;
+    }
   }
 
   static async open(options: StoreOptions) {
@@ -252,8 +272,9 @@ export class Store {
     // Start dirs are where new sessions begin; create any that do not exist yet.
     await Promise.all(options.startDirs.map((dir) => mkdir(dir, { recursive: true }).catch(() => {})));
     try {
-      store.unlockShared = lockFile(`${store.sharedStatePath}.lock`);
-      store.shared = await SharedState.open(store.sharedStatePath);
+      const sharedStatePath = databasePath(store.sharedStatePath);
+      store.unlockShared = lockFile(`${sharedStatePath}.lock`);
+      store.shared = await SharedState.open(sharedStatePath);
       store.shared.harness.subscribeCommits(() => store.notify());
       for (const row of store.list()) {
         try {
@@ -610,7 +631,8 @@ export class Store {
     if (current) return current.harness;
     if (!create) await stat(row.dbPath);
     await mkdir(dirname(row.dbPath), { recursive: true });
-    const unlock = lockFile(`${row.dbPath}.lock`);
+    const path = databasePath(row.dbPath);
+    const unlock = lockFile(`${path}.lock`);
     let harness: Harness | undefined;
     let storage: Storage | undefined;
     let profile: RuntimeComposition | undefined;
@@ -635,7 +657,7 @@ export class Store {
       await scopedModels?.requireModel({ provider: row.provider, modelId: row.model });
       profile = await factory({ ...profileContext, models: scopedModels });
       const compaction = () => this.compactionOf(row.id);
-      storage = await openNodeSqliteStorage(row.dbPath);
+      storage = await openNodeSqliteStorage(path);
       harness = await Harness.open(
         storage,
         {
@@ -1349,12 +1371,15 @@ export class Store {
     const wanted = items.filter((t) =>
       status === "terminal" ? t.state.status === "terminal" : t.state.status !== "terminal",
     );
-    return wanted.slice(-Math.min(Math.max(limit, 1), 200)).reverse().map((t) => ({
-      id: t.id as number,
-      kind: (t as { kind?: string }).kind ?? (t as { definition?: string }).definition ?? "task",
-      conversationId: (t as { conversationId?: number }).conversationId,
-      state: JSON.parse(JSON.stringify(t.state)),
-    }));
+    return wanted.slice(-Math.min(Math.max(limit, 1), 200)).reverse().map((t) => {
+      const kind = (t as { kind?: string }).kind ?? (t as { definition?: string }).definition ?? "task";
+      return {
+        id: t.id as number,
+        kind,
+        conversationId: (t as { conversationId?: number }).conversationId,
+        state: publicTaskState(t.state, kind),
+      };
+    });
   }
 
   async abortTask(h: Harness, taskId: number) {
@@ -1364,7 +1389,7 @@ export class Store {
   }
 
   async inspect(h: Harness) {
-    return h.inspect(ctx);
+    return publicInspection(await h.inspect(ctx));
   }
 
   async entries(c: Conversation, cursor: string | undefined, limit: number): Promise<Page<WireEntry>> {
