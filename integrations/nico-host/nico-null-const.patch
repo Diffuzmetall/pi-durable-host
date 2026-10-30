@@ -1,0 +1,25 @@
+--- a/json-schema-validator.ts
++++ b/json-schema-validator.ts
+@@ -1,6 +1,7 @@
+ import { Ajv } from "ajv";
+ import Ajv2020Import from "ajv/dist/2020.js";
+ import addFormatsImport from "ajv-formats";
++import traverse from "json-schema-traverse";
+ import { AjvJsonSchemaValidator } from "@modelcontextprotocol/client/validators/ajv";
+ import type {
+   JsonSchemaType,
+@@ -55,6 +56,14 @@
+ 
+   return {
+     getValidator<T>(schema: JsonSchemaType): JsonSchemaValidator<T> {
++      // A null constant is already exactly null. Some servers add OpenAPI's
++      // nullable annotation, which Ajv rejects without an explicit type.
++      schema = structuredClone(schema);
++      traverse(schema, { cb: (node) => {
++        if (node.const === null && node.nullable === true && node.type === undefined) {
++          node.type = "null";
++        }
++      } });
+       const dialect = schemaDialect(schema);
+       if (dialect.status === "unstamped" || DRAFT_2020_12_SCHEMA_URIS.has(dialect.uri)) {
+         draft2020Validator ??= (() => {

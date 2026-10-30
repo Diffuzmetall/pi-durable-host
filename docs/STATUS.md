@@ -1,5 +1,11 @@
 # Проверенный scope и ограничения
 
+## Последующий локальный cutover — 30 октября 2026
+
+Отдельный operator-owned маршрут terminal/iii был переключён на единый native Host после ограниченных реальных проверок новой сессии, выбранной historical copy и подписанного iii. Затем активирован Nico с сохранением `native@1` и native CodeMode. Изолированная проверка изменённого MCP boundary: 9/9; новые модельные вызовы для Nico: 0. В приёмочном inventory подключены 11 MCP; Timeweb — `needs_auth`, paper/shadcn отключены. Это не означает, что все MCP-операции проверены.
+
+[Публичные integration sources и границы обновления](../integrations/nico-host/README.md) опубликованы отдельно от приватных bootstrap/bundles/evidence. BB и обычный Pi не переключены. Следующий раздел сохраняет **исторический pre-cutover checkpoint**, а не текущее состояние локальной установки; public source checkout сам по себе не устанавливает принятый operator deployment.
+
 ## Текущий маршрут без BB
 
 **Backend + dpi-sdk + терминал + iii; BB отложен.** BB Core build, UI timeout, Chrome и их незавершённые задачи не блокируют этот маршрут и не объявлены принятыми. Один backend остаётся единственным native owner; второй runtime не создаётся.
