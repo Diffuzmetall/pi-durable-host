@@ -1,5 +1,7 @@
 # Подключение клиентов
 
+**Текущий маршрут: terminal + iii через общий backend, без BB.** BB — отложенная необязательная интеграция; её архивная инструкция ниже не является prerequisite и не выполняется в текущей приёмке. Не запускайте Core builds или Chrome-проверки ради подключения terminal/iii.
+
 Сначала нужен запущенный host и выданный сервером credential. Адрес и выбранная session — не полномочия. Клиент не может превратить observer или delegated token в human grant.
 
 ## Терминал
@@ -23,7 +25,9 @@ npm install --ignore-scripts /PATH/dpi-sdk-0.1.0.tgz /PATH/dpi-terminal-adapter-
 
 Подробности: [terminal README](../apps/terminal-adapter/README.md).
 
-## BB
+## BB — отложено
+
+Этот раздел сохранён как архив отдельной интеграции. Открытый UI timeout и незавершённая source-built Core/Chrome acceptance не входят в текущий verdict основного маршрута.
 
 BB adapter — provider-процесс с JSON-RPC по stdin/stdout. Не запускайте его как замену BB или как второй native runtime. Нужны совместимая версия Core и **доверенная серверная native-композиция**: стандартного минимального CLI для BB capabilities недостаточно.
 

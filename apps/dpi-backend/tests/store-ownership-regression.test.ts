@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, realpath, rm, stat, symlink, writeFile, rename } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, stat, symlink, writeFile, rename, cp } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { Store, lockFile, type SessionRow } from "../src/store.js";
 import { playgroundProfile, type RuntimeProfileFactory } from "../src/runtime-profile.js";
 
@@ -90,15 +90,19 @@ for (const alias of [false, true]) test(`separate catalogs reject an owned sessi
   } finally { await f.cleanup(); }
 });
 
-test("concurrent openAgent calls admit at most one native initialization and one Harness", async () => {
+test("concurrent openAgent calls on a confined copy admit at most one native initialization and one Harness", async () => {
   const f = await fixture();
   try {
     const owner = await f.open("first");
     const session = await create(owner, f.work);
     const row = owner.resolveSession(session.id);
     const other = await f.open("second");
-    register(other, row, f.profile.id);
     await f.close(owner);
+    const directory = join(other.sessionsDir, row.id);
+    await mkdir(other.sessionsDir, { recursive: true });
+    await cp(dirname(row.dbPath), directory, { recursive: true });
+    row.dbPath = join(directory, "agent.sqlite");
+    register(other, row, f.profile.id);
     const before = f.initializations();
     const results = await Promise.allSettled(Array.from({ length: 8 }, () => other.openAgent(row)));
     const opened = results.flatMap((r) => r.status === "fulfilled" ? [r.value] : []);

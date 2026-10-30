@@ -1,6 +1,27 @@
 # Проверенный scope и ограничения
 
-**Локальная функциональная приёмка terminal → BB → iii завершена в описанном scope.** Native Pi Durable **1.4.0** остаётся единственным владельцем исполнения и recovery. Это не production deployment, npm release, совместимость любых plugins или разрешение мигрировать рабочие данные.
+## Текущий маршрут без BB
+
+**Backend + dpi-sdk + терминал + iii; BB отложен.** BB Core build, UI timeout, Chrome и их незавершённые задачи не блокируют этот маршрут и не объявлены принятыми. Один backend остаётся единственным native owner; второй runtime не создаётся.
+
+| Граница | Свежий результат | Что ещё не следует из него |
+|---|---|---|
+| Copied catalog confinement | Независимые 18/18: абсолютная ссылка или symlink на исходную SQLite отклоняются до mkdir/lock/open; canonical candidate и one-owner сохраняются | Это не snapshot, импорт или sandbox |
+| Offline native adoption | 16/16 installed checks, strict/build/export PASS; actual selected-copy import сохранил все native records/revisions, IDs и artifacts | Это не actual continuation; независимая приёмка importer/pilot и публичного diff — отдельные gates, не вывод из unit PASS |
+| Retired task documents | Реальная SDK-fixture сохраняет tombstone без revisions; известный scope/family и terminal owner обязательны, выдуманного значения/версии нет | Unknown kind, active document без content и missing owner отклоняются |
+| Асинхронная preflight-проверка | Все validators завершаются до публикации catalog; retained RED → GREEN | Чужой runtime/profile не становится совместимым по номеру SDK |
+| Терминал + iii без BB | Настоящие PTY и локальный iii engine: shared native owner, reconnect/interrupt/recovery, lost-ACK retry и no replay на generated canary | Это не реальное provider continuation выбранной сессии |
+| Выбранная protected copy / rollback | Snapshot/source immutability независимо проверены; actual import сохранил 1 conversation, 613 entries, 639 tasks, 6 submissions, 114 docs и 42 revisions; исходный CLI/profile открыт на отдельной restore-копии | Restore — restricted, без credentials/production authority. Actual candidate bind/resume/integrations после model guard — NOT TESTED |
+
+**Текущий migration verdict — NO-GO.** Actual import выбранной копии прошёл; фактический Store проверил ту же сохранённую модель один раз и отказал availability до native session factory/Harness resume, оставив session unavailable, а не пустую замену. Network/child/memory attempts — 0, native DB и backup неизменны. Known model ID без доступных credentials — operational barrier, а не повод тихо подменить модель. Даже успешный доступ к модели сам по себе не подтвердит continuation/integration lifecycle. Static inspection и simulated continuation не считаются actual continuation. Оригиналы, активные owners и installed runtime не меняются; никакого deploy/activation. В документации нет raw session data или credentials.
+
+Проверяется только уже выбранная неактивная сессия текущей установки 1.4.0. Версия launcher не доказывает версию создавшего её SDK. Supported source определяется точными source fingerprints и сохранёнными task/doc/model/profile contracts. У этого source formal host-profile отсутствовал: provenance сохраняет `null`, отдельно от явно выбранного существующего target `native@1`. Derived saved-contract/code attestation не выдаётся за первоначально сохранённый full registry. [Actual selected-copy matrix](verification/REAL_PILOT.md) · [Offline API и границы](MIGRATION.md).
+
+## Исторические P0–P5 evidence
+
+Следующие результаты относятся к предыдущему локальному срезу, не заменяют current-route acceptance и не снимают отложенный BB-дефект.
+
+**Локальная функциональная приёмка terminal → BB → iii завершена в описанном историческом scope.** Native Pi Durable **1.4.0** остаётся единственным владельцем исполнения и recovery. Это не production deployment, npm release, совместимость любых plugins или разрешение мигрировать рабочие данные.
 
 Из 53 исходных критериев — **51 PASS / 2 PARTIAL**. Историческая/cross-version миграция и возврат исходного runtime проверены только на disposable closed-owner same-version копиях; реальные session data не переносились.
 
@@ -46,7 +67,7 @@ Terminal/реальный iii run использовали предыдущий 
 
 [Переносимая поставка](../compat/bb-0.47.1-native-child/README.md) содержит prerequisite и lifecycle source patches для pinned upstream get-bb/bb, MIT license, provenance, guarded binary builder и focused tests. Stock `bb-app@0.47.1` **не** содержит нужные prerequisite interfaces.
 
-Оба source patches применены к чистому pinned upstream snapshot; шесть итоговых файлов совпали с подготовленным source. **Полный upstream dependency bootstrap/typecheck/rebuild не выполнялся.** Actual Core/Chrome verdict относится к отдельно проверенному exact binary overlay, а не переносится автоматически на произвольную source-сборку. Builder отвергает неизвестные baseline hashes и не активирует результат.
+Оба source patches применены к чистому pinned upstream snapshot; шесть итоговых файлов совпали с подготовленным source. **В этом историческом binary-overlay срезе полный upstream dependency bootstrap/typecheck/rebuild не выполнялся.** Позже отдельно получен source-built Core `8afea059…` с build/native-dependency probe PASS; его Core/Chrome acceptance не выполнена и отложена вместе с BB. Actual Core/Chrome verdict относится к отдельно проверенному exact binary overlay, а не переносится автоматически на произвольную source-сборку. Builder отвергает неизвестные baseline hashes и не активирует результат.
 
 ## Производительность — разные метрики
 

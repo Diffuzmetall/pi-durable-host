@@ -9,7 +9,8 @@
     "./store": "./dist/dpi-backend/src/store.js",
     "./profiles": "./dist/dpi-backend/src/runtime-profile.js",
     "./server": "./dist/dpi-backend/src/http-server.js",
-    "./native-profile": "./dist/dpi-backend/src/native-profile/profile.js"
+    "./native-profile": "./dist/dpi-backend/src/native-profile/profile.js",
+    "./native-import": "./dist/dpi-backend/src/native-import.js"
   },
   "files": ["dist/dpi-backend/src/*.js", "dist/dpi-backend/src/*.d.ts", "dist/dpi-backend/src/native-profile", "dist/dpi-backend/prompts", "dist/dpi-sdk/src/*.js", "dist/dpi-sdk/src/*.d.ts", "LICENSE", "README.md", "INSTALL.md", "NATIVE.md"],
   "license": "MIT",

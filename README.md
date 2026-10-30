@@ -1,10 +1,12 @@
 # Pi Durable Host
 
-Один сервер для долговечной работы агентов и отдельные клиенты для терминала, BB, iii и своих интерфейсов. Начните разговор в терминале, закройте окно и подключитесь снова: сервер продолжает работу, а клиент восстанавливает её состояние и результат.
+Один сервер для долговечной работы агентов и отдельные клиенты для терминала, iii и своих интерфейсов. BB — необязательная отложенная интеграция; для основного маршрута его установка и запуск не нужны. Начните разговор в терминале, закройте окно и подключитесь снова: сервер продолжает работу, а клиент восстанавливает её состояние и результат.
 
 Это fork [disler/durable-pi](https://github.com/disler/durable-pi), а не новый agent framework. Он сохраняет backend, SDK, Git-историю и MIT notices upstream; native **Pi Durable 1.4.0** владеет sessions, tasks, документами и восстановлением. Pocket не используется.
 
-> **Локальная приёмка P0–P5 пройдена.** Проверены пять отдельных пакетов, **214/214 тестов**, установка из tarballs, native HTTP/SSE, signed iii jobs и mixed-version terminal + BB. Из 53 критериев подтверждён 51; два миграционных проверены лишь на disposable same-version копиях. Это не production-сертификация, npm release или разрешение переносить рабочие данные. [Точный scope и ограничения](docs/STATUS.md).
+> **Текущий маршрут: backend + dpi-sdk + терминал + iii, без BB.** Подготовлен offline-импорт согласованной native SQLite-копии с проверкой сохранённых определений до исполнения; Store отклоняет ссылки copied catalog на исходную БД. Новая граница импорта прошла **16/16** проверок установленного пакета. На одной выбранной копии actual import сохранил native state; фактический Store отказал недоступной сохранённой модели до native bind/resume. Общий переход **NO-GO**: продолжение этой сессии и её интеграции после guard не проверены, production не переключается. Generated canary и настоящий локальный iii не подменяют этот результат. [Миграция и условия отказа](docs/MIGRATION.md) · [Точный scope](docs/STATUS.md).
+>
+> Прежние P0–P5 и 214/214 тестов сохраняются как исторические evidence, а не повторная приёмка текущего перехода. BB Core build, UI timeout и Chrome-проверки отложены; открытый дефект не объявлен исправленным и не входит в этот verdict.
 
 ## Что можно делать
 
@@ -19,7 +21,7 @@
 ```mermaid
 flowchart LR
   T[Наш TUI] --> TA[Terminal adapter]
-  B[BB Core] --> BA[BB stdio adapter]
+  B[BB Core — отложено] -. optional .-> BA[BB stdio adapter]
   I[iii functions] --> IA[Signed iii adapter]
   X[Ваш frontend] --> SDK[Public SDK / HTTP]
   TA --> API
@@ -40,7 +42,7 @@ flowchart LR
 Нужны Git, npm и Node.js **22.19+**; локальные проверки выполнялись на Node 24. Начните с нового каталога данных и faux provider: без платных моделей и частных интеграций.
 
 1. [Собрать backend/SDK, запустить минимальный host и получить ответ](docs/GETTING_STARTED.md).
-2. [Подключить terminal, BB или iii](docs/CONNECTING_CLIENTS.md).
+2. [Подключить terminal и iii без BB](docs/CONNECTING_CLIENTS.md).
 3. [Подключить свой native profile и модели](docs/CUSTOM_RUNTIME.md).
 4. [Написать новый адаптер](docs/BUILDING_ADAPTERS.md).
 
@@ -51,7 +53,7 @@ flowchart LR
 | Клиент | Как подключается | Что подготовить |
 |---|---|---|
 | Terminal | `dpi-terminal URL SESSION_ID` | SDK + terminal tarball, URL и server credential |
-| BB | `dpi-bb-provider`, JSON-RPC по stdin/stdout | Совместимый Core, trusted native profile, точные thread/root/child bindings |
+| BB — отложен | `dpi-bb-provider`, JSON-RPC по stdin/stdout | Совместимый Core, trusted native profile, точные thread/root/child bindings |
 | iii | `dpi-iii-worker --config FILE` | Trusted native profile с `native-iii.v2`, delegated grant, config binding и public signing key |
 | Свой frontend | `DpiClient` или authenticated HTTP/SSE | Protocol/capability discovery, stable request keys и безопасное хранение credential |
 
@@ -68,10 +70,10 @@ Observer читает разрешённое состояние; delegated worke
 ## Границы проверки
 
 - **BB `/compact` unsupported:** отказ до эффекта и accepted ACK. Native compaction API не даёт canonical idempotency key; SDK и терминал сохраняют свой compaction API.
-- BB проверен с настоящими BB Core 0.47.1, Chrome и native faux host: Root/child stop, follow-up, restart/reload без повторного initial task. Нужны [переносимые Core patches](compat/bb-0.47.1-native-child/README.md), stock BB недостаточно. Один исходный 25-секундный UI timeout остаётся необъяснённым; два контрольных запуска прошли, latency SLA не заявляется.
+- **BB отложен и не входит в текущую приёмку.** Исторически BB проверялся с настоящими BB Core 0.47.1, Chrome и native faux host: Root/child stop, follow-up, restart/reload без повторного initial task. Нужны [переносимые Core patches](compat/bb-0.47.1-native-child/README.md), stock BB недостаточно. Один исходный 25-секундный UI timeout остаётся необъяснённым; два контрольных запуска прошли, latency SLA не заявляется.
 - iii проверен через настоящий локальный engine/SDK 0.24.6, подписанный worker и native faux host: retry, restart, revoke и immutable result. Это не production iii deployment или тест живых моделей.
 - Mixed-version проверка соединяет terminal + BB с одним host/session/conversation. iii проверяется отдельным потоком на том же backend/SDK tuple; одновременная работа всех трёх не заявляется.
-- Историческая/cross-version миграция, рабочие SQLite, production, личные memory banks и произвольные plugins не считаются проверенными. Compile success не доказывает native recovery compatibility.
+- Репетиция переноса ограничена одной уже выбранной неактивной сессией текущей установки на защищённой копии. Это не поддержка всех исторических/cross-version данных, production, личных memory banks или произвольных plugins. Compile success не доказывает native recovery compatibility.
 
 ## Если устанавливает агент
 

@@ -1,0 +1,45 @@
+{
+  "schema": "pi-durable-host.main-route.v1",
+  "route": ["dpi-backend", "dpi-sdk", "dpi-terminal-adapter", "dpi-iii-adapter"],
+  "bb": { "status": "DEFERRED", "required": false, "openUiDefectResolved": false },
+  "sourceBaseRevision": "0c49efba7ef53ae20a22395ebdd1a4d9ea04fd44",
+  "archives": {
+    "dpi-backend-0.1.0.tgz": {
+      "sha256": "dadd5534e7642a2c14dc6c6fdcbb6eab572c773221473bf3a13bc92326392458",
+      "members": 296,
+      "runtimeDeclarationFiles": 228,
+      "exactRuntimeReferenceArchiveSha256": "aa74ab0415ef4d1fd94f0422d0242995237e639ee3ec289937ba365f8e0d144e",
+      "referenceIsPublicDistribution": false,
+      "strictCheckBuildPack": "PASS"
+    },
+    "dpi-sdk-0.1.0.tgz": { "sha256": "351054859022ae202fbdc429e73da441bc90295e4717342652079c3ea0906abd", "reusedUnchanged": true },
+    "dpi-terminal-adapter-0.1.0.tgz": { "sha256": "1f1b74fa2b515b55bf280113d91116c267755973b5ed76ce9a6389174c235bde", "reusedUnchanged": true },
+    "dpi-iii-adapter-0.1.0.tgz": { "sha256": "40b33e8aae70c37222fc212cfb3b83adb48dba25e73163468fefb6dae33eeefe", "reusedUnchanged": true }
+  },
+  "evidence": {
+    "storeConfinement": "18/18 independently accepted; reused, not rerun",
+    "offlineImportInstalled": "16/16; reused through exact runtime/declaration and export identity",
+    "selectedCopyImport": "PASS; all native records/revisions/IDs/artifacts preserved",
+    "selectedCopyResultSha256": "6f797f19cbb0cd13fc1c5700d2b73e3eea7e170fd6b7b5d60677350eb6d2a30b",
+    "originalRuntimeProfileRestore": "PASS, restricted isolated restore; not original production authority",
+    "originalRuntimeRestoreResultSha256": "29cdfc840c5de4c154b9a63284c8614bed55623be2b27a53673ca46333780b90",
+    "terminalAndLocalIii": "PASS, actual PTY and actual local iii on generated imported native session; BB absent",
+    "terminalAndIiiResultSha256": "cc62b069a11e83e946f80349d6b55f41800fe03c7ea661a2eea79618ce7a7a5a",
+    "historicalSourceBaseline": "214/214 historical evidence; not rerun or substituted for new boundaries"
+  },
+  "migration": {
+    "verdict": "NO-GO",
+    "actualBarrier": "Store checked exact saved model once and refused credential/availability before native session factory or Harness resume",
+    "candidateBindResumeIntegrationsAfterGuard": "NOT_TESTED",
+    "fauxOrModelRemappingUsedOnSelectedCopy": false,
+    "sourceFormalProfileId": null,
+    "explicitExistingTargetProfileId": "native@1",
+    "sourceAttestation": "Derived saved-contract/bootstrap/code attestation, not a persisted original full-registry identity; creator SDK unattested",
+    "providerContinuationPermission": false,
+    "originalOrInstalledRuntimeMutated": false,
+    "productionActivated": false,
+    "blanketHistoricalCrossVersionCompatibility": false
+  },
+  "publicationRequiresScopedIndependentReview": true,
+  "privateEvidencePayloadsDistributed": false
+}

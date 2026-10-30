@@ -39,6 +39,27 @@ Use the existing `dpi-sdk` HTTP client to create a session and submit inputs. It
 is the same Store/Harness as before, not a second runtime. The package exports the same
 `minimalProfile` and `playgroundProfile` under `dpi-backend/profiles` for other hosts.
 
+## Closed native-copy adoption
+
+`dpi-backend/native-import` exports the trusted offline `adoptNativeCopy` API.
+It reads a verified coherent copy through immutable SQLite access, checks its complete
+file inventory and the explicit source/target contracts, then creates a new host catalog.
+It does not instantiate Store/Harness, invoke the profile or provider, or resume work.
+A standalone native database is not a host catalog: copying it into an empty data directory
+or running `migrate-playground` is not a valid import.
+
+The source profile ID may legitimately be `null`; provenance retains that fact separately
+from the explicit existing target factory ID. Task/document versions, model references and
+native IDs are not silently remapped. Known retired task-document tombstones can have no
+remaining content or stored version; their records survive unchanged, with a terminal owner
+and known scope/family required. Active documents without content still fail closed.
+Pure profile-specific document/effect validators, including asynchronous validators, must
+finish before destination publication. Unknown contracts and unsafe pending state refuse.
+
+See [the offline contract and limits](../../docs/MIGRATION.md). Metadata adoption is not
+provider continuation or operational model availability: normal Store credential/model checks
+remain in force. BB is not needed for backend, SDK, terminal or iii acceptance.
+
 ## Explicit integrations
 
 - `connectMcp(context)` must create a **separate connection set per session** and return

@@ -1,4 +1,5 @@
 import { SharedState } from "./shared-state.js";
+import { initializeCatalog } from "./catalog.js";
 import type { StateChange } from "../../dpi-sdk/src/app-state.js";
 import type {
   AgentDetail,
@@ -35,8 +36,8 @@ import { GrantDenied } from "./grants.js";
 import { ApiFault, invalid, notFound, publicErrorMessage, reportError } from "./errors.js";
 import { DatabaseSync } from "node:sqlite";
 import { mkdir, readdir, realpath, rename as renamePath, stat } from "node:fs/promises";
-import { mkdirSync, writeFileSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
-import { join, dirname, basename, resolve } from "node:path";
+import { mkdirSync, writeFileSync, readFileSync, realpathSync, lstatSync, unlinkSync } from "node:fs";
+import { join, dirname, basename, resolve, relative, isAbsolute, sep } from "node:path";
 import { homedir, hostname, platform } from "node:os";
 import { randomUUID } from "node:crypto";
 import { BACKGROUND_CONTEXT as ctx, withAbortSignal } from "@earendil-works/chord/context";
@@ -130,8 +131,8 @@ export const DEVICE_DOC_KINDS = ["app.shared-state"];
 function databasePath(path: string): string {
   try { return realpathSync(path); }
   catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    return join(realpathSync(dirname(path)), basename(path));
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT" || lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) throw error;
+    return join(databasePath(dirname(path)), basename(path));
   }
 }
 
@@ -199,6 +200,7 @@ export class Store {
   shared!: SharedState;
   uid!: string;
   modelList: ModelInfo[] = [];
+  private readonly directory: string;
   private unlockCatalog: () => void;
   private unlockShared?: () => void;
   private listeners = new Set<() => void>();
@@ -212,13 +214,13 @@ export class Store {
     return join(this.options.dataDir, "catalog.sqlite");
   }
   get sharedStatePath() {
-    return join(this.options.dataDir, "app-state.sqlite");
+    return join(this.directory, "app-state.sqlite");
   }
   get sessionsDir() {
-    return join(this.options.dataDir, "sessions");
+    return join(this.directory, "sessions");
   }
   get archiveDir() {
-    return join(this.options.dataDir, "archive");
+    return join(this.directory, "archive");
   }
   get name() {
     return this.options.name;
@@ -241,19 +243,12 @@ export class Store {
     }
     mkdirSync(options.dataDir, { recursive: true, mode: 0o700 });
     const catalogPath = databasePath(this.catalogPath);
+    this.directory = dirname(catalogPath);
     this.unlockCatalog = lockFile(`${catalogPath}.lock`);
     let catalog: DatabaseSync | undefined;
     try {
       this.catalog = catalog = new DatabaseSync(catalogPath);
-      this.catalog.exec(`PRAGMA journal_mode=WAL;
-        CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY,name TEXT NOT NULL,cwd TEXT NOT NULL,dbPath TEXT NOT NULL UNIQUE,createdAt INTEGER NOT NULL,model TEXT NOT NULL,provider TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS conversation_names(sessionId TEXT NOT NULL,conversationId INTEGER NOT NULL,name TEXT NOT NULL,PRIMARY KEY(sessionId,conversationId));
-        CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS requests(key TEXT PRIMARY KEY,route TEXT NOT NULL,status INTEGER NOT NULL,body TEXT NOT NULL,createdAt INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS session_spawns(key TEXT PRIMARY KEY,sessionId TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS session_compaction(sessionId TEXT PRIMARY KEY,settings TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS session_create_intents(actor TEXT NOT NULL,key TEXT NOT NULL,fingerprint TEXT NOT NULL,resourceId TEXT NOT NULL UNIQUE,state TEXT NOT NULL,PRIMARY KEY(actor,key));
-        CREATE TABLE IF NOT EXISTS session_profiles(sessionId TEXT PRIMARY KEY,profileId TEXT NOT NULL);`);
+      initializeCatalog(this.catalog);
       const uid = this.catalog.prepare("SELECT value FROM meta WHERE key='device_uid'").get() as
         | { value: string }
         | undefined;
@@ -596,8 +591,17 @@ export class Store {
     return this.sessionSummary(this.row(row.id));
   }
 
+  private sessionPath(row: SessionRow): string {
+    const path = databasePath(row.dbPath);
+    const suffix = relative(this.sessionsDir, path);
+    if (!suffix || suffix === ".." || suffix.startsWith(`..${sep}`) || isAbsolute(suffix))
+      throw new ApiFault("unavailable", "Session database is outside this Store's ownership directory");
+    return path;
+  }
+
   /** Stop all work, close the harness and move its files to archive/. Nothing is deleted. */
   async archive(row: SessionRow) {
+    const path = this.sessionPath(row);
     const opened = this.opened.get(row.id);
     if (opened) {
       this.opened.delete(row.id);
@@ -614,7 +618,7 @@ export class Store {
     await mkdir(this.archiveDir, { recursive: true });
     const target = join(this.archiveDir, `${row.id}-${Date.now()}`);
     try {
-      await renamePath(dirname(row.dbPath), target);
+      await renamePath(dirname(path), target);
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     }
@@ -627,11 +631,11 @@ export class Store {
   }
 
   async openAgent(row: SessionRow, create = false, thinkingLevel: ThinkingLevel = "low"): Promise<Harness> {
+    const path = this.sessionPath(row);
     const current = this.opened.get(row.id);
     if (current) return current.harness;
-    if (!create) await stat(row.dbPath);
-    await mkdir(dirname(row.dbPath), { recursive: true });
-    const path = databasePath(row.dbPath);
+    if (!create) await stat(path);
+    await mkdir(dirname(path), { recursive: true });
     const unlock = lockFile(`${path}.lock`);
     let harness: Harness | undefined;
     let storage: Storage | undefined;
@@ -648,7 +652,7 @@ export class Store {
       if (!saved) this.catalog.prepare("INSERT INTO session_profiles VALUES(?,?)").run(row.id, factory.id);
       const shellEnv = baseShellEnv();
       const profileContext = {
-        shared: this.shared, sessionId: row.id, cwd: row.cwd, directory: dirname(row.dbPath),
+        shared: this.shared, sessionId: row.id, cwd: row.cwd, directory: dirname(path),
         shellEnv, spawn: this.spawnSession, offline: this.options.provider === "faux",
       };
       // External initializers can throw even an ApiFault containing private provider data.
