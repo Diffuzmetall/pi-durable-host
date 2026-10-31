@@ -1,0 +1,26 @@
+--- a/node_modules/dpi-backend/dist/dpi-backend/src/streams.js
++++ b/node_modules/dpi-backend/dist/dpi-backend/src/streams.js
+@@ -251,6 +251,23 @@
+         snapshot: publicProjection(stream.snapshot, 'events'),
+         inbox: await store.inbox(h, c),
+     });
++    // A large initial snapshot is not evidence of a slow viewer. Let it drain
++    // before optional document frames encounter the steady-state backlog guard.
++    if (res.writableNeedDrain && !sse.closed) {
++        await new Promise((resolve) => {
++            const done = () => {
++                res.off('drain', done);
++                res.off('close', done);
++                resolve();
++            };
++            res.once('drain', done);
++            res.once('close', done);
++        });
++    }
++    if (sse.closed) {
++        await stream.stop();
++        return;
++    }
+     const pushDocs = coalesce(async () => {
+         for (const kind of docs)
+             sse.sendIfChanged(`doc:${kind}`, { type: "doc", kind, value: await store.agentDoc(h, c, kind) });

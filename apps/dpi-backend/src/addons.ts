@@ -32,6 +32,7 @@ export const PromptChecklist = defineDoc<{ enabled: string[] }>({
   scope: "conversation",
   history: "latest",
   fork: "current",
+  checkpointWhen: () => true,
   initial: () => ({ enabled: [PROMPTS[0].id] }),
 });
 

@@ -1,0 +1,14 @@
+{
+  "base": "/home/ubuntu/.local/share/pi-durable-host/releases/c0019d7-nico2",
+  "release": "/home/ubuntu/.local/share/pi-durable-host/releases/c0019d7-delm2",
+  "package": "/home/ubuntu/.local/share/pi-durable-delm/versions/aa94a268d83ab51513b64cf16c455d16e738d5df0c74904ebd3e9bc01483914e",
+  "activated": false,
+  "scope": "DeLM session binding only; all existing Host dependencies and MCP retained",
+  "files": {
+    "host-bindings-v16/operational-profile.mjs": "eb077cbd286c2cecc550346ceb7827fde924c22936d60d8f9465133d8efd4a5e",
+    "host-bindings-v16/delm-profile.mjs": "445efb6cbe07ebf7fa0192c5a3afc57e94e3b06a11678e35fbd37b6e91a353ad",
+    "host-bindings-v16/delm-engine/index.js": "c31922d070384a38659498a7f01d42ea861ee912f86411669b9240908b80f11b",
+    "host-bindings-v16/delm-engine/package.json": "1239d4d885dcad42201a27ed9324f8f0f760b78700d8db9ced39a511cffe7eae",
+    "host-bindings-v16/delm-engine/protocol.js": "4a538bb850c9b285c6de9920f99397519b3a7cd464bc629b462807aa9fd1b4cd"
+  }
+}

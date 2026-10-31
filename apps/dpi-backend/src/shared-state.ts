@@ -13,18 +13,21 @@ const Data = defineDoc<AppState>({
   kind: "app.shared-state",
   version: 1,
   scope: "session",
+  checkpointWhen: () => true,
   initial: () => ({}),
 });
 const Meta = defineDoc<{ initialized: boolean; revision: number }>({
   kind: "app.shared-state-meta",
   version: 1,
   scope: "session",
+  checkpointWhen: () => true,
   initial: () => ({ initialized: false, revision: 0 }),
 });
 const Receipts = defineDocFamily<{ applied: boolean; result: string }, null>({
   kind: "app.shared-state-receipt",
   version: 1,
   scope: "session",
+  checkpointWhen: () => true,
   family: true,
   initial: () => ({ applied: false, result: "" }),
 });

@@ -1,0 +1,55 @@
+--- a/experiments/sdk-host-cutover/operational-service.mjs
++++ b/experiments/sdk-host-cutover/operational-service.mjs
+@@ -34,14 +34,24 @@
+   }
+   const policy = new GrantPolicy(config.grants);
+   const profile = await createOperationalProfile({ policy, owner: policy.authenticate(ownerGrant.token), trustedWorkspaces: config.trustedWorkspaces, nativeExtensions: config.nativeExtensions });
+-  const store = await Store.open({ dataDir: config.dataDir, startDirs: config.startDirs, name: 'durable-host', profile });
+-  const server = createHttpServer(store, policy);
+-  let closing;
+-  const close = () => closing ??= (async () => { server.closeAllConnections(); server.close(); await store.close(); })();
+-  process.once('SIGINT', close); process.once('SIGTERM', close);
++  const opening = Store.open({ dataDir: config.dataDir, startDirs: config.startDirs, name: 'durable-host', profile });
++  let server, closing;
++  // Startup owns locks before HTTP exists. Drain opening before releasing that owner.
++  const close = () => closing ??= (async () => {
++    const store = await opening;
++    server?.closeAllConnections(); server?.close();
++    await store.close();
++  })();
++  const requestClose = () => { void close().catch(() => { process.exitCode = 1; }); };
++  process.on('SIGINT', requestClose); process.on('SIGTERM', requestClose);
++  const store = await opening;
++  if (closing) { await closing; return; }
+   try {
++    server = createHttpServer(store, policy);
+     server.listen(config.port, '127.0.0.1'); await once(server, 'listening');
++    if (closing) { await closing; return; }
+     if (process.env.NOTIFY_SOCKET) await promisify(execFile)('/usr/bin/systemd-notify', ['--ready']);
++    if (closing) { await closing; return; }
+   } catch { await close(); throw Error('HOST_STARTUP_FAILED'); }
+   console.log(JSON.stringify({ status: 'NATIVE_HOST_READY', endpoint: `http://127.0.0.1:${server.address().port}`, profile: profile.id, pid: process.pid }));
+ }
+--- a/experiments/sdk-host-cutover/terminal-launcher.mjs
++++ b/experiments/sdk-host-cutover/terminal-launcher.mjs
+@@ -60,6 +60,11 @@
+   return session.id;
+ }
+ 
++// The service allows five minutes to restore sessions; leave time for systemctl's reply.
++export async function startHostService(run = promisify(execFile)) {
++  await run('/usr/bin/systemctl', ['--user', 'start', 'pi-durable-host.service'], { timeout: 330_000 });
++}
++
+ async function main() {
+   const args = parseLaunchArgs(process.argv.slice(2));
+   if (args.help) {
+@@ -73,7 +78,7 @@
+   const url = new URL(config.url);
+   if (!['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname) || url.protocol !== 'http:' || url.username || url.password ||
+     url.pathname !== '/' || url.search || url.hash || typeof config.token !== 'string' || !config.token.trim()) throw Error('Private loopback client binding required');
+-  await promisify(execFile)('/usr/bin/systemctl', ['--user', 'start', 'pi-durable-host.service'], { timeout: 45_000 });
++  await startHostService();
+   const directory = join(homedir(), '.local/state/dpi-terminal', createHash('sha256').update(`${url.href}\0${config.token}`).digest('hex'));
+   const client = new DpiClient(url.href.replace(/\/$/, ''), config.token);
+   const id = await selectHostSession(client, args, process.cwd(), directory);

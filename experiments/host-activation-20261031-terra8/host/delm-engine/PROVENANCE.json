@@ -1,0 +1,11 @@
+{
+  "source": "pi-durable-delm installed package aa94a268d83ab51513b64cf16c455d16e738d5df0c74904ebd3e9bc01483914e",
+  "preservedFrom": "c0019d7-delm2/host-bindings-v16/delm-engine",
+  "license": "MIT; Copyright (c) 2026 Diffuzmetall",
+  "nativeSdk": "@earendil-works/pi-durable@1.4.0, supplied by the Host consumer",
+  "sha256": {
+    "index.js": "c31922d070384a38659498a7f01d42ea861ee912f86411669b9240908b80f11b",
+    "protocol.js": "4a538bb850c9b285c6de9920f99397519b3a7cd464bc629b462807aa9fd1b4cd"
+  },
+  "modified": false
+}

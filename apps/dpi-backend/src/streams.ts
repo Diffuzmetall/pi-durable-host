@@ -5,8 +5,10 @@ import type { Request, Response } from "express";
 import { watchEvents, type Conversation, type Harness } from "@earendil-works/pi-durable";
 import { BACKGROUND_CONTEXT as ctx } from "@earendil-works/chord/context";
 import type { Activity, DeviceTree, Frame, StreamScope } from "../../dpi-sdk/src/api.js";
-import { AGENT_DOC_KINDS, DEVICE_DOC_KINDS, type SessionRow, type Store } from "./store.js";
-import { invalid } from "./errors.js";
+import { DEVICE_DOC_KINDS, type SessionRow, type Store } from "./store.js";
+import { invalid, notFound, reportError } from "./errors.js";
+import { authorizationOf } from "./auth.js";
+import { publicProjection } from "./public-projection.js";
 
 const MAX_BUFFER = 2_000_000;
 
@@ -18,6 +20,8 @@ export interface Sse {
 }
 
 export function openSse(res: Response, scope: StreamScope): Sse {
+  const authorization = authorizationOf(res);
+  authorization?.recheck();
   res.status(200).set({
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-cache, no-transform",
@@ -40,12 +44,18 @@ export function openSse(res: Response, scope: StreamScope): Sse {
     for (const fn of cleanups.splice(0)) {
       try {
         fn();
+      // pi-lens-ignore: error-swallowing
       } catch {}
     }
   };
   res.on("close", close);
+  const revoke = () => { close(); res.end(); };
+  authorization?.signal.addEventListener("abort", revoke, { once: true });
+  cleanups.push(() => authorization?.signal.removeEventListener("abort", revoke));
+  if (authorization?.signal.aborted) revoke();
   const send = (frame: Frame) => {
     if (closed) return;
+    if (authorization?.signal.aborted) { revoke(); return; }
     if (res.writableLength > MAX_BUFFER) {
       // A slow viewer reconnects to a fresh snapshot instead of buffering without bound.
       res.end();
@@ -88,7 +98,7 @@ export function coalesce(fn: () => Promise<void>, ms: number) {
     try {
       await fn();
     } catch (e) {
-      console.error("[dpi-backend] stream update failed:", e instanceof Error ? e.message : e);
+      reportError(e, "stream.update");
     } finally {
       running = false;
       if (again) {
@@ -101,6 +111,39 @@ export function coalesce(fn: () => Promise<void>, ms: number) {
     if (!timer) timer = setTimeout(() => void run(), ms);
   };
   return Object.assign(trigger, { now: run, cancel: () => timer && clearTimeout(timer) });
+}
+
+/** Native commit hints trigger one coherent capture; no polling, unbounded queue or viewer-owned work. */
+export async function bbOutcomeStream(store: Store, row: SessionRow, parent: Conversation, threadId: string, res: Response) {
+  const authorization = authorizationOf(res)!;
+  const binding = await store.bbBinding(row, parent, authorization, threadId);
+  if (!binding) throw notFound('Unknown authorized BB binding');
+  const h = store.harness(row);
+  const child = await h.commit(tx => tx.conversation(binding.conversationId), ctx);
+  const watched = new Set([binding.conversationId, child?.owner?.conversationId, parent.id]);
+  const sse = openSse(res, { kind: 'agent', sessionId: row.id, agentId: binding.conversationId });
+  const push = coalesce(async () => {
+    if (sse.closed) return;
+    try {
+      const outcome = await store.bbOutcome(row, parent, authorization, threadId);
+      authorization.recheck();
+      sse.sendIfChanged('bb.outcome', { type: 'bb.outcome', threadId, outcome });
+    } catch { res.end(); }
+  }, 0);
+  sse.onClose(h.subscribeCommits(publication => {
+    if (publication.changes.some(change => {
+      const id = change.type === 'document' || change.type === 'document.copy' ? change.conversationId :
+        change.type === 'conversation' ? change.value.id : change.value.conversationId;
+      return id !== undefined && watched.has(id) && (id !== binding.conversationId || change.type === 'submission');
+    })) push();
+  }));
+  sse.onClose(() => push.cancel());
+  const stream = await watchEvents(h, binding.conversationId, ctx);
+  if (sse.closed) { await stream.stop(); return; }
+  stream.start(async () => { push(); });
+  sse.onClose(() => { void stream.stop(); });
+  void stream.closed.then(() => { if (!sse.closed) res.end(); });
+  await push.now();
 }
 
 export function parseDocs(raw: unknown, allowed: readonly string[]): string[] {
@@ -196,14 +239,31 @@ export async function agentStream(
   res: Response,
 ) {
   const { row, h, c } = target;
-  const docs = parseDocs(req.query.docs, AGENT_DOC_KINDS);
-  const stream = await watchEvents(h, c.id, ctx);
+  const docs = parseDocs(req.query.docs, store.agentDocKinds(h));
   const sse = openSse(res, { kind: "agent", sessionId: row.id, agentId: c.id as number });
+  const stream = await watchEvents(h, c.id, ctx);
+  if (sse.closed) { await stream.stop(); return; }
   sse.send({
     type: "snapshot",
-    snapshot: JSON.parse(JSON.stringify(stream.snapshot)),
+    snapshot: publicProjection(stream.snapshot, 'events'),
     inbox: await store.inbox(h, c),
   });
+  // A large initial snapshot must drain before the steady-state backlog guard applies.
+  if (res.writableNeedDrain && !sse.closed) {
+    await new Promise<void>((resolve) => {
+      const done = () => {
+        res.off('drain', done);
+        res.off('close', done);
+        resolve();
+      };
+      res.once('drain', done);
+      res.once('close', done);
+    });
+  }
+  if (sse.closed) {
+    await stream.stop();
+    return;
+  }
   const pushDocs = coalesce(async () => {
     for (const kind of docs)
       sse.sendIfChanged(`doc:${kind}`, { type: "doc", kind, value: await store.agentDoc(h, c, kind) });
@@ -211,7 +271,7 @@ export async function agentStream(
   await pushDocs.now();
   stream.start(async (events) => {
     if (sse.closed) return;
-    sse.send({ type: "batch", events: JSON.parse(JSON.stringify(events)) });
+    sse.send({ type: "batch", events: publicProjection(events, 'events') });
     if (events.some((e) => e.type === "inbox_update" || e.type === "snapshot"))
       sse.send({ type: "inbox", items: await store.inbox(h, c) });
   });

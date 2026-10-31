@@ -1,0 +1,75 @@
+{
+  "sdk": "1.4.0",
+  "changes": [
+    "8 copied runtime modules unchanged except local relative import paths/suffixes",
+    "automation.ts localizes installed authority hooks and bind/shutdown independently of Hindsight; subagents/triggers not composed in this slice"
+  ],
+  "files": [
+    {
+      "path": "session-goals.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/local-host/src/session-goals.ts",
+      "sourceSha256": "23c0461aed8431c7b25630bdb3cc92b4b04db5169908ee1ad47cc1089e49ff4b",
+      "localSha256": "ad90309ad5c57857b12f57abbdc9ef0814a3983a5ff739e6d275c138c407651e"
+    },
+    {
+      "path": "native-goals.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/local-host/src/native-goals.ts",
+      "sourceSha256": "58de3ad007b02145b3c11e3a22aac31568863c6ee2424b6e860fce099d19e10f",
+      "localSha256": "dd059ed5e3a974e95e37cce86f252f276a50841bfffaacd9e32a58845c0bf96c"
+    },
+    {
+      "path": "goal-run.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/local-host/src/goal-run.ts",
+      "sourceSha256": "920f4378d6287642e7b832f09d0471bda29a1358b0184444406e5c83bbccec4b",
+      "localSha256": "920f4378d6287642e7b832f09d0471bda29a1358b0184444406e5c83bbccec4b"
+    },
+    {
+      "path": "goal-skills.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/local-host/src/goal-skills.ts",
+      "sourceSha256": "9ca2bb8a0adf2d645e354fecede42093dc1cd792cf59c0456015a9b807f5aa26",
+      "localSha256": "9ca2bb8a0adf2d645e354fecede42093dc1cd792cf59c0456015a9b807f5aa26"
+    },
+    {
+      "path": "native-goal-control.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/local-host/src/native-goal-control.ts",
+      "sourceSha256": "c72ef87e8bf68c1f71070a1a1bee9f28297b04010e72dd46b73ea7f1f0d3a01b",
+      "localSha256": "60df37cc7b123d2f6f50138f2e0c33e11e5d490544c92167fde2535caa2d5319"
+    },
+    {
+      "path": "native-contract.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/durable-goals/src/native-contract.ts",
+      "sourceSha256": "26ce664b3e8559cc2c0517f70eba06bfd1191f5032f46ab77929903d41650d4a",
+      "localSha256": "26ce664b3e8559cc2c0517f70eba06bfd1191f5032f46ab77929903d41650d4a"
+    },
+    {
+      "path": "schedules.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/durable-schedules/src/index.ts",
+      "sourceSha256": "d0a780d071dc825cbbdb52674c760d7b744bd3663119891cc9f31e032c935a97",
+      "localSha256": "0c6a72c41a3e0fd21233012c5cb5fb128c54dc2a23ca09d234c8aaa5327e46f4"
+    },
+    {
+      "path": "when.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/durable-schedules/src/when.ts",
+      "sourceSha256": "b862ad4a747d7e8ba6da77f5a906ecaa58771e078d01a7e7350201053feb99f8",
+      "localSha256": "b862ad4a747d7e8ba6da77f5a906ecaa58771e078d01a7e7350201053feb99f8"
+    },
+    {
+      "path": "automation.ts",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/local-host/src/automation.ts",
+      "sourceSha256": "7b918e068653caf45c20fdfa73dfb5b3e5a889b6e09b42e57608a4a61b0c4878",
+      "localSha256": "c1c1d7c57028111c5348b97f6eca5b07e57cdb0e2c3708b0b38e97a2007a1c87"
+    },
+    {
+      "path": "LICENSE",
+      "source": "/home/ubuntu/Projects/pi-durable-extensions/LICENSE",
+      "sourceSha256": "f5ad14a91e2ddab0bc02a4dc9676118f2440c2a557aa59490118cd259e8a31e5",
+      "localSha256": "f5ad14a91e2ddab0bc02a4dc9676118f2440c2a557aa59490118cd259e8a31e5"
+    },
+    {
+      "path": "LICENSE.schedules",
+      "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/durable-schedules/LICENSE",
+      "sourceSha256": "41384dc5cf15ef69653ce54c918e0e90e6771eec108ab080ab02021f56b07ebe",
+      "localSha256": "41384dc5cf15ef69653ce54c918e0e90e6771eec108ab080ab02021f56b07ebe"
+    }
+  ]
+}

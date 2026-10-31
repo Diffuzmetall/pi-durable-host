@@ -1,0 +1,21 @@
+{
+  "release": "20261028-4rmMfRfc",
+  "original": "extensions-lane/packages/web-tools/src/web-tools.ts",
+  "originalSha256": "a2a6432ad89a01f733d785a586a92b856efca2f02e06a6dbe346737a978516c7",
+  "local": {
+    "web-tools.ts": "dd8414fb7b2bf4b648426f82c59743d1136bcc8bc5112ed1e39f984459086993",
+    "LICENSE": "20ec16a7e8095a261644e91c3fef4d01881d985caf78fcfb6db48487af7e0e4d"
+  },
+  "test": {
+    "path": "tests/native-web-tools.test.mjs",
+    "sha256": "ff5f06c196d2d6f5e21700ac472a1bae0c91ca6a1b8a203cc709aa8ac661eb9d"
+  },
+  "changes": [
+    "Explicit session directory replaces CLI/HOME/env settings and account-global temporary downloads",
+    "AsyncLocalStorage binds actual native callbacks to owner fetch/rescue capabilities and caller cancellation",
+    "Per-factory download quota replaces globalThis symbol; filesystem recount remains authoritative on reopen",
+    "Explicit rescue callback replaces implicit wreq-js import; platform fetch is captured, never replaced",
+    "Original parser/render/search/batch/body/output/file guard logic and schemas/replay remain unchanged"
+  ],
+  "limits": "Local native component evidence only; no live web/model/provider authentication, arbitrary overlapping replacement factory or whole-profile/package acceptance. Folder quota is per explicit session download folder, not a host-wide disk quota."
+}

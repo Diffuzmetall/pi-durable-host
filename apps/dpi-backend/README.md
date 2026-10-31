@@ -1,5 +1,7 @@
 # dpi-backend
 
+For the local Durable 1.4 candidate, use [INSTALL.md](INSTALL.md). The launcher now selects the minimal profile. The upstream demo instructions below require `DPI_PROFILE=playground`.
+
 The Durable Pi **device server**. Run one on every machine that should host durable agents: your laptop, a Mac mini, a Linux box, an exe.dev VM. It owns the harnesses, the SQLite databases, the tools and the filesystem. Clients connect with the device's **URL and bearer token** through the [v1 API](API.md).
 
 ```
@@ -31,6 +33,7 @@ With the repo's network config, `just net up local && just backend run` does the
 | `DPI_HOME` | `~/.dpi` | where `backend.env` is read (set by the service unit) |
 | `DPI_ENV_FILE` | `$DPI_HOME/backend.env` | the env file to read |
 | `DPI_PROVIDER` | `openrouter` | `faux` gives a free deterministic model for tests |
+| `DPI_PROFILE` | `minimal` | `minimal` supplies coding tools. `playground` adds the upstream demo. Saved profile IDs must match on reopen |
 | `OPENROUTER_API_KEY` | | model access, required unless `DPI_PROVIDER=faux`. Without it the device lists no models. Never sent to clients |
 | `TYPESAFE_API_KEY` | | optional: `jev-damage-control` asks Jev with it, else through OpenRouter |
 

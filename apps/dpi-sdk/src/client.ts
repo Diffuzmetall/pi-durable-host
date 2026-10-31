@@ -13,12 +13,28 @@ import type {
   ForkBody,
   Frame,
   Page,
+  ProtocolInfo,
+  RuntimeRefreshResult,
+  GoalOperatorReceipt,
+  ModelInfo,
+  NativeParentCommand,
+  NativeBbBinding,
+  NativeBbOutcome,
+  NativeParentTarget,
+  NativeBbBindingCommand,
+  NativeParentState,
+  NativeParentReceipt,
+  NativeIiiInput, NativeIiiInfo, NativeIiiRequest, NativeIiiResultQuery, NativeIiiResultPage,
+  NativeIiiControlOperation, NativeIiiJson, NativeIiiJobStop, NativeIiiJobStopReceipt,
+  SkillInfo,
+  SkillBody,
   SendResult,
   SessionSummary,
   TaskOutcome,
   WhenBusy,
   WireEntry,
 } from "./api.js";
+import { API_VERSION } from "./api.js";
 import { DpiError } from "./errors.js";
 import { readSse } from "./sse.js";
 
@@ -26,6 +42,7 @@ export interface RequestOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
   idempotencyKey?: string;
+  requiredCapabilities?: readonly string[];
 }
 
 const enc = encodeURIComponent;
@@ -41,6 +58,7 @@ export class DpiClient {
   constructor(
     baseUrl: string,
     private readonly token?: string,
+    private readonly requirements: { requiredCapabilities?: readonly string[] } = {},
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
   }
@@ -59,6 +77,15 @@ export class DpiClient {
     body?: unknown,
     options: RequestOptions = {},
   ): Promise<T> {
+    if (!["GET", "HEAD"].includes(method.toUpperCase()) || options.requiredCapabilities?.length) {
+      const protocol = await this.protocol({ signal: options.signal, timeoutMs: options.timeoutMs });
+      if (protocol.apiVersion !== API_VERSION)
+        throw new DpiError("unavailable", `Unsupported host protocol ${protocol.apiVersion}; SDK requires ${API_VERSION}`);
+      const missing = [...new Set([...(this.requirements.requiredCapabilities ?? []), ...(options.requiredCapabilities ?? [])])]
+        .filter((name) => !protocol.capabilities.includes(name));
+      if (missing.length)
+        throw new DpiError("unavailable", `Host is missing required capabilities: ${missing.join(", ")}`);
+    }
     const timeout = AbortSignal.timeout(options.timeoutMs ?? 20_000);
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
     let response: Response;
@@ -122,6 +149,19 @@ export class DpiClient {
   }
 
   // ------------------------------------------------------------ device
+  /** Checked before each mutation so reconnects cannot reuse a stale server capability claim. */
+  async protocol(options?: RequestOptions): Promise<ProtocolInfo> {
+    const value = await this.request<unknown>("GET", "/v1/protocol", undefined, options).catch((error: unknown) => {
+      if (error instanceof DpiError && error.status === 404)
+        throw new DpiError("unavailable", "Host does not support protocol discovery; mutation was not sent", 404);
+      throw error;
+    });
+    if (!value || typeof value !== "object" || !("apiVersion" in value) || !("capabilities" in value) ||
+        typeof value.apiVersion !== "number" || !Number.isInteger(value.apiVersion) || !Array.isArray(value.capabilities) ||
+        !value.capabilities.every((name: unknown) => typeof name === "string"))
+      throw new DpiError("unavailable", "Host returned invalid protocol discovery metadata");
+    return { apiVersion: value.apiVersion, capabilities: value.capabilities };
+  }
   device(options?: RequestOptions) {
     return this.request<DeviceInfo>("GET", "/v1/device", undefined, options);
   }
@@ -172,6 +212,27 @@ export class SessionHandle {
   }
   agents() {
     return this.client.request<AgentSummary[]>("GET", `${this.base}/agents`);
+  }
+  /** Compatibility transport for the same Durable-owned idle reload operation. */
+  refreshRuntime() {
+    return this.client.request<RuntimeRefreshResult>("POST", `${this.base}/runtime/refresh`, {},
+      { requiredCapabilities: ['runtime-refresh.v1'] });
+  }
+  /** Reload trusted native providers/adapters on the existing idle Durable Harness. */
+  reload() {
+    return this.client.request<{ sessionId: string; models: number; extensions: number }>(
+      'POST', `${this.base}/reload`, {}, { requiredCapabilities: ['profile-reload.v1'] });
+  }
+  /** Current catalogue of this session's actual native Models container. */
+  models() {
+    return this.client.request<ModelInfo[]>("GET", `${this.base}/models`, undefined, { requiredCapabilities: ['scoped-models.v1'] });
+  }
+  skills() {
+    return this.client.request<SkillInfo[]>("GET", `${this.base}/skills`, undefined, { requiredCapabilities: ['skills.v1'] });
+  }
+  /** Human root/filesystem capability required; never load the remote filePath locally. */
+  skill(name: string) {
+    return this.client.request<SkillBody>("GET", `${this.base}/skills/${enc(name)}`, undefined, { requiredCapabilities: ['skills.v1'] });
   }
   createAgent(body: CreateAgentBody = {}, idempotencyKey = newId()) {
     return this.client.request<AgentSummary>("POST", `${this.base}/agents`, body, { idempotencyKey });
@@ -225,6 +286,81 @@ export class AgentHandle {
       { timeoutMs: (waitMs ?? 0) + 20_000 },
     );
   }
+  models() {
+    return this.client.request<ModelInfo[]>('GET', `${this.base}/models`, undefined, { requiredCapabilities: ['agent-models.v1'] });
+  }
+  iiiInfo() {
+    return this.client.request<NativeIiiInfo>('GET', `${this.base}/iii`, undefined, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiSubmit(input: NativeIiiInput) {
+    return this.client.request<NativeIiiRequest>('POST', `${this.base}/iii/requests`, input, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  /** Wait for the original native submission; cancellation disconnects only this waiter. */
+  iiiRun(input: NativeIiiInput, options: Pick<RequestOptions, 'signal' | 'timeoutMs'> = {}) {
+    return this.client.request<NativeIiiRequest>('POST', `${this.base}/iii/run`, input, { ...options, requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiRequest(requestId: string) {
+    return this.client.request<NativeIiiRequest | null>('GET', `${this.base}/iii/requests/${enc(requestId)}`, undefined, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiResult(query: NativeIiiResultQuery) {
+    return this.client.request<NativeIiiResultPage>('POST', `${this.base}/iii/result`, query, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiControl(operation: NativeIiiControlOperation, payload: NativeIiiJson) {
+    return this.client.request<unknown>('POST', `${this.base}/iii/controls`, { operation, payload }, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiControlReceipt(controlId: string) {
+    return this.client.request<unknown | null>('GET', `${this.base}/iii/controls/${enc(controlId)}`, undefined, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiJobStop(input: NativeIiiJobStop) {
+    return this.client.request<NativeIiiJobStopReceipt>('POST', `${this.base}/iii/job-stop`, input, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  iiiJobStopReceipt(controlId: string) {
+    return this.client.request<NativeIiiJobStopReceipt | null>('GET', `${this.base}/iii/job-stop/${enc(controlId)}`, undefined, { requiredCapabilities: ['native-iii.v2'] });
+  }
+  bbBinding(threadId: string) {
+    return this.client.request<NativeBbBinding | null>('GET', `${this.base}/bb-bindings/${enc(threadId)}`, undefined,
+      { requiredCapabilities: ['native-bb-binding.v1'] });
+  }
+  bindBbThread(threadId: string, command: NativeBbBindingCommand) {
+    return this.client.request<NativeBbBinding>('PUT', `${this.base}/bb-bindings/${enc(threadId)}`, command,
+      { requiredCapabilities: ['native-bb-binding.v1'] });
+  }
+  bbOutcome(threadId: string) {
+    return this.client.request<NativeBbOutcome>('GET', `${this.base}/bb-bindings/${enc(threadId)}/outcome`, undefined,
+      { requiredCapabilities: ['native-bb-outcome.v1'] });
+  }
+  async *bbOutcomes(threadId: string, signal: AbortSignal): AsyncGenerator<NativeBbOutcome> {
+    const protocol = await this.client.protocol({ signal });
+    if (protocol.apiVersion !== API_VERSION || !protocol.capabilities.includes('native-bb-outcome.v1'))
+      throw new DpiError('unavailable', 'Host does not support native coherent BB outcomes');
+    for await (const frame of this.client.stream(`${this.base}/bb-bindings/${enc(threadId)}/outcomes`, signal))
+      if (frame.type === 'bb.outcome' && frame.threadId === threadId) yield frame.outcome;
+  }
+  parentControl(target?: Required<NativeParentTarget>) {
+    return this.client.request<NativeParentState>('GET', `${this.base}/parent-control${target ? `?target=${enc(JSON.stringify(target))}` : ''}`, undefined,
+      { requiredCapabilities: ['native-parent-control.v1', ...(target ? ['native-parent-target.v1'] : [])] });
+  }
+  parentCommand(command: NativeParentCommand) {
+    return this.client.request<NativeParentReceipt>('POST', `${this.base}/parent-control/commands`, command,
+      { requiredCapabilities: ['native-parent-control.v1', ...(command.action === 'send' && command.controlId.startsWith('bb-child:') ? ['native-bb-input.v1'] : [])] });
+  }
+  parentReceipt(controlId: string) {
+    return this.client.request<NativeParentReceipt | null>('GET', `${this.base}/parent-control/commands/${enc(controlId)}`, undefined,
+      { requiredCapabilities: ['native-parent-control.v1'] });
+  }
+  reconcileParent() {
+    return this.client.request<{ reconciled: true }>('POST', `${this.base}/parent-control/reconcile`, {},
+      { requiredCapabilities: ['native-parent-control.v1'] });
+  }
+  /** Keep requestId across ambiguous HTTP outcomes; uncertain native effects must be reviewed, not replayed. */
+  goalCommand(line: string, requestId = newId()) {
+    return this.client.request<GoalOperatorReceipt>("POST", `${this.base}/goal/commands`, { line, requestId },
+      { requiredCapabilities: ["goal-operator.v1"] });
+  }
+  goalReceipt(requestId: string) {
+    return this.client.request<GoalOperatorReceipt>("GET", `${this.base}/goal/commands/${enc(requestId)}`, undefined,
+      { requiredCapabilities: ["goal-operator.v1"] });
+  }
   withdraw(submissionId: number) {
     return this.client.request<{ status: string }>("DELETE", `${this.base}/inbox/${submissionId}`);
   }
@@ -273,7 +409,7 @@ export class AgentHandle {
   demo<T = unknown>(path: string, body: unknown, method = "POST") {
     return this.client.request<T>(method, `${this.base}/demo/${path}`, body);
   }
-  events(signal: AbortSignal, docs: string[] = []) {
+  events(signal: AbortSignal, docs: readonly string[] = []) {
     return this.client.stream(
       `${this.base}/events${docs.length ? `?docs=${docs.map(enc).join(",")}` : ""}`,
       signal,

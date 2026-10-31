@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "scope": "Source patches and exact pinned, locally tested Core overlay; not activation or universal compatibility approval",
+  "upstream": {
+    "repository": "https://github.com/get-bb/bb",
+    "commit": "5e1acd765039e874643f34c4d35409e58484e408",
+    "version": "0.47.1",
+    "license": "MIT; Copyright (c) 2026 Michael Yong",
+    "licenseFile": "CORE-LICENSE.txt",
+    "licenseSha256": "d10816aa30183af920bdd789a81b16847bcf3e287e1b3419dd7d85f6e3e8e7b0"
+  },
+  "sourcePatchesInOrder": [
+    {
+      "path": "baseline-bb-0.47.1.patch",
+      "role": "Complete prerequisite native-registration/history/root-recovery integration supplied by this project; not present in stock bb-app",
+      "sha256": "3c7d9eceb1950e44e17d3b9399ec3e1c1345ab2f05bc829928cc81665391b078"
+    },
+    {
+      "path": "native-child-lifecycle.patch",
+      "role": "Registered child routing, committed-history bookkeeping and preserved Core interruption lifecycle/header correction",
+      "sha256": "1f6066451383b34263a5c86aaeb563fdd14a090277e72fdfb951ff8594f2931a"
+    }
+  ],
+  "sourceVerification": {
+    "applyToCleanPinnedSource": "PASS",
+    "sixPreparedFilesByteExact": "PASS",
+    "helpersEquivalentToTestedModulesIgnoringOnlyCommentsAndWhitespace": "PASS",
+    "sourceCommentPolicy": "New source helper code omits comments according to upstream AGENTS.md; implementation and declarations are otherwise preserved",
+    "originalOverlayPhaseSourceBuild": "NOT_RUN at that historical checkpoint",
+    "cleanPublicSourceBuild": "PASS; filtered pinned dependency bootstrap, affected upstream typechecks and complete bb-app build/pack; see SOURCE_BUILD.md",
+    "proofSha256": "604a3ebacbd37a10ca28fc90f3c98cd0abc208ba7f86d60b554676e272f78525",
+    "files": [
+      { "path": "packages/agent-runtime/src/runtime.ts", "sha256": "4ea5dddff3950fc473d41a307d46bfc969247c549f6c90c335491d9e6870076f" },
+      { "path": "packages/db/src/data/native-history.ts", "sha256": "a8bb8123a89bfe9551ad9ce3ebb61b48b89740cd5c07714e81ea45c52c5aa523" },
+      { "path": "packages/agent-runtime/src/registered-child-routing.mjs", "sha256": "17a7cf2c7935609f48247866238c34ec748a7425feaaedcda5d64039783110fd" },
+      { "path": "packages/agent-runtime/src/registered-child-routing.d.mts", "sha256": "1ba452529f449735e88ac2181c986e80c9bde4a2289616a32059050ae5b62b84" },
+      { "path": "packages/db/src/data/manual-stop-history.mjs", "sha256": "483fce936dd97f8fe562500e4b3dd096501f86ca219d60312bb3a5db63640b32" },
+      { "path": "packages/db/src/data/manual-stop-history.d.mts", "sha256": "07c1f9a26f57c07d17621f5985be3a11723509ace474821916be03a379b53659" }
+    ]
+  },
+  "binaryOverlay": {
+    "builder": { "path": "apply.mjs", "sha256": "9c8675982ad83192f86ae5f3034155a7616bfb02ae4c74dedc7cc45111f2dba9" },
+    "helpers": [
+      { "path": "registered-child-routing.mjs", "sha256": "d8f165549d2870eb2249d6178fdde4cc945a031b2a5505f87a227fca9c603f81" },
+      { "path": "manual-stop-history.mjs", "sha256": "857dee1ae0bff3b7e6c65d8e71ddb7b687cfd40313f8e3901f37f432e0850b5e" }
+    ],
+    "inputs": {
+      "host-daemon/dist/daemon-bundle.mjs": "ca743511bf1429795bca496a6e5531fc3f13e84ccc3b8b36d4f89147057bfb7a",
+      "server/dist/start-server.js": "faba35ca0960b99ad2e63f941200de92ecbbea47fdd721a67033797ea4218604"
+    },
+    "outputs": {
+      "host-daemon/dist/daemon-bundle.mjs": "c8c2c6a643d7fa79bbc78cda6e134c494c3ed9bc39d3f020918633474006610d",
+      "server/dist/start-server.js": "b6c234faf286fdef72818de8adeffaa3ddc762909a1cf9e58e12475a6ee30a4f"
+    },
+    "activated": false,
+    "unsupportedInputs": "Refused by exact hash/seam guards; stock bb-app@0.47.1 alone is not sufficient"
+  },
+  "sourceBuiltArtifact": {
+    "guide": "SOURCE_BUILD.md",
+    "upstreamArchiveSha256": "c6e0f48b10e181e763136d5ad474b73d3f98143deaf6f9ccf1e3cc8a30771aca",
+    "pnpmLockSha256": "54fd602502d220e48b6d2307f18eab90a6513d10dc6c4f0a046a9d40f1849313",
+    "toolchain": "Linux x64, Node 24.19.0, pinned pnpm 9.15.0",
+    "archive": "bb-app-source-0.47.1-8afea059.tgz",
+    "archiveSha256": "8afea059c22047d64181f38668fdc7f7bded5f8a27a5406a869d523beaa67de7",
+    "daemonSha256": "8c1f805a441c4ab34c149ea4f239a30c1ca53621dff1d830df45a787dc155a74",
+    "serverSha256": "697fd23ef99fad916022996b9bf47e8ba02c33fa08451213d69ad71e88deea52",
+    "affectedTypechecks": "PASS; 8 tasks, zero cached",
+    "fullBbAppBuildAndPack": "PASS; all 60 build tasks and pack exit zero",
+    "runnableProducerProbe": "PASS; four native dependencies load, actual memory SQLite query and built launcher help",
+    "independentInstallAndBrowserGate": "Separate downstream evidence; not implied by compilation or producer help",
+    "resourceBoundary": "Retained inode exhaustion and 1536-MiB declaration OOM; successful bounded RAM filesystem and 3072-MiB Node heap; no old binary-overlay substitution"
+  },
+  "producerEvidence": {
+    "compatibilityUnitChecks": { "passed": 16, "failed": 0, "logSha256": "257df4f8cdeaf075c319dfc93fe98d824a2f14c4361918daca5b737ba9b5d428", "boundary": "Pinned production callback/transaction code with isolated boundary adapters, not a real-SQLite replacement" },
+    "realCoreChromeFocusedProbe": {
+      "innerExit": 0,
+      "outerExit": 0,
+      "provider": "loopback faux only",
+      "checks": ["Root answer visible", "first stop of held native child before any followup yields actual interrupted native outcome", "same child followup produces one native answer visible live in Chrome; no initial-task replay"],
+      "logSha256": "fead35cba91d456ecb616ba6e2c727a13213a929b6630021ba01a40921df3f33",
+      "bbArchiveSha256": "7647ed50f7f320476bea44ea8db6ff5badb757e4b957850ebce938c157f0bad0",
+      "limitation": "Producer probe predates the subsequent BB cached-open race correction; independent milestone acceptance must use final BB bytes"
+    },
+    "subsequentBbCachedOpenCorrection": {
+      "archiveSha256": "f924ab9ac7aba55be2c8b63ea08fe91cffdd704c8db21c4d0c01a6e3c8e75db4",
+      "sourceNativeAndDeterministicBarrierTestsPassed": 2,
+      "sourceLogSha256": "b5dc4d5c933b85e76fcfe1bf2b6bb0b30450b2af2e894e353e7f4f01250d864d",
+      "exactIndependentCompiledReproducer": "PASS; both opens pending before original ACK, one apply, zero new native captures, same child afterward",
+      "compiledLogSha256": "c5dc4b600f3b47a0c866b6784716ddc9cc714aaa31a338cf309b5394fa607a9f"
+    },
+    "finalNativeOwnerReconnectCorrection": {
+      "archiveSha256": "b82eb8d3ca9dbac0e0d85b8d07919d26c74171943be17a2a1f79732a554349df",
+      "exactExtractedMembers": 55,
+      "change": "Child connection failures retain native-owned history and report coarse stderr, rather than appending a live Core background-task item that correctly trips the mixed-history guard; Root keeps its existing live diagnostic",
+      "sourceNativeBridgeCasesPassed": 2,
+      "expandedRealCoreChromeProducer": {
+        "innerExit": 0,
+        "outerExit": 0,
+        "logSha256": "8c4c01d86852c9fc8af40a935d4d12ea9e4ad434189ff5435b40e0d8bd7dcf48",
+        "checks": ["Root answer", "first actual native child stop before followup", "one same-child followup answer live in Chrome", "child browser reload and released-view reconnect", "Root followup and actual native stop", "native-owner HTTP/Store close-reopen with same data and IDs", "Root and same child answer after owner reopen; one subagent roster entry"],
+        "limitation": "Producer verification, not independent milestone acceptance"
+      }
+    }
+  },
+  "notClaimed": ["production activation", "live-provider/API verification", "existing-user data migration", "arbitrary plugin compatibility", "full independent milestone acceptance from producer evidence alone"]
+}

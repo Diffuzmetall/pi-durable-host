@@ -1,17 +1,24 @@
 {
   "name": "dpi-sdk",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Durable Agent Network contract, client, models and device registry. Zero runtime deps in src/; src/node needs yaml.",
+  "description": "Durable host HTTP/SSE contract, client and projections with no runtime dependencies.",
+  "exports": {
+    ".": { "types": "./dist/client.d.ts", "import": "./dist/client.js" },
+    "./*": { "types": "./dist/*.d.ts", "import": "./dist/*.js" }
+  },
+  "files": ["dist/*.js", "dist/*.d.ts", "examples", "LICENSE", "README.md"],
+  "license": "MIT",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "check": "tsc --noEmit -p .",
     "test": "tsx --test tests/*.test.ts",
     "net": "tsx scripts/net.ts"
   },
-  "dependencies": {
-    "yaml": "^2.8.0"
-  },
   "devDependencies": {
+    "yaml": "^2.8.0",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.0",
     "typescript": "5.9.3"

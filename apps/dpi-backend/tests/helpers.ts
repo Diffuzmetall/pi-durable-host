@@ -58,6 +58,7 @@ export async function bootServer(opts: { home: string; startDirs: string; token:
         DPI_ENV_FILE: resolve(opts.home, "none.env"),
         DPI_TOKEN: opts.token,
         DPI_PROVIDER: "faux",
+        DPI_PROFILE: "playground",
         DPI_START_DIRS: opts.startDirs,
         DPI_DEVICE_NAME: opts.name ?? "test-device",
       },

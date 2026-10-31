@@ -83,8 +83,8 @@ test("REST v1: auth, sessions, agents, messages, waits, idempotency, errors", as
     assert.ok(detail.tools.some((tool) => tool.name === "bash"));
     assert.equal(detail.config.model?.modelId, "echo");
     const config = await client.agent(s1.id, "reviewer").configure({ thinkingLevel: "high", instructions: "Be brief." });
-    assert.equal(config.thinkingLevel, "high");
-    await assert.rejects(() => client.agent(s1.id, "reviewer").configure({ thinkingLevel: "max" as never }), (e: DpiError) => e.code === "invalid");
+    assert.equal(config.thinkingLevel, "off", "native non-reasoning model clamps unsupported thinking");
+    await assert.rejects(() => client.agent(s1.id, "reviewer").configure({ thinkingLevel: "not-a-native-level" as never }), (e: DpiError) => e.code === "invalid");
     await assert.rejects(() => client.agent(s1.id, "nobody").get(), (e: DpiError) => e.code === "not_found");
     const agents = await client.session(s1.id).agents();
     assert.deepEqual(agents.map((a) => a.name).sort(), ["Lead", "branch", "reviewer"]);

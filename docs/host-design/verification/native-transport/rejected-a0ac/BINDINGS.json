@@ -1,0 +1,16 @@
+{
+  "backendSha256": "a0ac9e70aa8e61e4546639b3c7f81c3a4bfccad35da7387c2b26cf6288e9fffe",
+  "sdkSha256": "8e84187c20a7c8423150f542aed8793833c7b35409a5e7413d64777324f3cd9f",
+  "backendRoot": "/tmp/dpi-packed-ngdj7Z/install/node_modules/dpi-backend/dist/dpi-backend/src/",
+  "sdkRoot": "/tmp/dpi-packed-ngdj7Z/install/node_modules/dpi-sdk/dist/",
+  "originalTests": [
+    "apps/dpi-backend/tests/native-bb-binding-http.test.ts",
+    "apps/dpi-backend/tests/native-parent-http.test.ts"
+  ],
+  "baselineChanges": "Only backend and SDK import paths rebound; all original assertions retained.",
+  "adversarialChanges": [
+    "BB: fresh unbound native child before final revoke probe; revoke hook at control instead of read; target fresh exact child.",
+    "Parent: final revoke hook assertReference(control) instead of assert(read); all original assertions retained."
+  ],
+  "reproduction": "Copy these four fixture files to a fresh disposable directory; symlink its node_modules to /tmp/dpi-packed-ngdj7Z/install/node_modules. Run node --import /home/ubuntu/Projects/pi-durable-host/apps/dpi-backend/node_modules/tsx/dist/loader.mjs --test <temp>/*test.ts. Installed product is plain compiled JS, only fixture TS uses loader. Never modify candidate files."
+}

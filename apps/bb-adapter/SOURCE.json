@@ -1,0 +1,23 @@
+{
+  "donor": "/home/ubuntu/Projects/master/experiments/pi-durable-1.4-upgrade/provider-lane",
+  "license": "MIT; Copyright (c) 2026 Diffuzmetall",
+  "runtimeBoundary": "public dpi-sdk plus Node standard library; no native runtime or compatibility archive",
+  "sources": [
+    { "path": "src/projection/host/session.ts", "sha256": "397fc78f7ec075b8e3ab0b07125514f40b985b0c4429c78ae19b06fba7c35272", "local": ["src/session.ts", "src/child-session.ts"], "adaptation": "Source-backed binding/admission/readiness/registration/observation orchestration; actual SDK native owner replaces private runner/socket transport." },
+    { "path": "src/projection/host/bridge.ts", "sha256": "296ce4e3c4c5e3a979a7f813bd7eb59c2d488e93061c3ec850c1682127803181", "local": ["src/provider-bridge.ts", "src/main.ts"], "adaptation": "Actual JSON-RPC/reverse request framing and method names; SDK-only native handlers and trusted operator launch context." },
+    { "path": "src/provider/host/message-delta-translator.ts", "sha256": "669b474061a647254eb77d071b4f2b5857adf649acb6a4b2bd70f9b6c331d5b5", "local": ["src/message-delta-translator.ts"], "adaptation": "Type import .ts to local .js; message-end array readonly type only; function algorithms retained." },
+    { "path": "src/provider/host/tool-delta-translator.ts", "sha256": "18a4a9e5c3963970509ff6a5502d7f0c09be23be4565d2e5dc2f061cf258c5fe", "local": ["src/tool-delta-translator.ts"], "adaptation": "Type/helper import suffixes localized only." },
+    { "path": "src/provider/host/diff-utils.ts", "sha256": "e2a5c4dddcbc0217637e1d6e7f9e3db732c31b6bb917a8205fa74283957458fb", "local": ["src/diff-utils.ts"], "adaptation": "Byte-identical source." },
+    { "path": "src/provider/host/types.ts", "sha256": "e09761f7a5ea9052e3b4b393b16c67d9e29d8236dead6b7784e2dcdefddc91bb", "local": ["src/types.ts"], "adaptation": "Only existing pure public presentation interfaces; no zod/runtime/SessionOptions dependency." },
+    { "path": "src/bootstrap/provider-grant.ts", "sha256": "0707654e36cf1292ff2b425b6243d79d105a80b3c3c148567468d6f56996455a", "local": ["src/session.ts"], "adaptation": "Strict ownerScopeFrom and exact proof comparison; private owner-file/socket provisioner excluded." },
+    { "path": "src/provider/host/bridge-router.ts", "sha256": "3328e576840a43b9652c91590e62f00fcca4f2f3cf2d34dadf545c0534fb545d", "local": ["src/request-key.ts", "src/provider-bridge.ts"], "adaptation": "Genuine CREQ regex and controlled text/native-child routing semantics; stable Root request keys fixed." },
+    { "path": "src/provider/host/catalog.ts", "sha256": "764b3f87f8932b536016c647a8c62bff0c8a5be118495574f06ea0606ee70e83", "local": ["src/provider-bridge.ts"], "adaptation": "BB model descriptor wire shape retained, but actual native SDK metadata/levels replace runner catalogue and invented defaults." },
+    { "path": "src/provider/host/prompt-input.ts", "sha256": "d40e6e7b31ebc5f5d1b281a7a0a07fd266a05df7d521f9c6e834c49beb71e68a", "local": ["src/provider-bridge.ts"], "adaptation": "Text extraction semantics; /compact explicitly refused because the public native API has no canonical request key, and unsupported attachments refused rather than silently dropped." },
+    { "path": "src/projection/host/native-child-binding.ts", "sha256": "8488901ffd22f056bbfe497e778ca966c8f1976faedbd488506d989f423ec703", "local": ["src/native-child-binding.ts"], "adaptation": "Existing localized routing/projection helpers; actual native ownership checked outside before real Core effect." },
+    { "path": "src/history/history-sink.ts", "sha256": "3991f7b935307ef86cb3661057fd1aa9aa5986d1b430ee762d3cfefb9123c0ed", "local": ["src/history-sink.ts"], "adaptation": "Original immutable CAS/lost-ACK algorithm; local wire type import only." },
+    { "path": "src/history/history-projector.ts", "sha256": "36fe4482455f0ba58f768c96a8eab69b3e45b94600c3ef28eaae69006609dc42", "local": ["src/history-projector.ts"], "adaptation": "Original strict/coherent algorithms plus host presentation wrapper using canonical receipt membership, never raw metadata request-ID equality." },
+    { "path": "src/bb-compat/native-history-contract.ts", "sha256": "81dfbda6b6892b4803cbc89aef5b938a8aac7d81294b9641c29a6663560f4c61", "local": ["src/history-types.ts"], "adaptation": "Pure public wire interfaces only; actual runtime schema imported read-only by tests, not shipped." }
+  ],
+  "newGlue": ["src/root-deltas.ts", "src/child-locators.ts", "src/request-key.ts", "src/index.ts"],
+  "acceptance": "Independent installed BB milestone and live activation are not implied by this source manifest."
+}

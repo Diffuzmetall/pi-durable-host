@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "scope": "Historical installation/source metadata at checkpoint 1094; safety fields below describe that metadata pass only. Current BB-absent pilot evidence is recorded separately in currentMainRouteCheckpoint and MATRIX.md.",
+  "currentMainRouteCheckpoint": {
+    "boardReadThrough": 1262,
+    "independentTask": "979a24c8095a4177ab0cbeacfe41cbb3",
+    "engineeringAcceptance": "PASS_SCOPED; actual copy import preserved, precise credential boundary accepted, not migration GO",
+    "actualImport": "PASS: whole native DB byte-exact, 1 conversation/613 entries/639 terminal tasks/6 settled submissions/114 docs/42 revisions; 101 valid retired task tombstones, 10 local artifacts exact",
+    "sourceProvenance": "Formal profile null; target native@1 explicit; source registry fingerprint derived from saved contracts/code, not historical full registry identity; creator unattested",
+    "controlledContinuation": "BLOCKED by one actual unchanged saved-model availability check before profile factory/native storage; no model substitution. After-guard binding/resume/integrations NOT_TESTED",
+    "originalRuntimeRollback": "PASS actual original CLI/profile code on untouched separate raw restore, restricted deny-only offline policy; reuse publication1212, not rerun",
+    "independentEvidenceRoot": "/var/tmp/dave-final-main-route.MqFm1x",
+    "independentResultSha256": "9a0413d7fc5f00b1ecfff7b36829dd7ade00b19bd3ac31976c80b64b2b3305cb",
+    "cleanHomeOfflineInstall": "PASS: four portable packages, all447 packaged files exact, public import/Store exports load; no original/pilot/auth/BB runtime mounts or lifecycle scripts",
+    "installResultSha256": "61a95a69b3b79c66f30a089f82abbb13e4c514a60977bb81be9a8aa764ffee4f",
+    "internalBackendSha256": "aa74ab0415ef4d1fd94f0422d0242995237e639ee3ec289937ba365f8e0d144e",
+    "portableBackendSha256": "dadd5534e7642a2c14dc6c6fdcbb6eab572c773221473bf3a13bc92326392458",
+    "portableBackendRuntimeFilesExact": 228,
+    "sdkSha256": "351054859022ae202fbdc429e73da441bc90295e4717342652079c3ea0906abd",
+    "terminalSha256": "1f1b74fa2b515b55bf280113d91116c267755973b5ed76ce9a6389174c235bde",
+    "iiiSha256": "40b33e8aae70c37222fc212cfb3b83adb48dba25e73163468fefb6dae33eeefe",
+    "storeGuard": "Entire body byte-identical to accepted9541 after reversing shared-schema extraction; SQL whitespace-equivalent",
+    "clientRuntime": "Reuse Carol independent generated AA74 import/actual PTY/genuine local iii PASS/DONE1258; not real-pilot continuation",
+    "bb": "DEFERRED; unresolved UI defect preserved, no new checks or dependency",
+    "remaining": "Independent outgoing85b review; Alice-only authorized publication. Migration/activation NO-GO; no credentials or live-call permission added."
+  },
+  "historicalMainRouteCheckpoint1213": {
+    "boardCheckpoint": 1213,
+    "independentTask": "979a24c8095a4177ab0cbeacfe41cbb3",
+    "route": ["backend", "dpi-sdk", "terminal", "local iii"],
+    "bb": "DEFERRED; artifacts and unresolved UI failure preserved, no current gate or new run",
+    "snapshotTask": "1034dbb6abb142cca1a234637646b67f",
+    "snapshotIndependentPublication": 1164,
+    "snapshot": "PASS: same approved protected pilot; 13 complete source files, immutable coherent quick_check OK",
+    "confinementTask": "fea830b22a384d669e8e91677e15302d",
+    "confinement": "FIXED; independently accepted 18/18 on backend archive 9541d848",
+    "candidateImporterTask": "8b93ccc3e23f4e80875dc2daa3ffdb30",
+    "candidateImportAndContinuation": "PENDING actual verified artifact and saved-contract preflight. Known saved model unavailable with empty credentials; do not substitute provider or weaken guard.",
+    "originalRuntimeRestore": {
+      "outcome": "PASS_ACTUAL_ORIGINAL_RUNTIME_RESTRICTED_OFFLINE",
+      "publication": 1212,
+      "runtime": "1.4.0 selected original CLI/resolver/local-host profile code",
+      "privateEvidence": "/var/tmp/dave-no-bb-restore.0kq1rR",
+      "resultSha256": "29cdfc840c5de4c154b9a63284c8614bed55623be2b27a53673ca46333780b90",
+      "commandSha256": "962b8e40989f62f2587ce278623fd1b1847c8d8cddaea2a8b7fd68a5b9e090e9",
+      "exitCode": 0,
+      "sameSessionRootAttach": true,
+      "allNativeRecordsExact": true,
+      "allDocumentRevisionRowsExact": 42,
+      "counts": {"conversations": 1, "entries": 613, "tasks": 639, "submissions": 6, "documents": 114},
+      "originalAndMasterUnchanged": true,
+      "networkAttempts": 0,
+      "childAttempts": 0,
+      "originalSourceOrAuthVisible": false,
+      "policyRestriction": "Deny-only local authorization, hooks disabled, fresh MCP; original grants/credentials not copied or claimed restored",
+      "candidateMigrationGO": false
+    },
+    "clientEvidence": "Carol actual BB-absent PTY/local iii PASS on backend9541, publications1203-1206; generated provider only, not real-pilot continuation",
+    "remaining": "Final importer/source/archive/install correlation, actual candidate preservation/preflight and controlled-continuation outcome, independent outgoing review"
+  },
+  "boardTask": "af010781c0ad4ae6822de52337aaeb1d",
+  "boardCheckpoint": 1094,
+  "publishedBase": "0c49efba7ef53ae20a22395ebdd1a4d9ea04fd44",
+  "safety": {
+    "openedSessionDatabases": false,
+    "readCredentialsOrGlobalConfiguration": false,
+    "executedInstalledRegistriesOrProviders": false,
+    "changedInstalledRuntime": false,
+    "selectedRealMigrationSource": false
+  },
+  "toolchainObserved": {"node": "24.19.0", "bun": "1.4.2", "npm": "11.17.0"},
+  "installedDurablePackages": [
+    {
+      "installation": "bb-provider-shared-0.2.29",
+      "path": "/home/ubuntu/.local/share/pi-durable/bb-provider-shared-0.2.29/node_modules/@earendil-works/pi-durable/package.json",
+      "version": "1.2.0",
+      "manifestSha256": "2fc81a444940fff9fe12bad39540a5a88a9dbcf6049dfece77005c6a281d16ad",
+      "adjacentCodingAgentVersion": "1.2.0",
+      "adjacentPluginSdkVersion": "0.6.15"
+    },
+    {
+      "installation": "runtimes/pi-durable-1.3.0",
+      "path": "/home/ubuntu/.local/share/pi-durable/runtimes/pi-durable-1.3.0/node_modules/@earendil-works/pi-durable/package.json",
+      "version": "1.3.0",
+      "manifestSha256": "7877411c036932f74af4226563ff37f121013a9f69d4f9ceb55f5cdbcf6e5c54"
+    },
+    {
+      "installation": "tui-releases/20261028-4rmMfRfc/host-lane",
+      "path": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/node_modules/@earendil-works/pi-durable/package.json",
+      "resolvedPath": "/home/ubuntu/Projects/master/experiments/pi-durable-1.4-upgrade/host-lane/node_modules/@earendil-works/pi-durable/package.json",
+      "version": "1.4.0",
+      "manifestSha256": "c100d039aa3ca0d952f49f118d7eb22ddec04d85e5eb28193f2838e8f7584ae7"
+    }
+  ],
+  "publicCoreInputPrerequisites": {
+    "repository": "https://github.com/get-bb/bb",
+    "commit": "5e1acd765039e874643f34c4d35409e58484e408",
+    "sourceTarSha256": "c6e0f48b10e181e763136d5ad474b73d3f98143deaf6f9ccf1e3cc8a30771aca",
+    "rootPackageSha256": "1df410672e77d71fb683f7b3eed5feb972542aa34f833b61624cda443cf67da7",
+    "upstreamPnpmLockSha256": "54fd602502d220e48b6d2307f18eab90a6513d10dc6c4f0a046a9d40f1849313",
+    "packageManager": "pnpm@9.15.0",
+    "nodeEngine": ">=22.19.0",
+    "inputSource": "Read-only public source inputs already downloaded by Alice; no duplicate checkout/bootstrap",
+    "executedLifecycleScriptsByDave": false,
+    "installTypecheckBuildProof": "DEFERRED from current route. Prior producer source-build artifacts/evidence retained on board; this inventory's prerequisite hashes are not independent build/UI acceptance."
+  },
+  "installedBb": {
+    "path": "/home/ubuntu/.bb-server/app/node_modules/bb-app/package.json",
+    "version": "0.47.1",
+    "manifestSha256": "466055f490e9594140177b76fab95980d2baabf132957fd40a2eade8884d166a",
+    "nodeEngine": "^22.19.0 || ^24.0.0 || ^26.0.0"
+  },
+  "installedTuiLauncher": {
+    "entry": "/home/ubuntu/.local/bin/pi-durable",
+    "entrySha256": "e6d95d9b5f3e543f2c6af2fff3eaac7e322a2b2198866d6b75e8c3080f89c63c",
+    "selectedLauncher": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/pi-durable",
+    "selectedLauncherSha256": "7dc36d56b2be0a59ad2a0f850100ac7ceb966cf1c6b536611e8710ffa8369e3b",
+    "resolverSha256": "1ffcdd486de309d9827b0b75c46113688d7d762f2d44a0a92f65fd4ff48b8e00",
+    "extensionRoot": "../extensions-lane",
+    "explicitExtension": "../extensions-lane/packages/local-host/src/global.ts",
+    "sessionSelectorSha256": "464d331ff4d67dc9f98490e2dc48e781ab9e029935366ddcddaf42ce9a4a8bbf",
+    "sourceLayout": "getAgentDir()/experimental/durable-sessions/<cwd-SHA256-first-24>/<13-digit-time>-<UUID>/session.sqlite",
+    "ownerLock": "proper-lockfile on session directory",
+    "hostCatalogPresentByThisSelector": false,
+    "hostFormalProfileIdPresentByThisSelector": false,
+    "hostLaneLockSha256": "b04f78995a06e89b39b961d1ee8425fb1ff5cf49a1c642fdb8f505425cb244f4",
+    "extensionLaneLockSha256": "ef6db3bc3fe52d7146445c11c0c8aee19b906d921de9a0c4f99dec3944a42917"
+  },
+  "staticContractComparison": {
+    "method": "Literal kind/name immediately followed by numeric version in non-test TS/JS/MJS source; excludes node_modules. Not registry execution or an exhaustive schema/upgrade validator.",
+    "sourceRoot": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages",
+    "targetRoot": "apps/dpi-backend/src/native-profile",
+    "sourceDeclarationPairs": 34,
+    "targetDeclarationPairs": 39,
+    "commonPairs": 31,
+    "installedOnlyPairs": [
+      {"kindOrTask": "durable-goals.goal", "version": 1, "source": "durable-goals/src/index.ts"},
+      {"kindOrTask": "local-host.goal-check", "version": 1, "source": "local-host/src/goals-host.ts"},
+      {"kindOrTask": "local-host.goal-check-requests", "version": 1, "source": "local-host/src/goals-host.ts"}
+    ],
+    "selectedReleaseScheduleTaskVersion": 2,
+    "targetScheduleTaskVersion": 2,
+    "sourceOnlyInterpretation": "If a selected saved snapshot requires these contracts, current target source provides no matching literal declarations. This does not establish that any real session uses them. An explicit compatible registry/migration or refusal must be proved; never discard/remap saved state.",
+    "versionDifferenceInterpretation": "A version difference alone is not an incompatibility: candidate has explicit migrations that require saved-state fixtures. Older unselected extension trees are not the selected 1.4 release registry."
+  },
+  "candidateSourceMetadataCheckpoint": {
+    "profileIds": ["minimal@1", "playground@1", "native@1"],
+    "runtimeProfileSourceSha256": "258c96af8c0ca1f994153b915705bb39d5b5aa7fa30757a08e5125df3d96f192",
+    "nativeProfileSourceSha256": "009921e79269775154a78862f2d1d0ae1d40248a00adf88a704db16f47225dc8",
+    "storeSourceSha256BeforeNewConfinementFix": "240779f90378d270e04009fb75869914fbd7dc3615e8cc83db0806a4cc1409f6",
+    "candidateNativeVersion": "1.4.0",
+    "selectedSourceBuiltCore": "DEFERRED; prior source-built artifact/evidence retained, unresolved BB UI defect remains open. Not a main-route dependency or permission for new BB checks."
+  },
+  "realCopyAuthorization": {
+    "userApproval": "да переносим тестируй",
+    "sourceClass": "CURRENT launcher-selected installed Pi Durable with history; observed release 20261028-4rmMfRfc / Durable 1.4.0",
+    "maximumPilotSessions": 1,
+    "selectionOwner": "bob",
+    "independentChecker": "dave",
+    "independentTask": "979a24c8095a4177ab0cbeacfe41cbb3",
+    "historicalIndependentTask": "43707c9d5bd74c48a072ccefe6e61b41",
+    "allowed": "Minimum read-only metadata inventory, one unambiguously inactive non-main/non-DeLM/non-live-owner session, coherent protected copy rehearsal and separate restore",
+    "notAllowed": ["active owner or service stop", "original DB/schema/checkpoint mutation", "all-history copying", "unrelated 1.2/1.3 source stores", "live providers or unsafe pending-effect replay", "credentials/private-bank access", "private payload export", "installed runtime switch or production activation"],
+    "candidateRuntimeGate": "Store outside-dataDir/symlink escape fixed and regression PASS; independently isolated namespace excludes original data and external network, fresh HOME/config, bounded resources"
+  },
+  "realCopyPrerequisites": [
+    "Bob records the one exact current-release inactive sample, source/session/CWD/layout, release fingerprint, owner exclusions/quiescence, full snapshot scope and protected destination BEFORE copying. If ambiguity remains, Main gets exact alternatives; do not repeat the granted copy-test permission request.",
+    "Coherent immutable backup plus separate candidate/restore must preserve source bytes, IDs, native history/children/pending state and exact saved profile/definition/model references; no payloads or credentials in reports.",
+    "Before auto-resume, compare saved contracts and reject unknown/incompatible/unsafe state. Original source paths must not be mounted in candidate sandbox; restoration uses untouched backup and exact original runtime/profile, never downgrade of a candidate-mutated DB."
+  ],
+  "currentRealMigrationDecision": "NO-GO for model-generating continuation/activation: actual selected-copy import and independent preservation/isolation/portable-package offline-install acceptance PASS; actual saved-model credential refusal before binding observed, later resume/integrations NOT_TESTED. Actual restricted original-runtime rollback PASS reused. Source null profile/derived attestation/creator-unattested limits explicit. BB/Core/Chrome DEFERRED, not gates. Independent outgoing review then Alice-only authorized publication remain; no original mutation, model/auth permission or production activation granted."
+}

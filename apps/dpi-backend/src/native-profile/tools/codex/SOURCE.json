@@ -1,0 +1,52 @@
+{
+  "files": [
+    {
+      "file": "index.ts",
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/codex-api/src/index.ts",
+      "upstreamSha256": "e93099f4ef3afd2e70c6cef11acfd12f5bb3fe193f7d28ace6458da4bc9cd7cf",
+      "localSha256": "3ae97a4c6a9a790b052f99cc7ccf1d8c3d8f2b453c7ed660162a13742c450403"
+    },
+    {
+      "file": "ask.ts",
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/codex-api/src/ask.ts",
+      "upstreamSha256": "284748c5a427a508e2dfe6dbb2bce3d918a626de704fc6032151deda95f6e8e8",
+      "localSha256": "8e1fe8430b3eb3f18592331d587d785da81868cdba1c20fced795d256ddd8764"
+    },
+    {
+      "file": "search.ts",
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/codex-api/src/search.ts",
+      "upstreamSha256": "e17e5f9e44e9d3585fc294af255d0498b56a7f996360e69c8ccd2817660365fc",
+      "localSha256": "8d613ba9665b2d25d51a90e62f9773f89d1d11b6eb32b75603915ddfd5e1ab2f"
+    },
+    {
+      "file": "image.ts",
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/codex-api/src/image.ts",
+      "upstreamSha256": "638ef05ed598a2ad8f958492b7887c10ebadb57fc02951e5755b63f4e7dff7d0",
+      "localSha256": "8b74642c54c03ed0317b7eaecadbad21e08017166ccb3966830c69cc9c30ce04"
+    },
+    {
+      "file": "runtime.ts",
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/codex-api/src/runtime.ts",
+      "upstreamSha256": "f750cf9d241251eb8747da04e1e37e537390f841695e45ebabb1d0b1e537a206",
+      "localSha256": "ca925cfa895ed50803b4d631dd970df564be973373fe998ee3b89d5d3f91f339"
+    },
+    {
+      "file": "types.ts",
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/codex-api/src/types.ts",
+      "upstreamSha256": "7d7800df029f3323f432b94ee070a1c473791877031d35a954ddcd2fc2aced7d",
+      "localSha256": "b32fc1d345108e8f3e20e8b36996a5a81a48f545c464c392b50f5071e4daca43"
+    }
+  ],
+  "preservedHelpers": "Exact PNG decoder/preflight/saver, search schemas/doc/session/mode/parser, ask schema/system prompt and quota formatter bodies verified unchanged",
+  "excluded": [
+    "adapter.ts",
+    "Pocket adapter exports",
+    "legacy terminal initializer"
+  ],
+  "testedDependencies": {
+    "pi-ai": "1.4.0",
+    "pi-durable": "1.4.0",
+    "chord": "1.4.0",
+    "typebox": "1.3.27"
+  }
+}

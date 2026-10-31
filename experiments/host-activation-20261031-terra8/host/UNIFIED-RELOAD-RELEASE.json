@@ -1,0 +1,26 @@
+{
+  "candidate": "c0019d7-unified-reload-20261030",
+  "base": "c0019d7-delm2",
+  "nativeSdk": "1.4.0",
+  "sourceInstalledFilesCompared": 356,
+  "installedChecks": 42,
+  "liveModelCallsSubmitted": 0,
+  "activation": "read external cutover verdict; this manifest is not an activation claim",
+  "cutoverVerdict": "/home/ubuntu/.local/state/pi-durable-host/cutovers/20261030-unified-reload.json",
+  "runtimeSha256": {
+    "operational-service.mjs": "e3d25117f1e3dd206c950c9b00b16d2927eb8a815e266f7c46cf5065ae26f844",
+    "operational-profile.mjs": "b9bc4c855ff8600117864f94f3397e36e0151657b0e8432fce0eb43b13d79613",
+    "operational-models.mjs": "a4e33690e1a6b57adba53cdc51dc02e221b2a6610a51d53e0f1764028e3341af",
+    "provider.mjs": "af3e1999446cc7ffb2cc61b51e859f420a1822049dfa34e2b0cb6cc333473612",
+    "session-mcp.mjs": "a885687f81d4f1aab05513f29bcf1044c430c91877cff937131ad1c11c1e6a93",
+    "provision-session-mail.mjs": "5a6c68de7d34b66927a7f1ba2a4cfe21c182be784a926b386807246005965d1a",
+    "delm-profile.mjs": "b77ba119b703da510a8646916364e302a2923fefa3e7dc21996a1266f91a1cba"
+  },
+  "artifactsSha256": {
+    "dpi-backend-0.1.0.tgz": "0e20c5f2782df6354e2f32da38fa8d020514fd8a270cbd3b550db7d2f5a70137",
+    "dpi-iii-adapter-0.1.0.tgz": "8a52c9d53fdf86cd9e62b5b6e2036308db9fa94ee917ffcef8b3b29d88b498a4",
+    "dpi-sdk-0.1.0.tgz": "8f4e234125ffc90b250ca53f033131153d26538e500b550933b9753f0e3de16c",
+    "dpi-terminal-adapter-0.1.0.tgz": "9fd63e6437ed9976dada8164a9b2f7878bc4c4b6926265d2839aa47b111dea5e",
+    "local-pi-durable-reload-0.1.0.tgz": "b009195b0af583efa5d60af2a6c11c9e4dd794bd3ea16aa5ee7edaf0d8ff8c7d"
+  }
+}

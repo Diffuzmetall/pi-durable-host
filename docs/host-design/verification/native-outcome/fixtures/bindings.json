@@ -1,0 +1,12 @@
+{
+  "dpi-backend": {
+    "sha256": "173da9a140e9d2d91b22d25dd71d4609497502fedda8f8763d7cba5cd9a646ac",
+    "archive_exact_files": 249
+  },
+  "dpi-sdk": {
+    "sha256": "aa29c31337b399c255d5756736ad3b6565c8be686967a654c232611a11f6f173",
+    "archive_exact_files": 23
+  },
+  "assertions": "all unchanged; import-only rebind",
+  "history_projector_sha256": "d5d0809b8417dc6f2d927c34a3646899a63eb2691a64447b3f87ea915bb0c440"
+}

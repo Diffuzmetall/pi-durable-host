@@ -1,0 +1,84 @@
+{
+  "source": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/extensions-lane/packages/durable-subagents",
+  "sdk": "1.4.0",
+  "changes": [
+    "relative TypeScript import suffixes .ts -> .js",
+    "registry adapter requires explicit trusted admission callback instead of mandatory Hindsight lookup",
+    "NEW owner-selected BB sends include original expectedRevision/exact target as optional retryContext in the canonical receipt, without changing existing/other-source receipts or adding a ledger; native fingerprint/current authorization still verifies retry payloads.",
+    "Trusted ParentGrant optional inputRequestId selects actual NEW send input keys for authenticated configured BB bb-child controls; canonical prior commands/receipts and other source IDs are unchanged.",
+    "Existing exact target validation factored into validateParentTarget for reuse by read-only HTTP inspect; validation semantics unchanged.",
+    "ParentGrant optional nonpersisted synchronous assertCurrent checkpoint after all awaited native admission writes (including canonical retry), before native commit returns; composition checks current max-owner and caller. Native ledgers/kinds/IDs/stop recovery unchanged."
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "sourceSha256": "f5ad14a91e2ddab0bc02a4dc9676118f2440c2a557aa59490118cd259e8a31e5",
+      "localSha256": "f5ad14a91e2ddab0bc02a4dc9676118f2440c2a557aa59490118cd259e8a31e5"
+    },
+    {
+      "path": "LICENSE.pocket",
+      "sourceSha256": "41384dc5cf15ef69653ce54c918e0e90e6771eec108ab080ab02021f56b07ebe",
+      "localSha256": "41384dc5cf15ef69653ce54c918e0e90e6771eec108ab080ab02021f56b07ebe"
+    },
+    {
+      "path": "NOTICE.md",
+      "sourceSha256": "e008b281b18a716f67dbe5a529e7bf92900949a10d21e709c80b6f25082030c4",
+      "localSha256": "e008b281b18a716f67dbe5a529e7bf92900949a10d21e709c80b6f25082030c4"
+    },
+    {
+      "path": "delivery.ts",
+      "sourceSha256": "bc07e4e8c6316f5ccaccecb9ed5e31783684fd396b74ccb8a7d8fb9c012e5924",
+      "localSha256": "31f019fc7227095e7e86f141750fc90340604ce5989ba28f9f83ec5d4d61fda2"
+    },
+    {
+      "path": "documents.ts",
+      "sourceSha256": "e9e752d63c6693412f277db2fdc7b7fc5a417d7539d82198b9d6cfb4ea8ce9a2",
+      "localSha256": "e9e752d63c6693412f277db2fdc7b7fc5a417d7539d82198b9d6cfb4ea8ce9a2"
+    },
+    {
+      "path": "index.ts",
+      "sourceSha256": "c95bbc5170d1f01ced000c9d327a934b937687db1abba5d4b923c0c5bb7e104d",
+      "localSha256": "807b33869ae383014852a102ff8c76469a38b462aecd4d5c2227f2d016b8f139"
+    },
+    {
+      "path": "model-policy.ts",
+      "sourceSha256": "f8a3cd2b83740ac350cd3c17cbdd5a36e9d729f3e94307a9da2d7a824205bd69",
+      "localSha256": "63af9f69fe0a0e1177e3c9cbdc101b9fcda1e72c8b547c9a3ea62bb475cb5c99"
+    },
+    {
+      "path": "multicast.ts",
+      "sourceSha256": "d98e337d0b9719d6f717c8cf248e8c0650366f3165c68c7596732d80a363c27a",
+      "localSha256": "d6115d7faf4b0dd54b6ad56ab290a113cea6872dd82cb007dacf9fef14238a91"
+    },
+    {
+      "path": "parent-control.ts",
+      "sourceSha256": "06648f202315d5b6a2261f90826b64a13d232a67e2c8f9c5bb20bb8064c72845",
+      "localSha256": "62aa700c60fc20b8a4bdab335f466421a7e4c1759556489e65364c8f9a21e1d9"
+    },
+    {
+      "path": "registry.ts",
+      "sourceSha256": "9dcaf6517ac6e4330acb75d1fb34095a759b45b5014644d092b40a1b12aa05ab",
+      "localSha256": "f185cfe2d43b2428c286ca24f367729bbba6186a2428a31f311ef70789041562"
+    },
+    {
+      "path": "reports.ts",
+      "sourceSha256": "fc4acaabe180047b28bbe0d53dbdfbaa5b1e605034f6cb631cf1e7c9f97846b6",
+      "localSha256": "fc4acaabe180047b28bbe0d53dbdfbaa5b1e605034f6cb631cf1e7c9f97846b6"
+    },
+    {
+      "path": "requests.ts",
+      "sourceSha256": "24c437cc75d7e13996cafa64c608e4402c0d34ff9c4f6a50bca3bfc7c22b9e4e",
+      "localSha256": "24c437cc75d7e13996cafa64c608e4402c0d34ff9c4f6a50bca3bfc7c22b9e4e"
+    },
+    {
+      "path": "supervisor.ts",
+      "sourceSha256": "ab2f5da63c80b710b02dff5ba39dafc78426216318951bf92fa46178017109f7",
+      "localSha256": "9c007881798c5546b4d5b5a54a29e58a638fdb0d41708eec3a256a26bbf61408"
+    },
+    {
+      "path": "tasks.ts",
+      "sourceSha256": "eeb96d34af39c019e005c8ca221ebed398989a7a08ef0397b01c7448fd1504f4",
+      "localSha256": "6a74c05f4dcceb365ff271d9d1711a2aa0b6c2a208f6748ae35bde65900111cf"
+    }
+  ]
+}

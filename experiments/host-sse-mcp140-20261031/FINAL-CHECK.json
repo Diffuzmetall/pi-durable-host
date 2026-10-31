@@ -1,0 +1,15 @@
+{
+  "release": "/home/ubuntu/.local/share/pi-durable-host/releases/c0019d7-unified-sse-mcp140-20261031-v1",
+  "exitCode": 0,
+  "evidence": "/var/tmp/sse-mcp140-check-txco33ha",
+  "networkIsolated": true,
+  "realCredentialsMounted": false,
+  "realDataMounted": false,
+  "tests": {
+    "tests": 17,
+    "pass": 17,
+    "fail": 0,
+    "skipped": 0
+  },
+  "manifestSha256": "fc568c59e90fc1ec7cc29ef75711267870fe9a4b9394ba71f282eb38b1c62eb2"
+}

@@ -26,12 +26,14 @@ export const Workspace = defineDoc<AppState>({
   scope: "conversation",
   history: "rewindable",
   fork: "asOf",
+  checkpointWhen: () => true,
   initial: () => ({ goal: "Explore durable agents", counter: 0, notes: [] }),
 });
 const Receipt = defineDoc<{ applied: boolean; result: string }>({
   kind: "demo.receipt",
   version: 1,
   scope: "task",
+  checkpointWhen: () => true,
   initial: () => ({ applied: false, result: "" }),
 });
 /** ping_on_call_engineer pages once per agent; this records the page. */
@@ -41,6 +43,7 @@ const Pager = defineDoc<{ paged: boolean; at: number; page: string; summary: str
   scope: "conversation",
   history: "latest",
   fork: "initial",
+  checkpointWhen: () => true,
   initial: () => ({ paged: false, at: 0, page: "", summary: "" }),
 });
 
@@ -110,7 +113,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
     execute: async (args) => {
       const { value } = await shared.snapshot();
       return {
-        content: [{ type: "text", text: JSON.stringify(readState(value, args.path ?? "")) }],
+        output: [{ type: "text", text: JSON.stringify(readState(value, args.path ?? "")) }],
       };
     },
   });
@@ -155,7 +158,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
         }
         return receipt.result;
       }, ctx);
-      return { content: [{ type: "text", text: value }] };
+      return { output: [{ type: "text", text: value }] };
     },
   });
   const recentRuns = async (api: Pick<ToolExecutionApi, "conversationId" | "snapshot">, ctx: Context) =>
@@ -169,7 +172,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
     execute: async (_args, api, ctx) => {
       const runs = await recentRuns(api, ctx);
       return {
-        content: [
+        output: [
           {
             type: "text",
             text: JSON.stringify(
@@ -240,7 +243,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
       if (!wait) {
         const run = await read();
         return {
-          content: [
+          output: [
             {
               type: "text",
               text: `Started ${def.title} run #${run?.run ?? "?"} as durable task #${taskId}. It runs in the background, shows live in the chat and saves its result to App State ${def.resultPath}. Check it with check_durable_job {"task_id":${taskId}}.`,
@@ -263,7 +266,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
       }
       const ok = run?.status === "completed";
       return {
-        content: [
+        output: [
           {
             type: "text",
             text: run
@@ -295,7 +298,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
             : undefined;
       if (args.task_id === undefined && args.job === undefined)
         return {
-          content: [
+          output: [
             {
               type: "text",
               text: JSON.stringify(
@@ -308,7 +311,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
         throw Error(
           `No run ${args.task_id !== undefined ? `with task id ${args.task_id}` : `of ${args.job}`} in this conversation. Runs: ${runs.map((r) => `${r.id} (${r.job} #${r.run})`).join(", ") || "none"}`,
         );
-      return { content: [{ type: "text", text: JSON.stringify(runReport(run, Date.now())) }] };
+      return { output: [{ type: "text", text: JSON.stringify(runReport(run, Date.now())) }] };
     },
   });
   const searchHistoryTool = defineTool({
@@ -351,7 +354,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
         activeFrom,
         lastReset: resets.length ? Math.max(...resets) : undefined,
       });
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return { output: [{ type: "text", text: JSON.stringify(result) }] };
     },
   });
   // No replay policy: the default `unsafe` means a crash mid-call returns an interrupted result and never pages twice.
@@ -382,7 +385,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
       await pause(1500);
       api.output("Acknowledged.\n");
       return {
-        content: [
+        output: [
           {
             type: "text",
             text: `Paged the on-call engineer (${page}, ${severity}). They acknowledged. Do not page again for this.`,
@@ -421,7 +424,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
           ? await api.commit((tx) => tx.entry(AssistantEntry, result.answer), ctx)
           : undefined;
       return {
-        content: [
+        output: [
           { type: "text", text: answer ? JSON.stringify(answer.model) : JSON.stringify(result) },
         ],
         details: { conversationId: id },
@@ -463,7 +466,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
           ? "It has no prompt yet."
           : `Sent its first message as submission #${submissionId}. It runs on its own.`;
       return {
-        content: [
+        output: [
           {
             type: "text",
             text: `Started session "${session.name}" (${session.id}) in ${session.cwd} with ${session.model}. ${sent}`,
@@ -479,7 +482,7 @@ export function createPlayground(shared: SharedState, sessionId: string, spawn: 
       "Start a fresh model context with a concise handoff note. Old transcript stays stored.",
     parameters: Type.Object({ note: Type.String() }),
     execute: async (args) => ({
-      content: [{ type: "text", text: "Context handed off." }],
+      output: [{ type: "text", text: "Context handed off." }],
       control: { handoff: args.note },
     }),
   });

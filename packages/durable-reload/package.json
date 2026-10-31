@@ -1,0 +1,17 @@
+{
+  "name": "@local/pi-durable-reload",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "devDependencies": { "@types/node": "24.19.1", "typescript": "5.9.3" },
+  "peerDependencies": {
+    "@earendil-works/chord": "1.4.0",
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-durable": "1.4.0"
+  },
+  "dependencies": { "jiti": "2.7.0" }
+}

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec /home/ubuntu/.nvm/versions/node/v24.19.0/bin/node /home/ubuntu/.local/share/pi-durable-host/releases/terminal-model-skills-20261030-v1/host-bindings-v16/terminal-launcher.mjs "$@"

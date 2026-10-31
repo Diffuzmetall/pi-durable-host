@@ -1,0 +1,59 @@
+{
+  "base": "/home/ubuntu/.local/share/pi-durable-host/releases/c0019d7-sse1",
+  "release": "/home/ubuntu/.local/share/pi-durable-host/releases/c0019d7-nico2",
+  "profile": "native@1",
+  "scope": "Host MCP transport only; SDK clients unchanged",
+  "dependency": {
+    "artifact": "artifacts/pi-mcp-adapter-7.0.0-durable.3-3f044ee3ffa5.tgz",
+    "sha256": "3f044ee3ffa5aed8423efb69f4de2ff6d0953b5abc58d9ec41f2693cf696da56",
+    "version": "7.0.0-durable.3",
+    "upstream": "b41f334da85b7608f3ff9e64e41b675e2f5d51f0",
+    "patches": [
+      {
+        "path": "patches/01-headless-and-readonly-oauth.patch",
+        "sha256": "adc5d6024fa9b783ed34605ef25bbdc19303a097593adfdd332bccf585014aca"
+      },
+      {
+        "path": "patches/02-single-dispatch.patch",
+        "sha256": "45a960e54e8b02f5c557a73e8c59fdc5cf482380a3891f9e6c9a577d13ec1bca"
+      }
+    ],
+    "patchedFiles": {
+      "package.json": "60acfd4bcbd150a19693634be55dd01fef5fb430d7750484ceb615ff64a7186e",
+      "host-managed.ts": "fc67788b34b111f85d4a79320fc14091c4e25dd9d7356e81b30c562310a6b7ca",
+      "oauth.ts": "8d350c43bf3093e4419545994a1fb7f13d1e65e9d8227aecf5b44efd60ccdac2",
+      "session-recovery.ts": "120d28ff823f0fc33c6d775f4be4e70d79ba58bbc31bbda2334b1633691603be",
+      "server-manager.ts": "13ea581bc7a2dd6b5aeae50d0847b8a9b2e33064b7e5e217bef490b211966557",
+      "direct-tools.ts": "5627eb8d2e190b895348d0ddf072e3de22461e34e23bef7fdb7b4e12bc7206ac",
+      "proxy-modes.ts": "017e5ed8dce5c3cdf6771db4223561e09d3a22ac4124909738911b84d19c98fa",
+      "ui-server.ts": "2616a4e5639ad8078cda696c856c63d7227721565c876c96098f852116a02453"
+    }
+  },
+  "additionalNicoPatches": [
+    {
+      "file": "json-schema-validator.ts",
+      "patch": "schema-compat/nico-null-const.patch",
+      "sha256": "0e8206c48310ed293cd09f89082328a6dfdab57a752300c2408b751526987d46",
+      "preimageSha256": "97ec0f73ee16f4706d8bd9f2355eccf38c92c6495016d954227c0ff7b9102df8",
+      "resultSha256": "68c78c259720c448dae0bef92168c7569f3a0db0b6aedf84a6cb7fdcf9118a35",
+      "dependency": {
+        "name": "json-schema-traverse",
+        "version": "1.0.0"
+      }
+    }
+  ],
+  "checks": {
+    "exitCode": 0,
+    "stage": "/var/tmp/nico-host-check-ru9k186u",
+    "networkIsolated": true,
+    "realCredentialsMounted": false,
+    "realDataMounted": false,
+    "sourceSha256": "a885687f81d4f1aab05513f29bcf1044c430c91877cff937131ad1c11c1e6a93"
+  },
+  "sessionMcpSha256": "a885687f81d4f1aab05513f29bcf1044c430c91877cff937131ad1c11c1e6a93",
+  "bundleSha256": "2b7a49479a5a2909cfa321e685ab275b0606244fb0fdbc854f05aa278db089bd",
+  "ordinaryPiChanged": false,
+  "BBChanged": false,
+  "modelCalls": 0,
+  "activated": false
+}

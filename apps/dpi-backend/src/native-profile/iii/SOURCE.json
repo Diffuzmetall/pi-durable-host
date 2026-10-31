@@ -1,0 +1,89 @@
+{
+  "origin": "donor-iii: owner-confirmed MIT publication rights; Copyright (c) 2026 Diffuzmetall",
+  "runtime": "Existing original Harness/Storage/Registry, Node standard library; no iii-sdk/launcher/clientStorage",
+  "sources": [
+    {
+      "source": "donor-iii://src/auth.ts",
+      "sourceSha256": "d20007b609d5ea649f5ae26b229e2dfd54fa8c488fbea52ef43975a185838e62",
+      "local": "auth.ts",
+      "localSha256": "1f546323590d356b50e4f33d3498e071b36c244814967e0e9cce13869a2cf7f5"
+    },
+    {
+      "source": "donor-iii://src/domain.ts",
+      "sourceSha256": "3dba5188a02c75e05284f211cff1e6dcd5eecef8df994336dfbd1180b4959426",
+      "local": "domain.ts",
+      "localSha256": "de98261e854f38f80f7eb981cb35fadca4276348f14e9422944e99edb125e9dc"
+    },
+    {
+      "source": "donor-iii://src/jobs.ts",
+      "sourceSha256": "a0b8de80cd68150c75ff8b80ac22b5ffed9696dfb51a8f8d322bb88d01912fbf",
+      "local": "jobs.ts",
+      "localSha256": "63e1f1545607053fe0ed5e3949235f7322e8f826afcd6545e43db70f791d5159"
+    },
+    {
+      "source": "donor-iii://src/native.ts",
+      "sourceSha256": "931749bb572f2596e169cf0b6f97b56f74bff90a937f3b26c0ae99dfc051bf6f",
+      "local": "native.ts",
+      "localSha256": "3b7cf14f95b7991ede0c062705bdc6052f1df756b1bcb5d222dfccd396765620"
+    },
+    {
+      "source": "donor-iii://src/receipts.ts",
+      "sourceSha256": "252154e87068c1d047009bc1a9ed731fef26cd2598649a7137a6a62e82667024",
+      "local": "receipts.ts",
+      "localSha256": "88f61f529c0daee4d7bdbc5ff3d53b02f1e1089c1bd95e6a22c3fb848711d16c"
+    },
+    {
+      "source": "donor-iii://src/result-pages.ts",
+      "sourceSha256": "b962ee4e4ba932a0e54e658720ef23a124eb1df998966b8d6667c3f9ca9a751e",
+      "local": "result-pages.ts",
+      "localSha256": "8502e0974c311e49b3773f4bb8a13cb57d02c0960a8e52bcb639fc89b18fb2ec"
+    },
+    {
+      "source": "donor-iii://src/completion.ts",
+      "sourceSha256": "671461e2abf95c0bc5352f5e857c0af44a8fb0a81ebe3623bd4da77702d843dd",
+      "local": "completion.ts",
+      "localSha256": "aaa7f2f883dadd1934b9f26a6dffc5cc77b61e56c39406bba9f8e5dcfff181f0"
+    },
+    {
+      "source": "donor-iii://src/child-control.ts",
+      "sourceSha256": "647a718df6271ad06aa27a6f7e43237d122e3cd5afd2556a92b462c4aed45ac2",
+      "local": "child-control.ts",
+      "localSha256": "fb12aab0541050d2d9801738093fc03bb71365596d44900995f803c2365bf2fa"
+    },
+    {
+      "source": "donor-iii://src/job-control.ts",
+      "sourceSha256": "2cabbc972d094bd58d0a2b9cfa35f6f5fc3433aa65893e23304c3a7f222c5606",
+      "local": "job-control.ts",
+      "localSha256": "b2a997eae107c0e81b8e72cd5c00c2d1cbdbd56fe7ac09fe8541e163bec18f19"
+    },
+    {
+      "source": "donor-iii://src/inventory.ts",
+      "sourceSha256": "b9120cbc2f64fb17fe2c8cc2869a714067bb47594d6c57a3c8ff85f13617d879",
+      "local": "inventory.ts",
+      "localSha256": "72869509f93984fed14245a48d858b550daf0e26257188f2f202949824bf7d52"
+    },
+    {
+      "source": "donor-iii://src/control-domain.ts",
+      "sourceSha256": "a7555a000772eb728312501ffa7821c72ef28c14c2c342dd8c27ee2de554aa3b",
+      "local": "control-domain.ts",
+      "localSha256": "0b52dc7dbf5321592a5bc1ce788456a5a50b2cc2e78211722b918a665ca9e52a"
+    },
+    {
+      "source": "donor-iii://src/read-domain.ts",
+      "sourceSha256": "4558827bfdc91be76cee8537f7b32969489f9273ddd643dfaa3c26f0eb5551ed",
+      "local": "read-domain.ts",
+      "localSha256": "8f4c968e87bdb313e4348d95e5d2ea348eaa3e575295f5c5fac0b6ff5802ef79"
+    },
+    {
+      "source": "donor-iii://src/input-policy.ts",
+      "sourceSha256": "8b985d0a89d1ee65801be05786c7b1cc4c3fa4a23a14dfaea858cd87c3a96e92",
+      "local": "input-policy.ts",
+      "localSha256": "f69870a12ff6f89ef84e5579b75e6f7d7dfa29db0f2887ea62835c03d8cf66ed"
+    }
+  ],
+  "newGlue": [
+    "index.ts"
+  ],
+  "adaptations": "See NOTICE.md; subset/local imports/current trusted policy checkpoint and native anchor; document kinds/versions and canonical result IDs retained.",
+  "license": "MIT; original upstream and selected-source notices retained"
+}

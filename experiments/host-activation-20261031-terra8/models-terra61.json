@@ -1,0 +1,10 @@
+{
+  "alice": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "bob": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "carol": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "dave": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "eve": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "frank": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "grace": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"},
+  "heidi": {"provider": "openai-codex", "modelId": "gpt-6.1-terra"}
+}

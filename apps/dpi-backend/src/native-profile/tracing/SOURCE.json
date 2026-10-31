@@ -1,0 +1,11 @@
+{
+  "origin": "pi-durable-extensions",
+  "release": "20261028-4rmMfRfc",
+  "sdk": "1.4.0",
+  "files": {
+    "packages/langfuse/src/index.mjs": "0dd79f9d7ce650d6e03e6ac29c27d5da25a834cae6c50b4e006967139aca33b4"
+  },
+  "adaptations": [
+    "Explicit session-local SDK only; no ambient configuration or credentials."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "dpi-bb-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scoped BB Core attachment to the existing Durable host through public dpi-sdk only.",
+  "license": "MIT",
+  "bin": { "dpi-bb-provider": "./dist/main.js" },
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md", "NOTICE.md", "HISTORY-NOTICE.md", "NATIVE-CHILD-NOTICE.md", "SOURCE.json", "LICENSE"],
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "tsx --test tests/*.test.mts",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": { "dpi-sdk": "0.1.0" },
+  "devDependencies": {
+    "dpi-sdk": "file:../dpi-sdk",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "5.9.3"
+  }
+}

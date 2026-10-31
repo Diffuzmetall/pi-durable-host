@@ -7,6 +7,7 @@ dpi-network.yaml
 
 # dependencies and builds
 node_modules/
+**/node_modules
 **/dist/
 .venv/
 __pycache__/
@@ -30,3 +31,23 @@ test-results/
 tmp/
 *.log
 .DS_Store
+
+# private machine state and derived inspection indexes
+/data/
+/.audit/
+/.codegraph/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite-journal
+*.db
+*.db-wal
+*.db-shm
+
+# reproducible experiment outputs, not sources or live-state publication
+/experiments/**/compiled/
+/experiments/**/artifacts/
+/experiments/**/evidence/
+/experiments/sdk-host-cutover/nico-build-*/
+/experiments/host-sse-mcp140-20261031/candidate/
+/docs/host-design/verification/**/evidence/

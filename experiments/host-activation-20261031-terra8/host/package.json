@@ -1,0 +1,12 @@
+{
+  "name": "pi-durable-host-unified-reload-release",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "dpi-backend": "file:artifacts/dpi-backend-0.1.0.tgz",
+    "dpi-sdk": "file:artifacts/dpi-sdk-0.1.0.tgz",
+    "dpi-terminal-adapter": "file:artifacts/dpi-terminal-adapter-0.1.0.tgz",
+    "dpi-iii-adapter": "file:artifacts/dpi-iii-adapter-0.1.0.tgz"
+  }
+}

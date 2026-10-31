@@ -1,0 +1,221 @@
+--- a/packages/agent-runtime/src/runtime.ts
++++ b/packages/agent-runtime/src/runtime.ts
+@@ -75,6 +75,7 @@
+ import { bridgeLaunchProcessKey } from "./bridge-launch-process-key.js";
+ import { dispatchOwnerScope } from "./native-owner-scope.js";
+ import { dispatchNativeHistory } from "./native-history-request.js";
++import { initializeRegisteredChildRouting, committedNativeHistoryTurn } from "./registered-child-routing.mjs";
+ import { dispatchRootConfirmation, rootAttachmentPlan, rootProcessGeneration, type RootConfirmationAttempt } from "./native-root-attachment.js";
+ import { bindRegisteredNativeChild } from "./native-child-runtime-scope.js";
+ import { sendJsonRpcResult } from "@bb/provider-bridge-protocol/bridge-kit";
+@@ -1360,15 +1361,28 @@
+       const parentThreadId = resolveBbThreadIdForProcess(proc, input.data.parentProviderThreadId);
+       if (!parentThreadId || (input.data.parentThreadId !== undefined && input.data.parentThreadId !== parentThreadId)) { reject(); return; }
+       const registration = { requestId: input.data.requestId, providerId: proc.providerId, sessionId: input.data.sessionId, conversationId: input.data.conversationId, parentThreadId, ...(input.data.title !== undefined ? { title: input.data.title } : {}) };
+-      void options.onNativeThreadRegistration(registration).then(result => {
++      void options.onNativeThreadRegistration(registration).then(result => { try {
++        if (hasChildProcessExited(proc.child) || providerProcesses.requireProviderProcess({ processKey: proc.processKey, providerId: proc.providerId }) !== proc) throw Error("Native parent process replaced");
++        const childRouting = initializeRegisteredChildRouting<ThreadRuntimeConfig>({
++          parent: threadRuntimeConfigs.get(parentThreadId), existing: threadRuntimeConfigs.get(result.threadId),
++          parentThreadId, childThreadId: result.threadId, providerId: proc.providerId, processKey: proc.processKey,
++          resolveEnvironment: resolveRuntimeThreadEnvironment,
++        });
+         bindRegisteredNativeChild(threadIdentityRegistry, proc, input.data, result);
++        if (!threadRuntimeConfigs.has(result.threadId)) setThreadRuntimeConfig(result.threadId, childRouting);
+         sendJsonRpcResult({ child: proc.child, id: parsedLine.parsedId, result });
+-      }, reject);
++      } catch { reject(); } }, reject);
+       return;
+     }
+ 
++    const nativeHistory = options.onNativeHistory;
+     if (parsedLine.kind === "request" && dispatchNativeHistory(
+-      parsedLine, proc, threadIdentityRegistry, options.onNativeHistory,
++      parsedLine, proc, threadIdentityRegistry, nativeHistory && (async request => {
++        const receipt = await nativeHistory(request);
++        const event = committedNativeHistoryTurn(request, receipt);
++        if (event) { turnState.observe(event); threadGoalState.observe(event); observeProviderSessionIdleState(event); }
++        return receipt;
++      }),
+       (result) => sendJsonRpcResult({ child: proc.child, id: parsedLine.parsedId, result }),
+       (message) => sendJsonRpcError({ child: proc.child, id: parsedLine.parsedId, message }),
+     )) return;
+--- a/packages/db/src/data/native-history.ts
++++ b/packages/db/src/data/native-history.ts
+@@ -1,5 +1,6 @@
+ import { createHash } from "node:crypto";
+ import { isDeepStrictEqual } from "node:util";
++import { manualStopLifecycleIds, manualStopLifecycleReceipt, retainLifecycleTurnHeaders } from "./manual-stop-history.mjs";
+ 
+ import type { HistoricalSnapshot } from "@bb/domain";
+ export type { HistoricalSnapshot } from "@bb/domain";
+@@ -110,8 +111,10 @@
+       .map(row => JSON.stringify([Number(row.createdAt), row.turnId])));
+     const lifecycleIds = new Set([...disconnects, ...disconnectErrors, ...stored.filter(row => row.type === 'turn/completed'
+       && interruptedTurns.has(JSON.stringify([Number(row.createdAt), row.turnId])) && lifecycleData(row)?.status === 'interrupted')].map(row => row.id));
++    const manualStopIds = manualStopLifecycleIds(stored, old, lifecycleData, hash, lifecycleIds);
++    if (!manualStopIds) throw new NativeHistoryError(409, "Corrupt manual-stop lifecycle attestation");
+     const rows = stored.filter((row) => {
+-      if (lifecycleIds.has(row.id)) return false;
++      if (lifecycleIds.has(row.id) || manualStopIds.has(row.id)) return false;
+       let commandError = false;
+       if (row.type === 'system/error') {
+         try { commandError = JSON.parse(row.data).code === 'thread_command_failed'; } catch { /* Mixed malformed rows remain protected. */ }
+@@ -204,7 +207,8 @@
+     }).where(eq(core.threads.id, input.threadId)).run();
+     // Append before removal retains increasing sequence numbers for changed nonempty snapshots.
+     core.appendStoredThreadEventsInTransaction(tx, eventArgs);
+-    const replaced = [...rows, ...admittedControls];
++    retainLifecycleTurnHeaders(stored, manualStopIds, lifecycleData);
++    const replaced = [...rows.filter(row => !manualStopIds.has(row.id)), ...admittedControls];
+     if (replaced.length > 0) {
+       tx.delete(threadSearchSegments).where(core.and(eq(threadSearchSegments.threadId, input.threadId),
+         inArray(threadSearchSegments.sourceSeq, replaced.map((row) => row.sequence)))).run();
+@@ -215,7 +219,7 @@
+       .filter((row) => !retained.has(row.id));
+     // Same existing namespace upsert as patchThreadPluginMetadata, but inside this transaction.
+     // Its public helper takes DbConnection, not DbTransaction; the bounded receipt is <1KiB.
+-    const metadataJson = JSON.stringify({ version: 1, digest: nextDigest, nativeStatus: snapshot.status, rowCount: finalRows.length, rowsDigest: hash(finalRows) });
++    const metadataJson = JSON.stringify({ version: 1, digest: nextDigest, nativeStatus: snapshot.status, rowCount: finalRows.length, rowsDigest: hash(finalRows), ...manualStopLifecycleReceipt(stored, manualStopIds, hash) });
+     tx.insert(core.threadPluginMetadata).values({ threadId: input.threadId, pluginId: HISTORY_PLUGIN, metadataJson })
+       .onConflictDoUpdate({ target: [core.threadPluginMetadata.threadId, core.threadPluginMetadata.pluginId], set: { metadataJson } }).run();
+     return { threadId: input.threadId, digest: nextDigest, changed: true, turnId };
+--- /dev/null
++++ b/packages/agent-runtime/src/registered-child-routing.mjs
+@@ -0,0 +1,42 @@
++export function initializeRegisteredChildRouting({ parent, existing, parentThreadId, childThreadId, providerId, processKey, resolveEnvironment }) {
++  const deny = () => { throw Error('Registered native child routing refused'); };
++  if (!parent || !parentThreadId || !childThreadId || childThreadId === parentThreadId ||
++      parent.providerId !== providerId || parent.processKey !== processKey ||
++      !parent.projectId || !parent.environmentId) deny();
++  if (existing) {
++    if (existing.providerId !== providerId || existing.processKey !== processKey ||
++        existing.projectId !== parent.projectId || existing.environmentId !== parent.environmentId ||
++        existing.envVars?.BB_THREAD_ID !== childThreadId) deny();
++    return existing;
++  }
++  const { envVars } = resolveEnvironment({
++    contributedEnv: parent.contributedEnv ?? [],
++    environmentId: parent.environmentId,
++    projectId: parent.projectId,
++    threadId: childThreadId,
++  });
++  if (envVars?.BB_THREAD_ID !== childThreadId || envVars.BB_PROJECT_ID !== parent.projectId ||
++      envVars.BB_ENVIRONMENT_ID !== parent.environmentId) deny();
++  return {
++    bridgeLaunch: parent.bridgeLaunch,
++    skillRoots: parent.skillRoots,
++    contributedEnv: parent.contributedEnv,
++    environmentId: parent.environmentId,
++    envVars,
++    instructionMode: parent.instructionMode,
++    processKey,
++    projectId: parent.projectId,
++    providerId,
++    sessionRestorable: true,
++  };
++}
++
++export function committedNativeHistoryTurn(request, receipt) {
++  if (!request.snapshot || receipt.deferred || receipt.threadId !== request.threadId ||
++      typeof receipt.turnId !== 'string' || !receipt.turnId) return;
++  const status = request.snapshot.status;
++  if (!['working', 'completed', 'failed', 'interrupted'].includes(status)) return;
++  const base = { threadId: request.threadId, providerThreadId: request.providerThreadId,
++    scope: { kind: 'turn', turnId: receipt.turnId } };
++  return status === 'working' ? { ...base, type: 'turn/started' } : { ...base, type: 'turn/completed', status };
++}
+--- /dev/null
++++ b/packages/agent-runtime/src/registered-child-routing.d.mts
+@@ -0,0 +1,29 @@
++import type { ThreadEvent } from '@bb/domain';
++import type { ScopedNativeHistoryRequest, NativeHistoryReceipt } from './native-history-request.js';
++
++interface RoutingShape {
++  bridgeLaunch: unknown;
++  skillRoots: readonly unknown[];
++  contributedEnv: readonly unknown[];
++  environmentId: string;
++  envVars: Record<string, string>;
++  instructionMode: string;
++  processKey: string;
++  projectId?: string;
++  providerId: string;
++  sessionRestorable: boolean;
++}
++
++export function initializeRegisteredChildRouting<T extends RoutingShape>(args: {
++  parent: T | undefined;
++  existing: T | undefined;
++  parentThreadId: string;
++  childThreadId: string;
++  providerId: string;
++  processKey: string;
++  resolveEnvironment(args: { contributedEnv: T['contributedEnv']; environmentId: string; projectId: string; threadId: string }): { envVars: Record<string, string> };
++}): Pick<T, keyof RoutingShape>;
++
++export function committedNativeHistoryTurn(request: ScopedNativeHistoryRequest,
++  receipt: NativeHistoryReceipt & { deferred?: boolean; turnId?: string }):
++  Extract<ThreadEvent, { type: 'turn/started' | 'turn/completed' }> | undefined;
+--- /dev/null
++++ b/packages/db/src/data/manual-stop-history.mjs
+@@ -0,0 +1,40 @@
++export function manualStopLifecycleIds(stored, receipt, lifecycleData, hash, lifecycleIds) {
++  const canonical = stored.filter(row => lifecycleIds.has(row.id) ||
++    (row.type === 'turn/started' && row.scopeKind === 'turn' && lifecycleData(row)) ||
++    (row.type === 'system/thread/interrupted' && row.scopeKind === 'thread' && lifecycleData(row)?.reason === 'manual-stop') ||
++    (row.type === 'turn/completed' && row.scopeKind === 'turn' && lifecycleData(row)?.status === 'interrupted'));
++  let through = 0, prior = [];
++  if ([receipt.manualStopThroughSequence, receipt.manualStopRowCount, receipt.manualStopRowsDigest].some(value => value !== undefined)) {
++    through = receipt.manualStopThroughSequence;
++    if (!Number.isSafeInteger(through) || through < 0 || !Number.isSafeInteger(receipt.manualStopRowCount) || receipt.manualStopRowCount < 0 ||
++        typeof receipt.manualStopRowsDigest !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.manualStopRowsDigest)) return;
++    prior = canonical.filter(row => row.sequence <= through);
++    if (prior.length !== receipt.manualStopRowCount || hash(prior) !== receipt.manualStopRowsDigest) return;
++  }
++  const ids = new Set([...prior.map(row => row.id), ...lifecycleIds]);
++  const stops = canonical.filter(row => row.type === 'system/thread/interrupted');
++  for (const stop of stops) if (stop.sequence > through) ids.add(stop.id);
++  if (receipt.nativeStatus !== 'working') return ids;
++  for (const row of canonical) {
++    if (row.type !== 'turn/completed' || row.sequence <= through) continue;
++    const start = stored.find(candidate => candidate.type === 'turn/started' &&
++      candidate.scopeKind === 'turn' && candidate.turnId === row.turnId && lifecycleData(candidate));
++    if (start && stops.some(stop => start.sequence < stop.sequence && stop.sequence < row.sequence)) ids.add(row.id);
++  }
++  return ids;
++}
++
++export function retainLifecycleTurnHeaders(stored, ids, lifecycleData) {
++  for (const completion of stored) {
++    if (!ids.has(completion.id) || completion.type !== 'turn/completed') continue;
++    const start = stored.find(row => row.type === 'turn/started' && row.scopeKind === 'turn' &&
++      row.turnId === completion.turnId && row.sequence < completion.sequence && lifecycleData(row));
++    if (start) ids.add(start.id);
++  }
++}
++
++export function manualStopLifecycleReceipt(stored, ids, hash) {
++  const rows = stored.filter(row => ids.has(row.id));
++  return { manualStopThroughSequence: rows.reduce((max, row) => Math.max(max, row.sequence), 0),
++    manualStopRowCount: rows.length, manualStopRowsDigest: hash(rows) };
++}
+--- /dev/null
++++ b/packages/db/src/data/manual-stop-history.d.mts
+@@ -0,0 +1,16 @@
++interface StoredLifecycleRow {
++  id: string;
++  type: string;
++  sequence: number;
++  scopeKind: string;
++  turnId: string | null;
++}
++type CanonicalData<R> = (row: R) => Record<string, unknown> | undefined;
++export function manualStopLifecycleIds<R extends StoredLifecycleRow>(stored: readonly R[], receipt: Readonly<Record<string, unknown>>,
++  lifecycleData: CanonicalData<R>, hash: (value: unknown) => string, lifecycleIds: ReadonlySet<string>): Set<string> | undefined;
++export function retainLifecycleTurnHeaders<R extends StoredLifecycleRow>(stored: readonly R[], ids: Set<string>, lifecycleData: CanonicalData<R>): void;
++export function manualStopLifecycleReceipt<R extends StoredLifecycleRow>(stored: readonly R[], ids: ReadonlySet<string>, hash: (value: unknown) => string): {
++  manualStopThroughSequence: number;
++  manualStopRowCount: number;
++  manualStopRowsDigest: string;
++};

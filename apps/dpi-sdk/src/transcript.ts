@@ -127,7 +127,7 @@ export function toTranscript(
   const items: TranscriptItem[] = [];
   for (const entry of entries) {
     if (entry.kind === "pi.system") continue;
-    if (entry.kind === "pi.user") {
+    if (entry.kind === "pi.user" || entry.kind === "host.input") {
       items.push({
         kind: "user",
         id: entry.id,

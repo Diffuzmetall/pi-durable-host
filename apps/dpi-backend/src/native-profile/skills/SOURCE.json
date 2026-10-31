@@ -1,0 +1,163 @@
+{
+  "selectedRelease": "20261028-4rmMfRfc",
+  "publicRuntimeTarget": "@earendil-works/pi-durable@1.4.0",
+  "status": "component-verified-not-full-profile-acceptance",
+  "contextExtraction": { "path": "upstream/core/context.ts", "sha256": "e0f28c12b2d21598c74dabdc86537da513205dea0f0415351e21ffe632b6a087" },
+  "fixture": { "path": "../../../tests/native-skills.test.ts", "sha256": "64a271749d84e874993e4e09468d2fec9d5d660ccf70eb83d30db9631bbc4fd6" },
+  "entries": [
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/config.ts",
+      "sourceSha256": "b3b77644910d3fac28a06625e90f993a8c1bc6c9458f148c723e64e0c99eb23e",
+      "local": "upstream/config.ts",
+      "localSha256": "ad5e45f8920b30822672a119eb4a618a9681fe202f5ff902d0daa8621c205b6e",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/diagnostics.ts",
+      "sourceSha256": "1914431098db1b4638e4fb3582ac22e8125356c4ab024671494f565c6d5ffb39",
+      "local": "upstream/core/diagnostics.ts",
+      "localSha256": "1914431098db1b4638e4fb3582ac22e8125356c4ab024671494f565c6d5ffb39",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/output-guard.ts",
+      "sourceSha256": "68c0e9a7533f0cf7270bb50a7558185a9f9a0f71304c85bb438dd620161a4f04",
+      "local": "upstream/core/output-guard.ts",
+      "localSha256": "68c0e9a7533f0cf7270bb50a7558185a9f9a0f71304c85bb438dd620161a4f04",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/package-manager.ts",
+      "sourceSha256": "c571e652abec58e1302177137e6640c228afa1d68089afd904d3073693691863",
+      "local": "upstream/core/package-manager.ts",
+      "localSha256": "6ff667f4889cb4c3918a7d32bdd4e346e718504725b4a8a01fd31cbc08f79754",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/pi-manifest.ts",
+      "sourceSha256": "cdeed96fef83e03043bb25081ad4b7abd26e739dfa464a0e1763c6473330bac3",
+      "local": "upstream/core/pi-manifest.ts",
+      "localSha256": "fd99c48edaf9c26ef85748de5aea7283edf2f987c404817238f5d56bc4fa1f74",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/settings-manager.ts",
+      "sourceSha256": "535c679f41f769d9129ffec5521508241162c9dfe0a9c7782157b193eb0e5664",
+      "local": "upstream/core/settings-manager.ts",
+      "localSha256": "df2841861a62e964cd8fb681efc78e6fe1ced00133234977a729faf2fa036489",
+      "kind": "structural-read-only-boundary-not-source-copy"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/skills.ts",
+      "sourceSha256": "055dbfde974fd1951267dd6f9204b5d713ff0004e0991eb870fce9158c6e359a",
+      "local": "upstream/core/skills.ts",
+      "localSha256": "258793570ce585b9b543964615899788f3093f0c58baf62ee1476e9f604ccd4c",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/source-info.ts",
+      "sourceSha256": "52648af6e9bb29858ece4eaeccedd960c5de8a0ac4ec25c0ee851ff00de27f5c",
+      "local": "upstream/core/source-info.ts",
+      "localSha256": "e9f10ef60356405b5c68516e602f167dd33ce4cb6756ef172bac2f8adc66fc54",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/system-prompt.ts",
+      "sourceSha256": "e9cf234637f792c44e71764b8daff13bc15b0e77aa5574ec9728365ac9f61807",
+      "local": "upstream/core/system-prompt.ts",
+      "localSha256": "7ab95806b14b1c32e1e8db886fd6df47474a923e6df0ec84a5a29b26ece166c2",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/utils/child-process.ts",
+      "sourceSha256": "cd324f5b9a1abadd85ab5a331750d475c8bd51ec65cae091ad9b416245ec85d4",
+      "local": "upstream/utils/child-process.ts",
+      "localSha256": "cd324f5b9a1abadd85ab5a331750d475c8bd51ec65cae091ad9b416245ec85d4",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/utils/frontmatter.ts",
+      "sourceSha256": "99142d78b94e658e0be65cf05046be8069b3700168a683e0af64219ad903bcd6",
+      "local": "upstream/utils/frontmatter.ts",
+      "localSha256": "bcda0a87aca959f9e414e9865e03eb5db7e153f942d8818467dcfc95fe0abdc7",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/utils/git.ts",
+      "sourceSha256": "bff4590aefa988ba625026769ac5ad02f02558d59bd7d566f4728e1ee4da1da9",
+      "local": "upstream/utils/git.ts",
+      "localSha256": "bff4590aefa988ba625026769ac5ad02f02558d59bd7d566f4728e1ee4da1da9",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/utils/paths.ts",
+      "sourceSha256": "64c3ebef724fa21ed0042e127908b4323a5d2f1b8aaa91eee550442332fe8502",
+      "local": "upstream/utils/paths.ts",
+      "localSha256": "fa9ebaa71cd3889bcb75ea6ab649dd267500380d074e0f26fe0d9d885ad9103f",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/utils/text.ts",
+      "sourceSha256": "bb323f9607c499115b532021f4f0163c6df04d834aee9c32c3c77b273bd2d7c6",
+      "local": "upstream/utils/text.ts",
+      "localSha256": "bb323f9607c499115b532021f4f0163c6df04d834aee9c32c3c77b273bd2d7c6",
+      "kind": "localized-source"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/experimental/durable/skills.ts",
+      "sourceSha256": "be1c609e386588b549fe8d2be37e4f22d5062a05cf427b05b909c4112e9def6e",
+      "local": "index.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/experimental/durable/prompt.ts",
+      "sourceSha256": "62fc6f1412f7df3231a7d52de0625e51ad5e67bb790ca90903e8a83553ba8248",
+      "local": "index.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/resource-loader.ts",
+      "sourceSha256": "45daa19ad4aa08856cf1eb9b026230b918eb25e163c7dc9ab5cf8add6825955a",
+      "local": "upstream/core/context.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/footer-data-provider.ts",
+      "sourceSha256": "0702bb35c6f87f6254ccad59b140bed90faec49f768eaf9628ebf8b476d65409",
+      "local": "upstream/core/context.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/tools/read.ts",
+      "sourceSha256": "297d26092979651091f44de8862a6fd55aaf59e7252f8fb8dd3d7cb3f9771518",
+      "local": "index.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/tools/bash.ts",
+      "sourceSha256": "de2b54d4f4bfbb844ce6d8077f63d715f7d8e80079dd9689b561e45b6679c81b",
+      "local": "index.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/tools/edit.ts",
+      "sourceSha256": "31a368c14cf5437ecac157765660001b16063302d9bd746303d6d1b1dcb5625d",
+      "local": "index.ts",
+      "kind": "owning-function-extraction"
+    },
+    {
+      "upstream": "/home/ubuntu/.local/share/pi-durable/tui-releases/20261028-4rmMfRfc/host-lane/host/packages/coding-agent/src/core/tools/write.ts",
+      "sourceSha256": "2ee0a438c24cf83fefd733e349d55a21aa5b633c18934b2c80759fcf14b6f297",
+      "local": "index.ts",
+      "kind": "owning-function-extraction"
+    }
+  ],
+  "factory": {
+    "path": "index.ts",
+    "sha256": "80a4256b5997fd5988e168f70b6141ad6b2d1e9a45280d569ab427f6a9ba336f"
+  },
+  "license": {
+    "path": "LICENSE",
+    "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48"
+  }
+}

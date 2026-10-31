@@ -1,0 +1,49 @@
+{
+  "release": "20261028-4rmMfRfc",
+  "originalRoot": "extensions-lane/packages/hindsight/src",
+  "original": {
+    "index.mjs": "8e9e0a9882b52f4798639765dcbc26d73876c301f161d1b1c14b64a533839928",
+    "bridge.mjs": "c784106de3ff5e1a9a779b6612f69a2d5adb79064e14f7c16255511ae38c0c32",
+    "delivery.mjs": "ea58c87e1e71195b688d24d1918835c3f0a3136f8c78d31568622e79ba611d12",
+    "extension.mjs": "c04c0b55ff565f7443a6174dfc247b8aa7a35a8c40089aecad26c0dff1931ef2",
+    "lifecycle.mjs": "9957dda75e16e7ee2ebd5b9376ce745fe981337665ebaa4da50361656060d617",
+    "private-fs.mjs": "852a52baf470b0c6c0f1b3de1b0096e27a7c159da42d1ee6fe425a7714f53ada",
+    "vendor/pi.mjs": "a075207aae2391f32ae93400bbac27887a0de694681349084d3c2233d7fb3d76"
+  },
+  "mailPolicy": {
+    "source": "host-lane/host/packages/coding-agent/src/experimental/durable/mcp.ts",
+    "sha256": "014ed9fff4750ceac8459f7f91f2e655a5b78493c5e87158de3cace20133f15e"
+  },
+  "local": {
+    "LICENSE.native": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48",
+    "NOTICE.md": "fd2a763b7f4d843304f8c820133fa04c1928fdc28c5ee8daef9b2ead2710cbb3",
+    "hindsight/bridge.mjs": "c784106de3ff5e1a9a779b6612f69a2d5adb79064e14f7c16255511ae38c0c32",
+    "hindsight/delivery.mjs": "f66ddb86a43f46cf35b74f0ec446fa61a796f7666b3729ec2f83f56baa11dab1",
+    "hindsight/extension.mjs": "691663e2847d96d94cd87947d37bc46350b08bab06d708a3294ec9d296d88ef8",
+    "hindsight/index.mjs": "0eae5d02f813dbf06627afbac46e21baae707cb9013a87c10c957701c773a4d3",
+    "hindsight/lifecycle.mjs": "9957dda75e16e7ee2ebd5b9376ce745fe981337665ebaa4da50361656060d617",
+    "hindsight/private-fs.mjs": "852a52baf470b0c6c0f1b3de1b0096e27a7c159da42d1ee6fe425a7714f53ada",
+    "hindsight/vendor/LICENSE": "01fde0bedf83bdc185065d7af524a61690efe576a67f922eaff3a1280c17b63a",
+    "hindsight/vendor/PROVENANCE.md": "25d15f980f34438dcdc3f8542cce1e6f95a499bbd0f0a2d6efa303055ce7b869",
+    "hindsight/vendor/daemon-start.js": "76113ce005d58ead8c74d23934e5ccb8cdba5ce2c563ef6bf555c39ce230c689",
+    "hindsight/vendor/deepen.js": "cd7e9c87002de6a9d4601e52e516657245b946143dd7c6d62003330304a8139e",
+    "hindsight/vendor/mcp-server.js": "ea6d27e897976165e532473970b8dd1c658e1d401cbaff028d699bcbf61bd138",
+    "hindsight/vendor/package.json": "f761bc91b53f5972cb67a50d96636ebd87511743c28883c3b557edf810df80e5",
+    "hindsight/vendor/pi.mjs": "88952473c4a079525d77ff819f62ad4c2c1be2d43008a4395750f570ee58e62d",
+    "hindsight/vendor/survey-supervisor.js": "0f043f761dc8fc5112ddf86959a8dc926c8fe32d9b8e8cdbfcddb650537ae587",
+    "hindsight/vendor/upgrade-provenance.json": "48c1cd2236d610b3310e65eee68de0777f47c91fd498788b8921a0ff8a8e7318",
+    "logging-scope.mjs": "87689e6327a2c527b1ec3441d5d1f93eceee32f817ccb5ecc1d9b8df390e71a2",
+    "mail.ts": "b603badf6f6519f061cd1ebc530cc26dc8cf5ee31d8b741bb4a1b4ec0d2ccad0",
+    "session-memory.d.mts": "3fdd5ebef79fa2d9fb7ce6b9ebc39f5ea3ee4c1049034fbbb4762fa06353bbb9",
+    "session-memory.mjs": "e003fbbd860885a5286237f1bab318e3c89f342753d376c12b1589ec306d6c60"
+  },
+  "changes": [
+    "AsyncLocalStorage log/diagnostic/usage path and log-level scope instead of process globals",
+    "Controller reconciliation scope entry and native callback scope wrappers",
+    "Explicit exported original HindsightClient/config resolver; no automatic config lookup",
+    "Session-owned actual MCP Mail client with preserved identity/admin policy; no process.env assignment",
+    "Actual native input receipt membership for application user turns; no literal kind alias or passive model-role inference",
+    "Explicit/default registry reload targets retain captured session callback decoration; neutral native section caller and fresh fork regression"
+  ],
+  "limits": "Component evidence only; no unchanged installed-profile, extraction, historical registry or full-product acceptance."
+}

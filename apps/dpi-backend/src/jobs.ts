@@ -5,6 +5,7 @@
 // folder, a subagent with read and bash, App State writes), records every step in the conversation document
 // `demo.job-runs`, then commits the next checkpoint. A restart resumes the unfinished phase from its checkpoint.
 import type { Context, JsonValue } from "@earendil-works/chord";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   configure,
   defineDoc,
@@ -37,6 +38,7 @@ export const JobRuns = defineDoc<JobRunsDoc>({
   scope: "conversation",
   history: "latest",
   fork: "initial",
+  checkpointWhen: () => true,
   initial: () => ({ counts: {}, items: {} }),
 });
 
@@ -164,7 +166,6 @@ interface Phase {
   readState(path: string): Promise<JsonValue | undefined>;
   /** Run a subagent with read and bash in an owned child conversation; its tool calls become steps. */
   agent(prompt: string): Promise<string>;
-  sleepUntil(at: number): Promise<void>;
 }
 
 type Outcome = { done: string; data?: Data } | { again: Data; summary?: string };
@@ -285,7 +286,6 @@ const HANDLERS: Record<string, Record<string, Handler>> = {
       const dir = String(p.input.path);
       const total = Number(p.input.checks);
       const n = p.iteration + 1;
-      await p.sleepUntil(Number(p.data.nextAt ?? 0));
       const before = (p.data.sums ?? {}) as Record<string, string>;
       const { sums, found } = await p.step("checkpoint", `Check ${n}/${total}`, async () => {
         const r = await p.shell(inDir(dir, `${FIND} -exec cksum {} + 2>/dev/null | head -300`));
@@ -378,20 +378,18 @@ export function createJobs(deps: JobsDeps) {
     version: 1,
     initial: () => ({ phase: "wait" }),
     phases: {
-      // Reads the run's decision every 500 ms without writing; the button click is the only write.
+      // The decision remains human-owned; each check ends in a persisted sleep.
       wait: async (task, runtime, ctx) => {
-        for (;;) {
-          const doc = await runtime.snapshot(JobRuns, task.conversationId, ctx);
-          const decision = doc?.items[String(task.input.runId)]?.approval;
-          if (decision && decision !== "pending") {
-            await runtime.commit(
-              () => ({ status: "terminal", outcome: { status: "completed", result: { approved: decision === "approved" } } }),
-              ctx,
-            );
-            return;
-          }
-          await runtime.sleep(runtime.now() + 500, ctx);
+        const doc = await runtime.snapshot(JobRuns, task.conversationId, ctx);
+        const decision = doc?.items[String(task.input.runId)]?.approval;
+        if (decision && decision !== "pending") {
+          await runtime.commit(
+            () => ({ status: "terminal", outcome: { status: "completed", result: { approved: decision === "approved" } } }),
+            ctx,
+          );
+          return;
         }
+        await runtime.sleepUntil(runtime.now() + 500, { phase: "wait" }, ctx);
       },
     },
     abort: async (_task, runtime, ctx) => {
@@ -475,7 +473,6 @@ export function createJobs(deps: JobsDeps) {
           return undefined;
         }
       },
-      sleepUntil: (at) => runtime.sleep(at, ctx),
       agent: async (prompt) => {
         let childId = 0;
         const stepId = `${spec.id}:${cp.iteration}:agent`;
@@ -560,7 +557,7 @@ export function createJobs(deps: JobsDeps) {
           runtime.signal.throwIfAborted();
           done = await Promise.race([
             settled,
-            runtime.sleep(runtime.now() + 600, ctx).then(
+            delay(600, undefined, { signal: runtime.signal }).then(
               () => undefined,
               () => undefined,
             ),
@@ -603,7 +600,7 @@ export function createJobs(deps: JobsDeps) {
       if (next) {
         run.phase = next.id;
         run.status = "running";
-        return { status: "running" as const, checkpoint: { phase: next.id, iteration: 0, data } };
+        return { status: "sleeping" as const, until: now + PACE_MS, checkpoint: { phase: next.id, iteration: 0, data } };
       }
       run.status = "completed";
       run.result = summary;
@@ -667,7 +664,11 @@ export function createJobs(deps: JobsDeps) {
   async function runPhase(def: JobDef, index: number, task: Running, runtime: Run, ctx: Context) {
     const spec = def.phases[index];
     const cp = task.state.checkpoint;
-    if (index > 0 && cp.iteration === 0 && cp.approvalTask === undefined) await runtime.sleep(runtime.now() + PACE_MS, ctx);
+    const nextAt = Number(cp.data.nextAt ?? 0);
+    if (nextAt > runtime.now()) {
+      await runtime.sleepUntil(nextAt, cp, ctx);
+      return;
+    }
     if (spec.kind === "approval") return approvalPhase(def, index, task, runtime, ctx);
 
     // Enter the phase. Steps recorded by this same iteration mean a crash interrupted it: replace them.
