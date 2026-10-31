@@ -1,5 +1,11 @@
 # Проверенный scope и ограничения
 
+## Свежая проверка активного маршрута — 31 октября 2026
+
+Подтверждён operator release `c0019d7-unified-sse-mcp140-20261031-v1`: native Durable и pi-mcp 1.4.0, Nico сохранён. SDK/terminal binding, единственный SQLite owner, сохранённый hash выбранной истории и большой SSE-снимок с четырьмя документами проверены без новых модельных вызовов. В каталоге 11 MCP; Timeweb не принят, paper/shadcn отключены. Все 42 Mail identity соответствуют своим project/cwd.
+
+**Есть operational gap:** iii engine активен, но worker остановлен. Retained iii request через delegated SDK имеет `done` и прежний checksum; это не доказывает работающий транспорт iii. Полный зелёный статус для terminal + iii пока не объявляется. [Точная проверка, MCP-имена, source regression tests и ограничения публикации](../integrations/nico-host/UPGRADE-140.md).
+
 ## Последующий локальный cutover — 30 октября 2026
 
 Отдельный operator-owned маршрут terminal/iii был переключён на единый native Host после ограниченных реальных проверок новой сессии, выбранной historical copy и подписанного iii. Затем активирован Nico с сохранением `native@1` и native CodeMode. Изолированная проверка изменённого MCP boundary: 9/9; новые модельные вызовы для Nico: 0. В приёмочном inventory подключены 11 MCP; Timeweb — `needs_auth`, paper/shadcn отключены. Это не означает, что все MCP-операции проверены.

@@ -73,7 +73,7 @@ export async function createMultiMcpCodemodeExtension(
 						// MCP results are JSON-RPC values; native Durable validates the advertised schema.
 						...(result.isError ? { diagnostics: [{ severity: "error" as const,
 							message: output.flatMap((part) => part.type === "text" ? [part.text] : []).join("\n") || `MCP tool ${name} failed` }] }
-							: { structuredOutput: (result.structuredContent ?? result) as JsonValue }),
+							: { structuredOutput: (result.structuredContent !== undefined ? result.structuredContent : result) as JsonValue }),
 					};
 				},
 			}));

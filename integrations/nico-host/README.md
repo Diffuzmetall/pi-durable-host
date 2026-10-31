@@ -1,5 +1,7 @@
 # Nico Host integration reference
 
+**31 October follow-up:** backend pi-mcp is now pinned to 1.4.0, and the SSE/structured-null fixes have owning-source regressions. See [upgrade, fresh checks, live MCP inventory and the remaining iii worker gap](UPGRADE-140.md). The reference below records the earlier integration boundary; it is not a claim that every later Host feature is published here.
+
 This directory publishes the transport facade and changed-boundary patches used by an operator's accepted local terminal/iii cutover. It is **not** a standalone installer or a replacement for this repository's backend/SDK. It does not change the default CLI or activate a service when checked out.
 
 ## Scope and actual result

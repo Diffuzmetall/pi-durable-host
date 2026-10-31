@@ -247,6 +247,22 @@ export async function agentStream(
     snapshot: publicProjection(stream.snapshot, 'events'),
     inbox: await store.inbox(h, c),
   });
+  // A large initial snapshot must drain before the steady-state backlog guard applies.
+  if (res.writableNeedDrain && !sse.closed) {
+    await new Promise<void>((resolve) => {
+      const done = () => {
+        res.off('drain', done);
+        res.off('close', done);
+        resolve();
+      };
+      res.once('drain', done);
+      res.once('close', done);
+    });
+  }
+  if (sse.closed) {
+    await stream.stop();
+    return;
+  }
   const pushDocs = coalesce(async () => {
     for (const kind of docs)
       sse.sendIfChanged(`doc:${kind}`, { type: "doc", kind, value: await store.agentDoc(h, c, kind) });
