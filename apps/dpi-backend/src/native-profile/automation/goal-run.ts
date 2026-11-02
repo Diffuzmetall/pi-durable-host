@@ -59,8 +59,9 @@ function combineUsage(left: Usage, right: Usage, subtract = false): Usage {
     if (left[field] !== undefined || right[field] !== undefined)
       value[field] = Math.max(0, (left[field] ?? 0) + (subtract ? -1 : 1) * (right[field] ?? 0));
   }
-  for (const field of Object.keys(value.cost) as (keyof Usage['cost'])[])
+  for (const field of ['input', 'output', 'cacheRead', 'cacheWrite', 'total'] as const)
     value.cost[field] = Math.max(0, left.cost[field] + (subtract ? -1 : 1) * right.cost[field]);
+  value.cost.totalFromProvider = left.cost.totalFromProvider === true && right.cost.totalFromProvider === true;
   return value;
 }
 type State = { phase: 'prepare' } | { phase: 'deliver'; child: ConversationId; attempt?: number }
@@ -175,8 +176,15 @@ export function createGoalRunner(options: {
           };
           let receipt;
           try {
-            if (watch) { await observeLive(watch.value); watch.start(observeLive); }
-            receipt = await submission.wait(context);
+            if (watch) {
+              await observeLive(watch.value);
+              watch.start(async call => {
+                if (call.kind === 'failed') throw call.error;
+                if (call.retired) throw Error('GOAL_RUN_LIVE_DOC_RETIRED');
+                await observeLive(call.value);
+              });
+            }
+            receipt = await Promise.race([submission.wait(context), ...(watch ? [watch.closed.then(() => { throw Error('GOAL_RUN_LIVE_WATCH_ENDED'); })] : [])]);
           } finally { await watch?.stop(); await withdrawing; }
           if (receipt.type === 'input' && receipt.status === 'unanswered' && receipt.entry === undefined) {
             await runtime.commit(() => ({ status: 'running', checkpoint: {
@@ -326,7 +334,12 @@ export function createGoalRunner(options: {
       }, context)) resolve();
     };
     try {
-      await observe(watch.value); watch.start(observe);
+      await observe(watch.value);
+      watch.start(async call => {
+        if (call.kind === 'failed') throw call.error;
+        if (call.retired) throw Error('GOAL_RUN_TASK_GRAPH_RETIRED');
+        await observe(call.value);
+      });
       bound().resume(); // Like Harness.waitForTask, also reconcile restart-paused work.
       await awaitWithContext(Promise.race([ready, watch.closed.then(() => { throw Error('GOAL_RUN_TASK_WATCH_ENDED'); })]), context);
     } finally { await watch.stop(); }
@@ -617,7 +630,8 @@ export function createGoalRunner(options: {
             for (const [field, amount] of Object.entries(usage)) {
               if (typeof amount === 'number') total[field] = (total[field] ?? 0) + amount;
             }
-            for (const [field, amount] of Object.entries(usage.cost)) total.cost[field] += amount;
+            for (const field of ['input', 'output', 'cacheRead', 'cacheWrite', 'total'] as const) total.cost[field] += usage.cost[field];
+            total.cost.totalFromProvider = total.cost.totalFromProvider === true && usage.cost.totalFromProvider === true;
           }
         }, context);
         await options.afterResponse?.(run!, message, context);
@@ -703,8 +717,14 @@ export function createGoalRunner(options: {
       let changed!: (value: { run?: GoalRun } | null | undefined) => Promise<void>;
       const ready = new Promise<'document'>(resolve => { changed = async value => { if (terminal(value?.run)) resolve('document'); }; });
       try {
-        await changed(watch?.value); watch?.start(changed);
-        const result = await Promise.race([ready, bound().waitForTask(run.taskId, context)]);
+        await changed(watch?.value);
+        watch?.start(async call => {
+          if (call.kind === 'failed') throw call.error;
+          if (call.retired) throw Error('GOAL_RUN_DOC_RETIRED');
+          await changed(call.value);
+        });
+        const result = await Promise.race([ready, bound().waitForTask(run.taskId, context),
+          ...(watch ? [watch.closed.then(() => { throw Error('GOAL_RUN_DOC_WATCH_ENDED'); })] : [])]);
         const current = await read(owner, requestId, context);
         if (result === 'document' || terminal(current)) return current;
         if (result.state.outcome.status !== 'completed' && active(current)) {

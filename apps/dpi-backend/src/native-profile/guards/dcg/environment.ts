@@ -201,7 +201,7 @@ export class DcgExecutionEnv implements ExecutionEnv {
 				return failure(unavailable("input"));
 			// Capture ALL options, nested mutable records, and absolute effective cwd before any await.
 			const base = localPath(this.#inner.cwd, process.cwd());
-			captured = { ...options };
+			captured = this.#inner instanceof SessionExecutionEnv ? this.#inner.captureEnvironment(options) : { ...options };
 			if (captured.env !== undefined) captured.env = { ...captured.env };
 			if (captured.spill !== undefined) captured.spill = { ...captured.spill };
 			if (captured.cwd !== undefined && typeof captured.cwd !== "string") return failure(unavailable("input"));

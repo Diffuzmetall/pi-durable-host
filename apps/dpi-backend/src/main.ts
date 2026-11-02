@@ -7,7 +7,7 @@ import { minimalProfile, playgroundProfile } from "./runtime-profile.js";
 import { createHttpServer } from "./http-server.js";
 
 const config = loadConfig();
-const store = await Store.open({
+const store = await Store.openCatalog({
   dataDir: config.dataDir,
   startDirs: config.startDirs,
   name: config.name,

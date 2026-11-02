@@ -10,7 +10,7 @@ import { createModels } from '@earendil-works/pi-ai/models';
 import { AgentDoc, InboxDoc, LiveDoc, ProviderDoc, UsageDoc, NestedCallDoc, Harness, createRegistry, defineTask, defineExtension } from '@earendil-works/pi-durable';
 import { CodingTools } from '@earendil-works/pi-durable/tools';
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node';
-import { adoptNativeCopy, type NativeImportTarget, type VerifiedNativeCopy } from '../src/native-import.js';
+import { adoptNativeCopy, inspectNativeCopy, type NativeImportTarget, type VerifiedNativeCopy } from '../src/native-import.js';
 import { minimalProfile } from '../src/runtime-profile.js';
 import { installFaux } from '../src/faux.js';
 import { Store } from '../src/store.js';
@@ -87,6 +87,44 @@ async function fixture(retiredTaskDocument = false) {
     })),
   };
   return { ...f, source, target, database, destination: { dataDir: join(f.root, 'candidate'), cwd: f.work } };
+}
+
+test('offline inspection never invokes the target profile or creates destination/source sidecars', async () => {
+  const f = await fixture();
+  try {
+    f.target.profile = Object.assign(() => { throw Error('inspection must not instantiate a profile'); }, { id: 'fixture.exact-target@1' });
+    const before = await readdir(f.source.directory);
+    const inspected = await inspectNativeCopy(f.source, f.target);
+    assert.equal(inspected.directory, f.source.directory);
+    assert.deepEqual(inspected.files, Object.keys(f.source.files).sort());
+    assert.ok(inspected.counts.tasks > 0);
+    assert.deepEqual(inspected.models, [{ conversationId: 1, model: faux }]);
+    assert.equal(inspected.runtimeContinuationChecked, false);
+    await assert.rejects(stat(f.destination.dataDir), { code: 'ENOENT' });
+    assert.deepEqual(await readdir(f.source.directory), before);
+    for (const name of before) assert.equal(sha(await readFile(join(f.source.directory, name))), f.source.files[name]);
+  } finally { await f.cleanup(); }
+});
+
+for (const state of ['pending task', 'pending submission']) {
+  test(`offline inspection refuses ${state} without writing`, async () => {
+    const f = await fixture();
+    try {
+      await chmod(f.database, 0o600);
+      const db = new DatabaseSync(f.database);
+      try {
+        if (state === 'pending task') db.exec("UPDATE tasks SET record=json_set(record,'$.state.status','running')");
+        else db.exec("UPDATE submissions SET record=json_set(record,'$.status','pending')");
+      } finally { db.close(); }
+      await chmod(f.database, 0o400);
+      f.source.files = { ...f.source.files, 'session.sqlite': sha(await readFile(f.database)) };
+      const before = await readdir(f.source.directory);
+      await assert.rejects(inspectNativeCopy(f.source, f.target), /Pending native/);
+      await assert.rejects(stat(f.destination.dataDir), { code: 'ENOENT' });
+      assert.deepEqual(await readdir(f.source.directory), before);
+      assert.equal(sha(await readFile(f.database)), f.source.files['session.sqlite']);
+    } finally { await f.cleanup(); }
+  });
 }
 
 test('offline native adoption preserves SQLite/native IDs/history/models and permits actual passive continuation', async () => {
@@ -189,6 +227,10 @@ for (const refusal of ['source fingerprint', 'unknown document', 'unknown model'
       if (refusal === 'symlink') await symlink(f.database, join(f.source.directory, 'alias.sqlite'));
       if (refusal === 'destination inside source') f.destination.dataDir = join(f.source.directory, 'forbidden-destination');
       const digest = sha(await readFile(f.database));
+      if (!['existing destination', 'destination inside source'].includes(refusal)) {
+        await assert.rejects(inspectNativeCopy(f.source, f.target));
+        assert.equal(sha(await readFile(f.database)), digest);
+      }
       await assert.rejects(adoptNativeCopy(f.source, f.target, f.destination));
       await assert.rejects(stat(join(f.destination.dataDir, 'catalog.sqlite')), { code: 'ENOENT' });
       assert.equal(sha(await readFile(f.database)), digest);

@@ -1,6 +1,6 @@
 import { constants, openSync, closeSync, fstatSync, readFileSync, lstatSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { loadFreshModule } from 'dpi-backend/native-profile';
 
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const exact = (value, keys) => object(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -47,7 +47,7 @@ export async function attachDelm(composition, context, options) {
   if (!composition.registry || !Array.isArray(composition.extensions) ||
       typeof composition.admitInput !== 'function' || typeof composition.shutdown !== 'function') deny();
   const lifetime = { closed: false, harness: undefined, context: undefined };
-  let select = await attachBinding(composition, context, options, lifetime);
+  let attached = await attachBinding(composition, context, options, lifetime);
   const bind = composition.bind, prepare = composition.prepareReload, shutdown = composition.shutdown;
   composition.bind = async function (host, ctx, storage) {
     if (lifetime.closed || (lifetime.harness && lifetime.harness !== host)) deny();
@@ -55,37 +55,44 @@ export async function attachDelm(composition, context, options) {
     if (lifetime.closed) deny();
     lifetime.harness = host;
     lifetime.context = ctx;
-    await select?.(host, ctx);
+    await attached?.select(host, ctx);
   };
-  composition.prepareReload = async function (additions = []) {
+  composition.prepareReload = async function (additions = [], replacements = []) {
     if (lifetime.closed) deny();
-    let staged, nextSelect = select;
-    const protectedAdditions = [...additions];
-    if (!nextSelect) {
-      staged = { ...composition, extensions: [...composition.extensions],
-        registry: { install: extension => protectedAdditions.push(extension) } };
-      nextSelect = await attachBinding(staged, context, options, lifetime);
-    }
-    if (lifetime.closed) deny();
-    const candidate = prepare ? await prepare.call(this, protectedAdditions) : {
-      publish() {
-        for (const extension of protectedAdditions) {
-          composition.registry.install(extension);
-          composition.extensions.push(extension);
-        }
-      },
+    const protectedAdditions = [...additions], nextReplacements = [...replacements];
+    const staged = { ...composition,
+      documentReaders: new Map([...composition.documentReaders ?? []].filter(([kind]) => kind !== 'delm.waits')),
+      extensions: composition.extensions.filter(extension => extension.name !== 'delm'),
+      registry: { install: extension => {
+        if (attached) nextReplacements.push({ extension, documents: [] });
+        else protectedAdditions.push(extension);
+      } },
     };
+    const next = await attachBinding(staged, context, options, lifetime);
+    if (attached && !next) deny();
+    if (attached) nextReplacements[nextReplacements.length - 1].documents = next.documents;
+    if (lifetime.closed) deny();
+    // Replacing an existing native task needs the shared schema/phase/doc preflight.
+    // The legacy late-attach fallback must never bypass that validation.
+    if (nextReplacements.length && !prepare) throw Error('DELM_RELOAD_PREPARATION_REQUIRED');
+    const candidate = prepare ? await prepare.call(this, protectedAdditions, nextReplacements) : {
+      publish() { for (const extension of protectedAdditions) composition.registry.install(extension); },
+    };
+    const late = !attached && next;
     return {
-      async apply() {
+      ...candidate,
+      // Existing selections need no write or idle barrier. Only first attachment
+      // configures the root, using the existing trusted selection apply seam.
+      ...((late || candidate.apply) ? { async apply() {
         if (lifetime.closed) deny();
         await candidate.apply?.();
-        if (lifetime.harness) await nextSelect?.(lifetime.harness, lifetime.context);
+        if (late && lifetime.harness) await next.select(lifetime.harness, lifetime.context);
         if (lifetime.closed) deny();
-      },
+      } } : {}),
       publish() {
         candidate.publish();
-        if (nextSelect && staged) composition.documentReaders = staged.documentReaders;
-        select = nextSelect;
+        if (next) composition.documentReaders = staged.documentReaders;
+        attached = next;
       },
     };
   };
@@ -114,7 +121,7 @@ async function attachBinding(composition, context, { bindingFile, modulePath }, 
   canonical(modulePath, false);
   const moduleStat = lstatSync(modulePath);
   if (moduleStat.uid !== process.getuid() || (moduleStat.mode & 0o022)) deny();
-  const { createDelmWait, DelmWaitDoc } = await import(pathToFileURL(modulePath).href);
+  const { createDelmWait, DelmWaitDoc } = loadFreshModule(modulePath);
   if (typeof createDelmWait !== 'function' || !DelmWaitDoc) deny();
   const readers = new Map(composition.documentReaders ?? []);
   if (readers.has('delm.waits') || composition.extensions.some(extension => extension.name === 'delm')) deny();
@@ -164,7 +171,6 @@ async function attachBinding(composition, context, { bindingFile, modulePath }, 
   })) };
   current(true);
   composition.registry.install(guarded);
-  composition.extensions.push(guarded);
   const select = async (host, ctx) => {
     // Selection restoration is not execution: disabled roots must remain loadable
     // and retain their tool/reader definitions for a later operator resume.
@@ -187,5 +193,5 @@ async function attachBinding(composition, context, { bindingFile, modulePath }, 
     return result;
   });
   composition.documentReaders = readers;
-  return select;
+  return { select, documents: [DelmWaitDoc.definition] };
 }

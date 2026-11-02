@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { attachDelm } from './delm-profile.mjs';
-import { reloadDurable } from '../../apps/dpi-backend/node_modules/@local/pi-durable-reload/dist/index.js';
+import { reloadDurable, ReloadableRegistry } from '../../packages/durable-reload/src/index.ts';
 
 // Unit fixtures exercise staging/publication; real Harness cases below use the shared operation.
 async function publishPrepared(composition) {
@@ -31,7 +31,7 @@ function fixture(t) {
   const modulePath = join(home, 'delm.mjs');
   writeFileSync(modulePath, `export const DelmWaitDoc = {kind:'delm.waits'};
 export let options;
-export function createDelmWait(value) { options=value; return {name:'delm',tools:[{name:'delm_wait',execute:async(args,api,ctx)=>api.commit(async()=>({ok:true}),ctx)}]}; }`);
+export function createDelmWait(value) { options=value; return {name:'delm',testOptions:value,tools:[{name:'delm_wait',execute:async(args,api,ctx)=>api.commit(async()=>({ok:true}),ctx)}]}; }`);
   const calls = [];
   const context = { sessionId: 'session1', cwd: workspace };
   const agent = { cwd: workspace, extensions: [{ name: 'existing-sentinel' }] };
@@ -39,7 +39,14 @@ export function createDelmWait(value) { options=value; return {name:'delm',tools
   const harness = { conversation: async () => root, snapshot: async () => ({ waits: {} }) };
   const originalReader = () => 'preserved';
   const composition = {
-    registry: { install: extension => calls.push(['install', extension]) }, extensions: [],
+    registry: { install: extension => {
+      calls.push(['install', extension]);
+      const index = composition.extensions.findIndex(item => item.name === extension.name);
+      if (index < 0) composition.extensions.push(extension); else composition.extensions[index] = extension;
+    } }, extensions: [],
+    prepareReload: async (additions = [], replacements = []) => ({ publish() {
+      for (const extension of [...additions, ...replacements.map(item => item.extension)]) composition.registry.install(extension);
+    } }),
     admitInput: async (...args) => calls.push(['admit', ...args]),
     bind: async (...args) => calls.push(['bind', ...args]),
     shutdown: async (...args) => calls.push(['shutdown', ...args]),
@@ -55,7 +62,7 @@ test('attaches before Harness, preserves composition/readers and uses current na
   assert.equal(await f.attach(), f.composition);
   assert.equal(f.composition.documentReaders.get('existing'), f.originalReader);
   assert.equal(f.composition.extensions.length, 1);
-  const module = await import(pathToFileURL(f.modulePath).href);
+  const module = { options: f.composition.extensions[0].testOptions };
   assert.equal(module.options.run, f.run);
   assert.equal(module.options.actor, 'alice');
   await assert.rejects(() => module.options.admitInput(f.root, 'request', {}));
@@ -76,7 +83,7 @@ test('unknown sessions retain a staged reload hook only; disabled sessions regis
   assert.equal(typeof unknown.composition.prepareReload, 'function');
   f.save({ ...f.binding, enabled: false });
   await f.attach(); await f.composition.bind(f.harness, {});
-  const { options } = await import(pathToFileURL(f.modulePath).href);
+  const options = f.composition.extensions[0].testOptions;
   assert.ok(f.composition.documentReaders.has('delm.waits'));
   await assert.rejects(f.execute);
   await assert.rejects(() => options.admitInput(f.root, 'request', {}));
@@ -114,7 +121,7 @@ test('canonical workspace, actor and pinned module checks', async t => {
 
 test('root-only tools/admission; actual conversation cwd and owner root are checked', async t => {
   const f = fixture(t); await f.attach(); await f.composition.bind(f.harness, {});
-  const { options } = await import(pathToFileURL(f.modulePath).href);
+  const options = f.composition.extensions[0].testOptions;
   await assert.rejects(() => options.admitInput({ ...f.root, id: 2 }, 'request', {}));
   await assert.rejects(() => options.admitInput(f.root, 'request', {}, { conversationId: 2 }));
   // Invocation handles need not have agent(); only the owner's root is authoritative.
@@ -126,7 +133,7 @@ test('root-only tools/admission; actual conversation cwd and owner root are chec
 
 test('live disable/removal/rebind and authority revocation fence admission; disabled status stays readable', async t => {
   const f = fixture(t); await f.attach(); await f.composition.bind(f.harness, {});
-  const { options } = await import(pathToFileURL(f.modulePath).href);
+  const options = f.composition.extensions[0].testOptions;
   f.save({ ...f.binding, enabled: false });
   await assert.rejects(() => options.admitInput(f.root, 'request', {}));
   await assert.rejects(f.execute);
@@ -147,7 +154,7 @@ test('shutdown fences before awaiting original shutdown, forwards receiver/argum
     return new Promise(resolve => { release = resolve; });
   };
   await f.attach(); await f.composition.bind(f.harness, {});
-  const { options } = await import(pathToFileURL(f.modulePath).href);
+  const options = f.composition.extensions[0].testOptions;
   const closing = f.composition.shutdown('ctx');
   await assert.rejects(() => options.admitInput(f.root, 'request', {}));
   await assert.rejects(f.execute);
@@ -180,7 +187,7 @@ test('hot refresh installs only a newly bound session without rebinding or repla
   assert.equal(f.calls.filter(call => call[0] === 'bind').length, 1);
   assert.deepEqual(await f.execute(), { ok: true });
   await publishPrepared(f.composition);
-  assert.equal(f.calls.filter(call => call[0] === 'install').length, 1);
+  assert.equal(f.calls.filter(call => call[0] === 'install').length, 2);
   assert.equal(f.calls.filter(call => call[0] === 'bind').length, 1);
   await assert.rejects(() => f.composition.bind({ ...f.harness }, {}));
   f.save({ ...f.binding, enabled: false });
@@ -188,6 +195,21 @@ test('hot refresh installs only a newly bound session without rebinding or repla
   await assert.rejects(f.execute);
   await f.composition.shutdown({});
   await assert.rejects(() => f.composition.prepareReload());
+});
+
+test('compatible engine reload publishes fresh handlers and retains live binding guards', async t => {
+  const f = fixture(t);
+  await f.attach(); await f.composition.bind(f.harness, {});
+  const retained = f.composition.extensions[0].tools[0];
+  assert.deepEqual(await f.execute(), { ok: true });
+  writeFileSync(f.modulePath, `export const DelmWaitDoc = {kind:'delm.waits'};
+export function createDelmWait() { return {name:'delm',tools:[{name:'delm_wait',execute:async(args,api,ctx)=>api.commit(async()=>({ok:true,version:2}),ctx)}]}; }`);
+  await publishPrepared(f.composition);
+  assert.deepEqual(await f.execute(), { ok: true, version: 2 });
+  assert.equal(f.composition.extensions.length, 1);
+  f.save({ ...f.binding, enabled: false });
+  await assert.rejects(() => retained.execute({}, {conversationId:1,commit:fn=>fn({})}, {}));
+  await assert.rejects(f.execute);
 });
 
 test('native profile stages DeLM alongside adapters: failed preparation retains old state; aliases publish once on the same Harness', async t => {
@@ -198,9 +220,8 @@ test('native profile stages DeLM alongside adapters: failed preparation retains 
   const { DpiClient } = await import('dpi-sdk');
   const { fauxProvider } = await import('@earendil-works/pi-ai/providers/faux');
   const { BACKGROUND_CONTEXT: ctx } = await import('@earendil-works/chord/context');
-  const require = createRequire(new URL('../../apps/dpi-backend/package.json', import.meta.url));
-  writeFileSync(f.modulePath, `import { defineExtension } from ${JSON.stringify(pathToFileURL(require.resolve('@earendil-works/pi-durable')).href)};
-export const DelmWaitDoc = {kind:'delm.waits'};
+  writeFileSync(f.modulePath, `import { defineExtension, defineDoc } from '@earendil-works/pi-durable';
+export const DelmWaitDoc = defineDoc({kind:'delm.waits',version:1,scope:'conversation',initial:()=>({waits:{}})});
 export function createDelmWait() { return defineExtension({name:'delm',tools:[]}); }`);
   writeFileSync(f.bindingFile, JSON.stringify({ version: 1, sessions: {} }));
   const owner = { id:'owner', token:'synthetic-owner', actor:'operator', source:'terminal', authority:'human',
@@ -258,7 +279,7 @@ for (const hot of [false, true]) test(`actual matching-SDK Harness (${hot ? 'hot
   const outfile = join(f.home, 'actual-delm.mjs');
   await build({ entryPoints: [packageEntry], outfile, bundle: true, format: 'esm', platform: 'node', logLevel: 'silent',
     plugins: [{ name: 'host-sdk', setup(builder) {
-      builder.onResolve({ filter: /^@earendil-works\/(pi-durable|pi-ai)$/ }, args => ({ path: args.path.endsWith('/pi-durable') ? sdkPath : aiPath, external: true }));
+      builder.onResolve({ filter: /^@earendil-works\/(pi-durable|pi-ai)$/ }, args => ({ path: args.path, external: true }));
     } }],
   });
   const { createRegistry, Harness, defineExtension } = await import(pathToFileURL(sdkPath).href);
@@ -296,7 +317,11 @@ for (const hot of [false, true]) test(`actual matching-SDK Harness (${hot ? 'hot
     await originalRoot.configure({ extensions: [sentinel], instructions: 'preserve existing operator instructions' }, ctx);
     assert.deepEqual((await originalRoot.agent(ctx)).extensions.map(extension => extension.name), ['existing-sentinel']);
     await host.close(ctx); host = undefined;
-    f.composition.registry = createRegistry(); f.composition.registry.install(sentinel);
+    f.composition.registry = new ReloadableRegistry(createRegistry(), ['delm']); f.composition.registry.install(sentinel);
+    f.composition.extensions.splice(0, f.composition.extensions.length, ...f.composition.registry.snapshot().installed());
+    f.composition.registry.subscribe(() => f.composition.extensions.splice(0, f.composition.extensions.length,
+      ...f.composition.registry.snapshot().installed()));
+    f.composition.prepareReload = (additions, replacements) => f.composition.registry.prepare([], additions, replacements);
     if (hot) writeFileSync(f.bindingFile, JSON.stringify({ version: 1, sessions: {} }));
     else f.save({ ...f.binding, enabled: false });
     await attachDelm(f.composition, f.context, { bindingFile: f.bindingFile, modulePath: outfile });
@@ -315,14 +340,14 @@ for (const hot of [false, true]) test(`actual matching-SDK Harness (${hot ? 'hot
       for (let i = 0; i < 2; i++) await reloadDurable({ harness: host, context: ctx,
         prepareExtensions: f.composition.prepareReload.bind(f.composition), assertCurrent() {} });
       assert.equal(host, sameHost, 'hot attach must preserve exact Harness');
-      assert.equal(f.composition.extensions.length, 1, 'refresh must not duplicate extensions');
+      assert.equal(f.composition.extensions.filter(extension => extension.name === 'delm').length, 1, 'refresh must not duplicate extensions');
     }
     const restored = await root.agent(ctx);
     assert.deepEqual(restored.extensions.map(extension => extension.name), ['existing-sentinel', 'delm']);
     assert.equal(restored.instructions, 'preserve existing operator instructions');
     assert.ok(restored.tools.some(tool => tool.name === 'delm_wait'));
     const { DelmWaitDoc, wakeRequestId } = await import(pathToFileURL(outfile).href);
-    const tool = f.composition.extensions[0].tools[0];
+    const tool = f.composition.extensions.find(extension => extension.name === 'delm').tools[0];
     const execute = async (args, key) => (await tool.execute(args, {
       conversationId: root.id, taskId: key, callId: key, commit: (fn, txContext) => host.commit(fn, txContext ?? ctx),
     }, ctx)).structuredOutput.result;
@@ -395,9 +420,12 @@ for (const hot of [false, true]) test(`actual matching-SDK Harness (${hot ? 'hot
     // Reopen the exact same DB again, now with 'delm' already persisted in AgentDoc.
     await f.composition.shutdown(ctx); await host.close(ctx); host = undefined;
     f.save({ ...f.binding, enabled: false });
-    const restarted = { registry: createRegistry(), extensions: [sentinel],
+    const restarted = { registry: new ReloadableRegistry(createRegistry(), ['delm']), extensions: [sentinel],
       admitInput: async () => assert.fail('status must not admit model input'), shutdown: async () => {} };
     restarted.registry.install(sentinel);
+    restarted.registry.subscribe(() => restarted.extensions.splice(0, restarted.extensions.length,
+      ...restarted.registry.snapshot().installed()));
+    restarted.prepareReload = (additions, replacements) => restarted.registry.prepare([], additions, replacements);
     await attachDelm(restarted, f.context, { bindingFile: f.bindingFile, modulePath: outfile });
     host = await Harness.open(await openNodeSqliteStorage(database), { registry: restarted.registry, models }, ctx);
     const resumedRoot = await host.conversation(1, ctx);

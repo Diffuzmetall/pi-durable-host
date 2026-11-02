@@ -1,4 +1,4 @@
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import { defineExtension, defineTool } from '@earendil-works/pi-durable';
 import type { Context } from '@earendil-works/chord';
 import { resolve, relative, isAbsolute } from 'node:path';

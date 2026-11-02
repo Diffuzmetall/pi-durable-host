@@ -3,7 +3,7 @@ import { open, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import type { Context } from "@earendil-works/chord";
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import { defineTool, type ToolExecutionApi } from "@earendil-works/pi-durable";
 import type { CodexHost } from "./types.js";
 

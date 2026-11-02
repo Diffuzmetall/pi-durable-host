@@ -1,8 +1,10 @@
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
+import { fileURLToPath } from 'node:url';
+import { loadFreshModule, type NativeExtensionReplacement } from '@local/pi-durable-reload';
 import { defineExtension, hook, ToolTask, type Harness } from '@earendil-works/pi-durable';
 import { createSessionGoalService } from './session-goals.js';
 import { createNativeGoalControl } from './native-goal-control.js';
-import { createSchedules, cancelScheduleTask } from './schedules.js';
+import { createSchedules, cancelScheduleTask, type SchedulesOptions } from './schedules.js';
 import { createTriggersExtension } from './triggers.mjs';
 import { createGitHubTriggerCapabilities } from './github-triggers.mjs';
 
@@ -27,7 +29,7 @@ export function createAutomation(options: Parameters<typeof createSessionGoalSer
       return undefined;
     },
   })] });
-  const schedules = createSchedules({
+  const scheduleOptions: SchedulesOptions = {
     admitInput: async (conversation, requestId, context) => {
       await requireRoot(conversation.id, context);
       await admit(conversation, requestId, context);
@@ -37,7 +39,8 @@ export function createAutomation(options: Parameters<typeof createSessionGoalSer
       if (!host || closed) throw Error('SCHEDULE_CANCELLATION_UNAVAILABLE');
       await cancelScheduleTask(host, conversationId, taskId, context);
     },
-  });
+  };
+  const schedules = createSchedules(scheduleOptions);
   const triggers = createTriggersExtension(options.github ? createGitHubTriggerCapabilities({
     ...options.github, authorizeRoot: authorize, admission: { admit: async (conversation: Parameters<typeof admit>[0], requestId: string, context: Parameters<typeof admit>[2]) => {
       await requireRoot(conversation.id, context);
@@ -48,6 +51,13 @@ export function createAutomation(options: Parameters<typeof createSessionGoalSer
   return {
     extensions: [authority, schedules, triggers, goals.archiveExtension, goals.extension, createNativeGoalControl(goals, authorize)],
     goals,
+    async prepareReload(): Promise<NativeExtensionReplacement[]> {
+      if (closed) throw Error('AUTOMATION_CLOSED');
+      // Resource-free factories only: same native scheduler, service and admission
+      // closures. Preparation creates no task, timer, subscription or new owner.
+      const fresh = loadFreshModule<typeof import('./schedules.js')>(fileURLToPath(new URL('./schedules.js', import.meta.url)));
+      return [{ extension: fresh.createSchedules(scheduleOptions), documents: [fresh.ScheduleDoc.definition] }];
+    },
     async bind(value: Harness) {
       if (closed || host) throw Error('Automation lifecycle already bound or closed');
       host = value;

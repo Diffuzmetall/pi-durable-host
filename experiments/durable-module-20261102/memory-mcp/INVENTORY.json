@@ -1,0 +1,37 @@
+{
+  "task": "3c03a7b5baf74d149d0b1096f1273576",
+  "evidenceLevel": "contract-ready",
+  "runtime15Tested": false,
+  "baselineArchive": "/tmp/pi-host-dm1-source-20261102-alice-v1/source.tar.gz",
+  "baselineArchiveSha256": "8f4f9dab3ab4f946b6a5cb28214f748d062d493079386da8a77e72965e139244",
+  "excludedFromBaselineArchive": ["apps/dpi-backend/src/native-profile/memory/LICENSE.native"],
+  "files": {
+    "apps/dpi-backend/src/native-profile/memory/LICENSE.native": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48",
+    "apps/dpi-backend/src/native-profile/memory/NOTICE.md": "04773a56e212164251fbfbe13470d96d47840604adc508f91493a2296220bcda",
+    "apps/dpi-backend/src/native-profile/memory/SOURCE.json": "87b9a2b1be98061838bab35a22f82b8676ed2bb4917871a52529fb928e278c59",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/bridge.mjs": "c784106de3ff5e1a9a779b6612f69a2d5adb79064e14f7c16255511ae38c0c32",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/delivery.mjs": "f66ddb86a43f46cf35b74f0ec446fa61a796f7666b3729ec2f83f56baa11dab1",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/extension.mjs": "691663e2847d96d94cd87947d37bc46350b08bab06d708a3294ec9d296d88ef8",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/index.mjs": "ae4f12a68e9bb89544bc21e8c0b2ca02711a5d26ca12f235c79c06168821deef",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/lifecycle.mjs": "9957dda75e16e7ee2ebd5b9376ce745fe981337665ebaa4da50361656060d617",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/private-fs.mjs": "852a52baf470b0c6c0f1b3de1b0096e27a7c159da42d1ee6fe425a7714f53ada",
+    "apps/dpi-backend/src/native-profile/memory/logging-scope.mjs": "87689e6327a2c527b1ec3441d5d1f93eceee32f817ccb5ecc1d9b8df390e71a2",
+    "apps/dpi-backend/src/native-profile/memory/mail.ts": "1bc68be75233bae8ab5700bef6dbfa79f5125c5f359425e542bfe33beba88b76",
+    "apps/dpi-backend/src/native-profile/memory/session-memory.d.mts": "e380519485ab5ee0f893c849eeebc1ed8728538afd6d42efa2a6965981b8e8f3",
+    "apps/dpi-backend/src/native-profile/memory/session-memory.mjs": "29ab5eddc28ac93c64774ae140130d441d75906635a7155a3f95ed830d623823",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/vendor/pi.mjs": "88952473c4a079525d77ff819f62ad4c2c1be2d43008a4395750f570ee58e62d",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/vendor/package.json": "f761bc91b53f5972cb67a50d96636ebd87511743c28883c3b557edf810df80e5",
+    "apps/dpi-backend/src/native-profile/memory/hindsight/vendor/PROVENANCE.md": "25d15f980f34438dcdc3f8542cce1e6f95a499bbd0f0a2d6efa303055ce7b869",
+    "apps/dpi-backend/src/native-profile/guards/mcp-codemode.ts": "28789742dbad9b6115c00a16688072cf1e31d5dbb2b18256f8bde4d12aa24761",
+    "experiments/sdk-host-cutover/session-mcp.mjs": "773dfa8c44790794c12c122dabe39c79918d9900c09d5994475523a50fcdb8f8",
+    "experiments/hot-update-20261101/mcp-source/manager.ts": "299f9f785a40c295c20c1bae8858c3bf2725e63aec3ec160e5a70793cdc2df39",
+    "experiments/hot-update-20261101/mcp-source/host-managed.ts": "24d206334961af0e751e4b0578536ac45bf88d598c2a66bef6310fe1c5ef7578",
+    "experiments/hot-update-20261101/mcp-source/build-observer/nico.mjs": "4ac012202ca81685dd1e21fb1a7aa665cfe30a2b42cc08c37214118a89caca52",
+    "experiments/hot-update-20261101/mcp-source/build-observer/PROVENANCE.json": "e4f780e57e6f4a62d7860a26f21be89a7cab1a3336f3d4e137c6dcfc2255e10d"
+  },
+  "noNativeImportStringControls": [
+    "apps/dpi-backend/src/native-profile/memory/hindsight/vendor/pi.mjs",
+    "experiments/sdk-host-cutover/session-mcp.mjs",
+    "experiments/hot-update-20261101/mcp-source/manager.ts"
+  ]
+}

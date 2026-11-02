@@ -1,0 +1,331 @@
+--- a/packages/durable-mcp/manager.ts
++++ b/packages/durable-mcp/manager.ts
+@@ -42,7 +42,7 @@
+   signal: AbortSignal;
+ }
+ export class McpFailure extends Error {
+-  constructor(readonly code: 'not_sent' | 'may_have_run' | 'server_error' | 'invalid_result' | 'needs_auth' | 'config_error' | 'timeout' | 'transport_error',
++  constructor(readonly code: 'not_sent' | 'may_have_run' | 'server_error' | 'invalid_result' | 'needs_auth' | 'config_error' | 'timeout' | 'transport_error' | 'cleanup_failed',
+     readonly delivery: 'not_sent' | 'may_have_run' | 'server_error' | 'invalid_result' = 'not_sent') {
+     super(`MCP_${code.toUpperCase()}${delivery !== 'not_sent' && delivery !== code ? ` (${delivery})` : ''}`);
+     this.name = 'McpFailure';
+@@ -78,6 +78,20 @@
+   invalidated: boolean;
+   inFlight: number;
+   idle?: ReturnType<typeof setTimeout>;
++  closing?: Promise<void>;
++  drained?: () => void;
++}
++
++export interface McpReloadPreparation {
++  catalog(): readonly McpDescriptor[];
++  status(): ReturnType<McpManager['status']>;
++  /** Recheck the publication fence without mutating the active generation. */
++  validate(): void;
++  /** Synchronous publication after native validation. Does not close admitted calls. */
++  publish(): void;
++  discard(): Promise<void>;
++  /** Wait for old admitted calls and transport cleanup after publication. */
++  drain(): Promise<void>;
+ }
+ 
+ function exposure(spec: McpServerSpec, name: string) {
+@@ -101,6 +115,10 @@
+   private closed = false;
+   private started = false;
+   private closePromise?: Promise<void>;
++  private preparing = false;
++  private prepared?: McpReloadPreparation;
++  private revision = 0;
++  private cleanupFailure?: McpFailure;
+ 
+   constructor(private readonly options: {
+     servers: readonly McpServerSpec[];
+@@ -126,19 +144,35 @@
+   onChange(listener: () => void) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+ 
+   ready() {
+-    if (!this.started) { this.started = true; return this.reload(this.options.servers); }
++    if (!this.started) {
++      this.started = true;
++      this.operation = this.prepare(this.options.servers, true).then(async prepared => {
++        prepared.publish();
++        await prepared.drain();
++      });
++    }
+     return this.operation;
+   }
+ 
++  async prepareReload(specs: readonly McpServerSpec[]): Promise<McpReloadPreparation> {
++    await this.ready();
++    return this.prepare(specs, false);
++  }
++
+   private armIdle(slot: Slot) {
+     clearTimeout(slot.idle);
+     if (slot.spec.lifecycle !== 'lazy' || slot.spec.idleTimeoutMs === 0 || slot.state !== 'connected' || !slot.adapter || slot.inFlight || slot.retired || this.closed) return;
+     slot.idle = setTimeout(() => {
+       if (slot.inFlight || slot.retired || this.closed) return;
+-      const adapter = slot.adapter;
+-      slot.adapter = undefined;
+-      slot.state = 'cached';
+-      void adapter?.close().catch(() => {});
++      const adapter = slot.adapter!;
++      this.draining.add(adapter);
++      slot.closing = adapter.close().then(() => {
++        slot.adapter = undefined;
++        slot.state = 'cached';
++        slot.closing = undefined;
++        this.draining.delete(adapter);
++      });
++      void slot.closing.catch(() => { this.cleanupFailure = new McpFailure('cleanup_failed'); });
+     }, slot.spec.idleTimeoutMs ?? 600_000);
+     slot.idle.unref();
+   }
+@@ -173,14 +207,19 @@
+         },
+         onCatalogChanged: () => {
+           slot.invalidated = true;
++          this.revision++;
+           if (this.slots.get(slot.spec.name) === slot && !this.closed) {
+             void this.reconnect(slot.spec.name).catch(() => {});
+           }
+         },
+       });
++      slot.adapter = adapter;
+       this.pending.add(adapter);
+       let timedOut = false;
+-      const deadline = setTimeout(() => { timedOut = true; void adapter.close().catch(() => {}); }, slot.spec.timeoutMs ?? 30_000);
++      const deadline = setTimeout(() => {
++        timedOut = true;
++        void adapter.close().catch(() => { this.cleanupFailure = new McpFailure('cleanup_failed'); });
++      }, slot.spec.timeoutMs ?? 30_000);
+       try {
+         await adapter.ready();
+         if (this.closed || slot.retired || slot.invalidated) throw new McpFailure('not_sent');
+@@ -202,10 +241,11 @@
+         slot.state = 'connected';
+         slot.error = undefined;
+         slot.delivery = undefined;
+-        this.armIdle(slot);
+-        if (changed && this.slots.get(slot.spec.name) === slot) this.changed();
++        if (this.slots.get(slot.spec.name) === slot) {
++          this.armIdle(slot);
++          if (changed) this.changed();
++        }
+       } catch (error) {
+-        await adapter.close().catch(() => {});
+         slot.state = 'failed';
+         const failure = timedOut ? new McpFailure('timeout') : classifyFailure(error, 'transport_error');
+         slot.error = failure.code;
+@@ -218,54 +258,117 @@
+     return slot.connecting;
+   }
+ 
+-  private retire(slot: Slot, abort: boolean) {
++  private retire(slot: Slot): Promise<void> {
+     slot.retired = true;
+     clearTimeout(slot.idle);
++    if (slot.closing) return slot.closing;
+     const adapter = slot.adapter;
+-    if (!adapter) return;
++    if (!adapter) return Promise.resolve();
+     this.draining.add(adapter);
+-    if (abort || !slot.inFlight) void adapter.close().catch(() => {}).finally(() => this.draining.delete(adapter));
++    slot.closing = (async () => {
++      if (slot.inFlight) await new Promise<void>(resolve => { slot.drained = resolve; });
++      await adapter.close();
++      this.draining.delete(adapter);
++    })();
++    void slot.closing.catch(() => { this.cleanupFailure = new McpFailure('cleanup_failed'); });
++    return slot.closing;
+   }
+ 
+-  reload(specs: readonly McpServerSpec[]): Promise<void> {
++  private async prepare(specs: readonly McpServerSpec[], startup: boolean): Promise<McpReloadPreparation> {
+     this.validate(specs);
+-    const operation = this.operation.catch(() => {}).then(async () => {
+-      if (this.closed) throw new McpFailure('not_sent');
+-      const retained = new Set(specs.map(spec => spec.name));
+-      for (const [name, slot] of this.slots) {
+-        if (!retained.has(name)) { this.slots.delete(name); this.retire(slot, true); }
+-      }
+-      await Promise.all(specs.map(async spec => {
++    if (this.closed) throw new McpFailure('not_sent');
++    if (this.cleanupFailure) throw this.cleanupFailure;
++    if (this.preparing || this.prepared || this.draining.size) throw new McpFailure('config_error');
++    this.preparing = true;
++    const revision = this.revision;
++    const next = new Map<string, Slot>();
++    const created: Slot[] = [];
++    try {
++      // Sequential preparation means a failed candidate has no still-running sibling initializer.
++      for (const spec of specs) {
+         const old = this.slots.get(spec.name);
+-        if (old && !old.invalidated && (old.spec === spec || (old.spec.revision === spec.revision && old.spec.disabled === spec.disabled))) return;
+-        if (spec.disabled || spec.exposure === 'hidden') {
+-          if (old) this.retire(old, true);
+-          this.slots.set(spec.name, { spec, generation: randomUUID(), descriptors: [], state: 'disabled', retired: false, invalidated: false, inFlight: 0 });
+-          return;
++        if (old && !old.invalidated && (old.spec === spec ||
++            (old.spec.revision === spec.revision && old.spec.disabled === spec.disabled))) {
++          next.set(spec.name, old);
++          continue;
+         }
+-        const fresh: Slot = { spec, generation: randomUUID(), descriptors: [], state: 'connecting', retired: false, invalidated: false, inFlight: 0 };
++        const fresh: Slot = { spec, generation: randomUUID(), descriptors: [],
++          state: spec.disabled || spec.exposure === 'hidden' ? 'disabled' : 'connecting',
++          retired: false, invalidated: false, inFlight: 0 };
++        created.push(fresh);
++        next.set(spec.name, fresh);
++        if (fresh.state === 'disabled') continue;
+         try { await this.connect(fresh); }
+-        catch {
+-          if (old && !old.invalidated && old.state !== 'failed') { old.error = 'config_error'; return; }
++        catch (error) {
++          // Initial startup retains visible failed servers, as before. Reload is all-or-nothing.
++          if (!startup) throw error;
++          await this.retire(fresh);
++          fresh.retired = false;
++          fresh.adapter = undefined;
+         }
+-        if (this.closed) { this.retire(fresh, true); return; }
+-        this.slots.set(spec.name, fresh);
+-        if (old) this.retire(old, false);
+-      }));
+-      const aliases = new Map<string, Slot[]>();
+-      for (const slot of this.slots.values()) for (const descriptor of slot.descriptors) {
+-        const name = mcpToolName(descriptor.server, descriptor.definition.name);
+-        aliases.set(name, [...(aliases.get(name) ?? []), slot]);
+       }
+-      // Ambiguous aliases reject every participating server, never a nondeterministic winner.
+-      for (const owners of aliases.values()) if (owners.length > 1) for (const slot of owners) {
+-        slot.descriptors = []; slot.state = 'failed'; slot.error = 'config_error'; slot.delivery = 'not_sent';
+-        clearTimeout(slot.idle); void slot.adapter?.close().catch(() => {});
++      const aliases = new Set<string>();
++      for (const slot of next.values()) for (const descriptor of slot.descriptors) {
++        const name = mcpToolName(descriptor.server, descriptor.definition.name);
++        if (aliases.has(name)) throw new McpFailure('config_error');
++        aliases.add(name);
+       }
+-      this.changed();
+-    });
+-    this.operation = operation;
+-    return operation;
++      if (this.closed || revision !== this.revision || created.some(slot => slot.invalidated))
++        throw new McpFailure('not_sent');
++      let state: 'prepared' | 'published' | 'discarded' = 'prepared';
++      let cleanup: Promise<void> | undefined;
++      const oldSlots = [...this.slots.values()].filter(slot => next.get(slot.spec.name) !== slot);
++      const settle = (slots: Slot[]) => {
++        const job = Promise.all(slots.map(slot => this.retire(slot))).then(() => {});
++        void job.catch(() => {});
++        return job;
++      };
++      const prepared: McpReloadPreparation = {
++        catalog: () => [...next.values()].flatMap(slot => slot.descriptors),
++        status: () => [...next.values()].map(slot => this.slotStatus(slot)),
++        validate: () => {
++          if (state !== 'prepared' || this.prepared !== prepared || this.closed ||
++              this.cleanupFailure || revision !== this.revision || created.some(slot => slot.invalidated))
++            throw new McpFailure('not_sent');
++        },
++        publish: () => {
++          prepared.validate();
++          // No await between native validation, slot publication and retirement admission fence.
++          this.slots.clear();
++          for (const [name, slot] of next) this.slots.set(name, slot);
++          state = 'published';
++          this.prepared = undefined;
++          this.revision++;
++          cleanup = settle(oldSlots);
++          for (const slot of next.values()) this.armIdle(slot);
++          this.changed();
++        },
++        discard: () => {
++          if (state === 'published') return Promise.reject(new McpFailure('not_sent'));
++          if (state === 'prepared') {
++            state = 'discarded';
++            this.prepared = undefined;
++            cleanup = settle(created);
++          }
++          return cleanup!;
++        },
++        drain: () => state === 'published' ? cleanup! : Promise.reject(new McpFailure('not_sent')),
++      };
++      this.prepared = prepared;
++      return prepared;
++    } catch (error) {
++      const cleanup = await Promise.allSettled(created.map(slot => this.retire(slot)));
++      if (cleanup.some(result => result.status === 'rejected')) throw new McpFailure('cleanup_failed');
++      throw error;
++    } finally { this.preparing = false; }
++  }
++
++  async reload(specs: readonly McpServerSpec[]): Promise<void> {
++    const prepared = await this.prepareReload(specs);
++    try { prepared.publish(); }
++    catch (error) { await prepared.discard(); throw error; }
++    // Preserve legacy reload timing: publication may finish while old admitted
++    // calls are running. The next prepare remains fenced by the retiring set.
+   }
+ 
+   reconnect(server: string) {
+@@ -280,14 +383,19 @@
+     return [...this.slots.values()].flatMap(slot => slot.retired || slot.invalidated || slot.state === 'failed' ? [] : slot.descriptors);
+   }
+ 
+-  status() {
+-    return [...this.slots.values()].map(slot => ({ server: slot.spec.name, state: slot.invalidated ? 'catalog_changed' : slot.state,
+-      generation: slot.generation, source: slot.spec.source?.split('+').every(source => ['global', 'adapter', 'project'].includes(source)) ? slot.spec.source : 'injected', tools: slot.descriptors.length, ...(slot.error ? { error: slot.error, delivery: slot.delivery ?? 'not_sent' } : {}) }));
++  private slotStatus(slot: Slot) {
++    return { server: slot.spec.name, state: slot.invalidated ? 'catalog_changed' : slot.state,
++      generation: slot.generation, source: slot.spec.source?.split('+').every(source => ['global', 'adapter', 'project'].includes(source)) ? slot.spec.source : 'injected',
++      tools: slot.descriptors.length,
++      ...(this.cleanupFailure ? { error: this.cleanupFailure.code, delivery: 'not_sent' as const } :
++        slot.error ? { error: slot.error, delivery: slot.delivery ?? 'not_sent' } : {}) };
+   }
+ 
++  status() { return [...this.slots.values()].map(slot => this.slotStatus(slot)); }
++
+   async call(descriptor: McpDescriptor, args: Record<string, unknown>, request: { callId: string; signal?: AbortSignal }): Promise<CallToolResult> {
+     const slot = this.slots.get(descriptor.server);
+-    if (this.closed || !slot || slot.retired || slot.invalidated || !slot.descriptors.includes(descriptor)) throw new McpFailure('not_sent');
++    if (this.closed || !slot || slot.retired || slot.invalidated || slot.closing || !slot.descriptors.includes(descriptor)) throw new McpFailure('not_sent');
+     clearTimeout(slot.idle);
+     slot.inFlight++;
+     try {
+@@ -307,20 +415,27 @@
+       throw failure;
+     } finally {
+       slot.inFlight--;
+-      if (slot.retired && !slot.inFlight) {
+-        const adapter = slot.adapter;
+-        if (adapter) { await adapter.close().catch(() => {}); this.draining.delete(adapter); }
+-      } else this.armIdle(slot);
++      if (slot.retired && !slot.inFlight) slot.drained?.();
++      else this.armIdle(slot);
+     }
+   }
+ 
+   close() {
+     this.closePromise ??= (async () => {
+       this.closed = true;
++      const discarded = this.prepared?.discard();
+       for (const slot of this.slots.values()) { slot.retired = true; clearTimeout(slot.idle); }
+       const adapters = new Set([...this.slots.values()].flatMap(slot => slot.adapter ? [slot.adapter] : []).concat([...this.pending], [...this.draining]));
+-      await Promise.allSettled([...adapters].map(adapter => adapter.close()));
+-      this.slots.clear(); this.draining.clear(); this.listeners.clear(); this.invocation.disable();
++      const results = await Promise.allSettled([
++        ...[...adapters].map(adapter => adapter.close()),
++        ...(discarded ? [discarded] : []),
++      ]);
++      this.listeners.clear(); this.invocation.disable();
++      if (results.some(result => result.status === 'rejected')) {
++        this.cleanupFailure = new McpFailure('cleanup_failed');
++        throw this.cleanupFailure;
++      }
++      this.slots.clear(); this.draining.clear();
+     })();
+     return this.closePromise;
+   }

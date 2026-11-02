@@ -51,8 +51,16 @@ test('actual explicit-registry reload restores callback scope under neutral nati
     const storage = await openNodeSqliteStorage(join(state, 'native.sqlite'));
     const host = await Harness.open(storage, { registry, models, env: () => new NodeExecutionEnv({ cwd: work }) }, ctx);
     let conversation = await host.root(ctx, { agent: { cwd: work, model: { provider: `reload-${label}`, modelId: 'fixture' } } });
+    const subscribe = host.subscribeCommits.bind(host);
+    let subscriptions = 0;
+    host.subscribeCommits = (...args) => {
+      const unsubscribe = subscribe(...args); subscriptions++;
+      return () => { subscriptions--; unsubscribe(); };
+    };
     await memory.bind({ session: host, storage, context: ctx });
+    const delivery = registry.snapshot().extension('hindsight.delivery');
     const value = { memory, host,
+      subscriptions: () => subscriptions,
       async run(marker) {
         provider.setResponses([fauxAssistantMessage(`ANSWER_${label}`)]);
         const submission = await memory.controller.submit(conversation, marker, 'followUp', `${label}-${marker}`);
@@ -60,7 +68,17 @@ test('actual explicit-registry reload restores callback scope under neutral nati
         assert.ok(calls.some(call => call.bank === label && call.path === '/memories/recall' && call.body.query.includes(marker)), marker);
       },
       async reloadFresh(target) {
-        if (target === 'fresh') {
+        if (target === 'prepared') {
+          const active = registry.snapshot().extension('hindsight');
+          const replacements = await memory.prepareReload();
+          assert.equal(registry.snapshot().extension('hindsight'), active, 'Preparation never publishes');
+          assert.equal(replacements.length, 1);
+          assert.equal(replacements[0].extension.name, 'hindsight');
+          assert.deepEqual(replacements[0].documents.map(doc => doc.kind), ['hindsight.context']);
+          registry.install(replacements[0].extension);
+          assert.equal(registry.snapshot().extension('hindsight.delivery'), delivery, 'Delivery owner is retained');
+          assert.equal(subscriptions, 1, 'Reload never rebinds the controller subscription');
+        } else if (target === 'fresh') {
           const fresh = createRegistry();
           await memory.controller.reload(fresh);
           const delivery = fresh.snapshot().extension('hindsight.delivery');
@@ -78,6 +96,14 @@ test('actual explicit-registry reload restores callback scope under neutral nati
   try {
     const a = await open('A'), b = await open('B');
     await a.run('BEFORE_A'); await b.run('BEFORE_B');
+    const controller = a.memory.controller, paths = a.memory.paths;
+    for (let index = 0; index < 20; index++) {
+      await a.reloadFresh('prepared');
+      if (index === 0) await a.run('PREPARED_A');
+    }
+    assert.equal(a.memory.controller, controller);
+    assert.equal(a.memory.paths, paths);
+    assert.equal(a.subscriptions(), 1); assert.equal(b.subscriptions(), 1);
     const pending = await a.memory.drain(250);
     assert.ok(pending.some(state => state.pending > 0), 'Failed remote retain remains a real durable pending delivery');
     await a.reloadFresh(true); rejectRetainA = false; await a.run('EXPLICIT_RELOAD_A');
@@ -87,6 +113,7 @@ test('actual explicit-registry reload restores callback scope under neutral nati
     assert.ok(delivered.every(state => state.pending === 0));
     assert.ok(delivered.some(state => state.accepted > 0), 'Pending retained work completes with original native delivery definitions after reload');
     await a.close(); sessions.splice(sessions.indexOf(a), 1);
+    assert.equal(a.subscriptions(), 0); assert.equal(b.subscriptions(), 1);
     await b.reloadFresh(false); // A new native conversation avoids a valid cached recall from the prior one.
     await b.run('B_AFTER_A_CLOSE');
     await b.memory.drain(3000);

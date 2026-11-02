@@ -1,0 +1,16 @@
+{
+  "name": "pi-durable-host-gippity-integration",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "postinstall": "node worklet-patch.mjs",
+    "test": "node --test integration.test.mjs audio-latency.test.mjs",
+    "test:worklets": "node --test worklet-browser.test.mjs"
+  },
+  "dependencies": {
+    "@howaboua/pi-durable-components": "https://github.com/IgorWarzocha/pi-durable-components/releases/download/v0.10.0/howaboua-pi-durable-components-0.10.0.tgz",
+    "@howaboua/pi-durable-gippity-voice": "https://github.com/IgorWarzocha/pi-durable-components/releases/download/v0.10.0/howaboua-pi-durable-gippity-voice-0.10.0.tgz",
+    "@modelcontextprotocol/sdk": "1.32.0"
+  }
+}

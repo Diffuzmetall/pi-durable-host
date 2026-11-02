@@ -4,6 +4,8 @@ import { createServer } from "node:http";
 import { once } from "node:events";
 import { DpiClient } from "../src/client.js";
 import { DpiError } from "../src/errors.js";
+import { API_VERSION, AGENT_STATE_CAPABILITY } from "../src/api.js";
+const compatible = (capabilities: string[]) => ({ apiVersion: API_VERSION, capabilities: [AGENT_STATE_CAPABILITY, ...capabilities] });
 
 async function recordingHost(initial: unknown) {
   let metadata = initial;
@@ -29,16 +31,16 @@ async function recordingHost(initial: unknown) {
 }
 
 test("ISC-37: incompatible protocol blocks mutation before HTTP admission", async (t) => {
-  const host = await recordingHost({ apiVersion: 2, capabilities: ["admission.v1"] });
+  const host = await recordingHost({ apiVersion: 1, capabilities: ["admission.v1"] });
   t.after(host.close);
   const client = new DpiClient(host.base, "fixture-token", { requiredCapabilities: ["admission.v1"] });
   await assert.rejects(() => client.createSession({ name: "No side effect", cwd: "/fixture", model: { provider: "faux", modelId: "echo" } }), (error: unknown) =>
-    error instanceof DpiError && error.code === "unavailable" && /Unsupported host protocol 2/.test(error.message));
+    error instanceof DpiError && error.code === "unavailable" && /Unsupported host protocol 1/.test(error.message));
   assert.deepEqual(host.requests, ["GET /v1/protocol"]);
 });
 
 test("ISC-37: missing capability and malformed legacy metadata block all mutation verbs", async (t) => {
-  const host = await recordingHost({ apiVersion: 1, capabilities: ["events"] });
+  const host = await recordingHost(compatible(["events"]));
   t.after(host.close);
   const client = new DpiClient(host.base, undefined, { requiredCapabilities: ["admission.v1"] });
   await assert.rejects(() => client.request("POST", "/v1/anything", {}), /missing required capabilities: admission.v1/);
@@ -51,7 +53,7 @@ test("ISC-37: missing capability and malformed legacy metadata block all mutatio
 });
 
 test("ISC-37: compatible host permits mutation; next mutation rechecks after reconnect/version change", async (t) => {
-  const host = await recordingHost({ apiVersion: 1, capabilities: ["admission.v1", "future-render-kind"] });
+  const host = await recordingHost(compatible(["admission.v1", "future-render-kind"]));
   t.after(host.close);
   const client = new DpiClient(host.base, undefined, { requiredCapabilities: ["admission.v1"] });
   assert.deepEqual(await client.request("POST", "/v1/anything", {}), { id: "result" });
@@ -68,20 +70,20 @@ test("ISC-37: legacy server without discovery gives a clear unsupported error, w
 });
 
 test('BB input provenance requires its distinct capability before any parent mutation', async (t) => {
-  const host = await recordingHost({ apiVersion: 1, capabilities: ['native-parent-control.v1', 'native-bb-outcome.v1'] });
+  const host = await recordingHost(compatible(['native-parent-control.v1', 'native-bb-outcome.v1']));
   t.after(host.close);
   const parent = new DpiClient(host.base).agent('fixture-session', 'main');
   const command = { action: 'send' as const, controlId: 'bb-child:creq_23456789ab', expectedRevision: 'a'.repeat(64),
     target: { key: 'native-child', conversationId: 2, executionId: 'native-execution', requestId: 'native-request' }, task: 'Exact Core intent' };
   await assert.rejects(parent.parentCommand(command), /missing required capabilities: native-bb-input.v1/);
   assert.deepEqual(host.requests, ['GET /v1/protocol']);
-  host.set({ apiVersion: 1, capabilities: ['native-parent-control.v1', 'native-bb-input.v1'] });
+  host.set(compatible(['native-parent-control.v1', 'native-bb-input.v1']));
   await parent.parentCommand(command);
   assert.deepEqual(host.requests, ['GET /v1/protocol', 'GET /v1/protocol', 'POST /v1/sessions/fixture-session/agents/main/parent-control/commands']);
 });
 
 test('iii v2 journal/control/result APIs require exact host capability before any scoped request', async (t) => {
-  const host = await recordingHost({ apiVersion: 1, capabilities: ['native-parent-control.v1'] });
+  const host = await recordingHost(compatible(['native-parent-control.v1']));
   t.after(host.close);
   const agent = new DpiClient(host.base).agent('fixture-session', 'main');
   for (const call of [
@@ -91,13 +93,13 @@ test('iii v2 journal/control/result APIs require exact host capability before an
     () => agent.iiiJobStop({ jobId: 'one', controlId: 'stop', expectedGeneration: 0 }), () => agent.iiiJobStopReceipt('stop'),
   ]) await assert.rejects(call(), /missing required capabilities: native-iii.v2/);
   assert.ok(host.requests.every(request => request === 'GET /v1/protocol'));
-  host.set({ apiVersion: 1, capabilities: ['native-iii.v2'] });
+  host.set(compatible(['native-iii.v2']));
   await agent.iiiSubmit({ requestId: 'one', content: 'canonical input' });
   assert.equal(host.requests.at(-1), 'POST /v1/sessions/fixture-session/agents/main/iii/requests');
 });
 
 test("read-only calls stay usable without negotiation; mutation needs protocol even without extra capabilities", async (t) => {
-  const host = await recordingHost({ apiVersion: 1, capabilities: [] });
+  const host = await recordingHost(compatible([]));
   t.after(host.close);
   const client = new DpiClient(host.base);
   await client.device();

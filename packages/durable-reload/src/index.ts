@@ -1,19 +1,27 @@
 import type { Context } from '@earendil-works/chord';
-import type { Harness } from '@earendil-works/pi-durable';
+import type { Harness, Tx } from '@earendil-works/pi-durable';
 import type { createNativeModels } from './models.js';
 export { createNativeModels, type NativeModelsOptions, type NativeModelDescriptor, type NativeModelReference } from './models.js';
-export { loadRegistryAdapters } from './loader.js';
-export { ReloadableRegistry, type RegistryAdapter } from './registry.js';
+export { loadRegistryAdapters, loadFreshModule } from './loader.js';
+export { ReloadableRegistry, type RegistryAdapter, type NativeExtensionReplacement } from './registry.js';
+
+import { DurableReloadError } from './compatibility.js';
+export { DurableReloadError } from './compatibility.js';
 
 type Models = Awaited<ReturnType<typeof createNativeModels>>;
 /** Trusted staged native service update. apply may update native selection after all preparation
  * succeeds; it must not publish registry/providers. publish is synchronous and nonthrowing. */
 export interface DurableReloadPreparation {
   apply?(): Promise<void>;
+  /** Synchronous final validation; runs after authority checks and before any publication. */
+  validate?(): void;
+  /** Read-only state checks, on the native mutation line. Never stage writes here. */
+  validateState?(reader: Pick<Tx, 'scanTasks'>): Promise<void>;
   publish(): void;
-}
-export class DurableReloadError extends Error {
-  constructor(readonly reason: 'busy' | 'unsupported', message: string) { super(message); }
+  /** Close only unpublished candidate resources after rejection. Preparation owns its own failures. */
+  discard?(): Promise<void>;
+  /** Retire old resources after publication, outside the native commit. Never undo publication. */
+  drain?(): Promise<void>;
 }
 const reloading = new WeakSet<Harness>();
 export const isDurableReloading = (harness: Harness) => reloading.has(harness);
@@ -21,7 +29,9 @@ export const isDurableReloading = (harness: Harness) => reloading.has(harness);
 /** Transport-independent Durable operation. Never opens storage, closes/resumes Harness,
  * executes remote module paths, changes saved models or persists credentials.
  * A trusted apply hook may select a late-bound native service after preparation succeeds.
- * Callers must use a trusted, resource-free extension preparer with a nonthrowing publisher.
+ * Callers supply a trusted preparer with a nonthrowing publisher and cleanup for staged resources.
+ * A returned cleanupError means publication applied but retirement failed; never expose its raw
+ * contents to an HTTP client or describe this outcome as retaining the previous runtime.
  */
 export async function reloadDurable(options: {
   harness: Harness;
@@ -48,10 +58,12 @@ export async function reloadDurable(options: {
     }, context);
     assertCurrent();
   };
+  let candidateExtensions: DurableReloadPreparation | undefined;
+  let published = false;
   try {
-    await assertIdle();
+    assertCurrent();
     const candidateModels = await models?.prepareReload();
-    const candidateExtensions = await prepareExtensions?.();
+    candidateExtensions = await prepareExtensions?.();
     if (candidateModels) {
       const records = await harness.commit(async tx => {
         let page = await tx.scanConversations({}, 1000);
@@ -71,12 +83,41 @@ export async function reloadDurable(options: {
       }
     }
     const catalogue = await candidateModels?.catalogue();
-    await assertIdle();
-    await candidateExtensions?.apply?.();
-    await assertIdle();
-    // No awaits between publications; the running Harness and all agent IDs are retained.
-    candidateModels?.publish();
-    candidateExtensions?.publish();
-    return { models: catalogue };
+    // Pure native definitions and provider snapshots do not require a session-wide idle.
+    // Existing resource/selection handoffs retain their conservative barrier until their
+    // controller can supply a narrower safe boundary.
+    const validatePrepared = async (tx: Tx) => {
+      await candidateExtensions?.validateState?.(tx);
+      assertCurrent();
+      candidateExtensions?.validate?.();
+    };
+    if (candidateExtensions?.apply) {
+      await assertIdle();
+      // An incompatible checkpoint/document must fail before a native selection
+      // handoff writes. Recheck after it because other native commits can run.
+      await harness.commit(validatePrepared, context);
+      await candidateExtensions.apply();
+      await assertIdle();
+    }
+    // Reuse the native mutation line, not a second revision/selection journal.
+    // The callback is read-only: native settlement has no storage writes to fail
+    // after publication. Scheduler/admission commits cannot slip into this window.
+    await harness.commit(async tx => {
+      await validatePrepared(tx);
+      // No awaits between publications; all Harness/agent IDs are retained.
+      candidateModels?.publish();
+      candidateExtensions?.publish();
+      published = true;
+    }, context);
+    let cleanupError: unknown;
+    try { await candidateExtensions?.drain?.(); }
+    catch (error) { cleanupError = error; }
+    return { models: catalogue, cleanupError };
+  } catch (error) {
+    if (!published) {
+      try { await candidateExtensions?.discard?.(); }
+      catch (cleanupError) { throw new AggregateError([error, cleanupError], 'DURABLE_RELOAD_DISCARD_FAILED'); }
+    }
+    throw error;
   } finally { reloading.delete(harness); }
 }

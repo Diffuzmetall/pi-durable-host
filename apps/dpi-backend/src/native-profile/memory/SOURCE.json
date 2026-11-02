@@ -16,7 +16,7 @@
   },
   "local": {
     "LICENSE.native": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48",
-    "NOTICE.md": "fd2a763b7f4d843304f8c820133fa04c1928fdc28c5ee8daef9b2ead2710cbb3",
+    "NOTICE.md": "04773a56e212164251fbfbe13470d96d47840604adc508f91493a2296220bcda",
     "hindsight/bridge.mjs": "c784106de3ff5e1a9a779b6612f69a2d5adb79064e14f7c16255511ae38c0c32",
     "hindsight/delivery.mjs": "f66ddb86a43f46cf35b74f0ec446fa61a796f7666b3729ec2f83f56baa11dab1",
     "hindsight/extension.mjs": "691663e2847d96d94cd87947d37bc46350b08bab06d708a3294ec9d296d88ef8",
@@ -33,7 +33,7 @@
     "hindsight/vendor/survey-supervisor.js": "0f043f761dc8fc5112ddf86959a8dc926c8fe32d9b8e8cdbfcddb650537ae587",
     "hindsight/vendor/upgrade-provenance.json": "48c1cd2236d610b3310e65eee68de0777f47c91fd498788b8921a0ff8a8e7318",
     "logging-scope.mjs": "87689e6327a2c527b1ec3441d5d1f93eceee32f817ccb5ecc1d9b8df390e71a2",
-    "mail.ts": "b603badf6f6519f061cd1ebc530cc26dc8cf5ee31d8b741bb4a1b4ec0d2ccad0",
+    "mail.ts": "1bc68be75233bae8ab5700bef6dbfa79f5125c5f359425e542bfe33beba88b76",
     "session-memory.d.mts": "3fdd5ebef79fa2d9fb7ce6b9ebc39f5ea3ee4c1049034fbbb4762fa06353bbb9",
     "session-memory.mjs": "e003fbbd860885a5286237f1bab318e3c89f342753d376c12b1589ec306d6c60"
   },
@@ -42,6 +42,7 @@
     "Controller reconciliation scope entry and native callback scope wrappers",
     "Explicit exported original HindsightClient/config resolver; no automatic config lookup",
     "Session-owned actual MCP Mail client with preserved identity/admin policy; no process.env assignment",
+    "Bounded same-actor cross-project Mail access inside /home/ubuntu/Projects; canonical immutable arguments and project-local registration tokens",
     "Actual native input receipt membership for application user turns; no literal kind alias or passive model-role inference",
     "Explicit/default registry reload targets retain captured session callback decoration; neutral native section caller and fresh fork regression"
   ],

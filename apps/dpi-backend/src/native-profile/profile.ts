@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { ReloadableRegistry, type RegistryAdapter } from '@local/pi-durable-reload';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import { CodingTools } from '@earendil-works/pi-durable/tools';
-import { createRegistry, defineExtension, hook, GenerationTask, ToolTask, ROOT_CONVERSATION_ID, type Harness, type Conversation, type ConversationId } from '@earendil-works/pi-durable';
+import { createRegistry, defineExtension, hook, GenerationTask, ToolTask, ROOT_CONVERSATION_ID, type Harness, type Storage, type Conversation, type ConversationId } from '@earendil-works/pi-durable';
 import type { RuntimeComposition, RuntimeModelProfile, RuntimeProfileContext, RuntimeProfileFactory } from '../runtime-profile.js';
 import { GrantDenied, type GrantHandle, type GrantPolicy } from '../grants.js';
 import { existingInputGuard, bindExistingInput } from './admission/input-policy.js';
@@ -36,10 +36,11 @@ export { resolveAvailableModel } from './subagents/model-policy.js';
 export { createNativeModels } from './models/index.js';
 export { createExternalDirectoryAdapter } from './external-dirs/adapter.js';
 export type { ExternalDirectoryOptions } from './external-dirs/index.js';
-export { reloadDurable, ReloadableRegistry, loadRegistryAdapters } from '@local/pi-durable-reload';
+export { reloadDurable, ReloadableRegistry, loadRegistryAdapters, loadFreshModule } from '@local/pi-durable-reload';
 export type { NativeModelsOptions } from './models/index.js';
 export type { RuntimeModelProfile } from '../runtime-profile.js';
 export type { NativeSkillsOptions } from './skills/index.js';
+export { readResourceSettings } from './skills/index.js';
 export { HindsightClient, resolveConfig } from './memory/session-memory.mjs';
 export { openSessionMail } from './memory/mail.js';
 export { saveGeneratedImages } from './tools/antigravity/save.js';
@@ -73,6 +74,14 @@ export interface NativeProfileOptions {
   connectMcp(context: RuntimeProfileContext): Promise<{
     sources: readonly McpCodemodeOptions[];
     shellEnv?: Readonly<Record<string, string>>;
+    prepareReload?(): Promise<{
+      sources: readonly McpCodemodeOptions[];
+      shellEnv?: Readonly<Record<string, string>>;
+      validate(): void;
+      publish(): void;
+      discard(): Promise<void>;
+      drain(): Promise<void>;
+    }>;
     close(context: Context): Promise<void>;
   }>;
 }
@@ -89,6 +98,7 @@ export interface NativeComposition extends RuntimeComposition {
 export function createNativeProfile(options: NativeProfileOptions) {
   return Object.assign(async (context: RuntimeProfileContext): Promise<NativeComposition> => {
     let host: Harness | undefined;
+    let stateStorage: Storage | undefined;
     let memory: SessionMemory | undefined;
     let tracing: Awaited<ReturnType<typeof createLangfuseTracing>> | undefined;
     let closed = false;
@@ -160,13 +170,14 @@ export function createNativeProfile(options: NativeProfileOptions) {
           return undefined;
         },
       })] }));
-      registry.install(await createMultiMcpCodemodeExtension(mcp.sources.map(source => ({
+      const mcpExtension = (sources: readonly McpCodemodeOptions[]) => createMultiMcpCodemodeExtension(sources.map(source => ({
         ...source,
         authorize: async (tool, args, api, ctx) => {
           await requireOwner(api.conversationId, ctx);
           await source.authorize(tool, args, api, ctx);
         },
-      }))));
+      })));
+      registry.install(await mcpExtension(mcp.sources));
       const composed = installSubagents(registry, admit, { resolveModel: options.resolveModel });
       const subagent = composed.snapshot().installed().find(extension => extension.name === 'subagent')!;
       const github = await options.github?.(context);
@@ -210,15 +221,16 @@ export function createNativeProfile(options: NativeProfileOptions) {
           catch (error) { if (error instanceof GrantDenied) return false; throw error; }
         },
       } : undefined));
-      const reloadable = new ReloadableRegistry(complete);
+      const reloadable = new ReloadableRegistry(complete, ['delm', 'durable-schedules', 'hindsight', ...(mcp.prepareReload ? ['mcp-codemode'] : [])]);
       const iii = createNativeIii({ policy: options.policy, nativeSessionId: context.sessionId, workspace: context.cwd,
         directory: context.directory, registry: reloadable,
         assertOwner: action => { assertOwner(); options.policy.assert(options.owner, action, target); }, controller: { admit } });
       complete.install(iii.guard);
       if (options.memory) memory = await createSessionMemory(complete, { ...await options.memory(context), directory: join(context.directory, 'memory') });
-      const shellEnv = { ...context.shellEnv, ...mcp.shellEnv, ...(memory ? {
+      const memoryShellEnv: Record<string, string> = memory ? {
         HINDSIGHT_LOG_FILE: memory.paths.log, HINDSIGHT_DIAG_FILE: memory.paths.diag, HINDSIGHT_USAGE_FILE: memory.paths.usage,
-      } : {}) };
+      } : {};
+      const shellEnv: Record<string, string> = { ...context.shellEnv, ...mcp.shellEnv, ...memoryShellEnv };
       const guard = createDcgEnvironmentFactory({ defaultCwd: context.cwd, shellEnv, evaluatorOptions: options.dcg });
       const documentReaders = new Map<string, (h: Harness, c: Conversation, ctx: Context) => Promise<unknown>>([
         ['host.agent-mail', async (): Promise<AgentMailIdentity | null> => {
@@ -271,18 +283,48 @@ export function createNativeProfile(options: NativeProfileOptions) {
         });
       };
       const extensions = [...complete.snapshot().installed()];
+      // Harness settings keep this array by reference. Follow the facade for both
+      // adapter publication and trusted direct base installs (memory/services).
+      reloadable.subscribe(() => extensions.splice(0, extensions.length, ...reloadable.snapshot().installed()));
       return {
         registry: reloadable,
         extensions,
-        async prepareReload(additions: readonly import('@earendil-works/pi-durable').Extension[] = []) {
+        assertCompatibleState: (storage, ctx) => reloadable.assertCompatibleState(storage, ctx),
+        async prepareReload(additions: readonly import('@earendil-works/pi-durable').Extension[] = [],
+          replacements: readonly import('@local/pi-durable-reload').NativeExtensionReplacement[] = []) {
           assertOwner();
-          if (skills) await skills.catalogue();
-          const candidate = await reloadable.prepare(await options.loadAdapters?.(context) ?? [], additions);
-          assertOwner();
-          return { publish() {
-            extensions.splice(0, extensions.length, ...candidate.extensions);
-            candidate.publish();
-          } };
+          if (replacements.some(item => item.extension.name === 'mcp-codemode'))
+            throw Error('NATIVE_MCP_REPLACEMENT_OWNER_REQUIRED');
+          const mcpCandidate = await mcp.prepareReload?.();
+          try {
+            const skillSettings = skills && options.skills ? await options.skills(context) : undefined;
+            const skillsCandidate = skillSettings ? await skills!.prepareReload(skillSettings) : undefined;
+            const automaticReplacements = [...await automation.prepareReload(), ...(await memory?.prepareReload() ?? []),
+              ...(mcpCandidate ? [{ extension: await mcpExtension(mcpCandidate.sources), documents: [] }] : [])];
+            const candidate = await reloadable.prepare(await options.loadAdapters?.(context) ?? [], additions,
+              [...automaticReplacements.filter(({ extension }) => !replacements.some(item => item.extension.name === extension.name)), ...replacements]);
+            assertOwner();
+            const candidateEnv = mcpCandidate ? { ...context.shellEnv, ...mcpCandidate.shellEnv, ...memoryShellEnv } : undefined;
+            return {
+              validate() { assertOwner(); candidate.validate(); mcpCandidate?.validate(); },
+              validateState: reader => candidate.validateState(reader, stateStorage, BACKGROUND_CONTEXT),
+              publish() {
+                candidate.publish();
+                mcpCandidate?.publish();
+                if (candidateEnv) {
+                  for (const key of Object.keys(shellEnv)) delete shellEnv[key];
+                  Object.assign(shellEnv, candidateEnv);
+                }
+                skillsCandidate?.publish();
+              },
+              discard: async () => { await mcpCandidate?.discard(); },
+              drain: async () => { await mcpCandidate?.drain(); },
+            };
+          } catch (error) {
+            try { await mcpCandidate?.discard(); }
+            catch (cleanup) { throw new AggregateError([error, cleanup], 'NATIVE_PROFILE_PREPARATION_DISCARD_FAILED'); }
+            throw error;
+          }
         },
         skills,
         env: (target, ctx) => guard.env(target, ctx),
@@ -294,6 +336,7 @@ export function createNativeProfile(options: NativeProfileOptions) {
         async bind(value, ctx, storage) {
           if (host || closed) throw Error('NATIVE_PROFILE_ALREADY_BOUND_OR_CLOSED');
           host = value;
+          stateStorage = storage;
           if (memory) {
             if (!storage) throw Error('NATIVE_PROFILE_ORIGINAL_STORAGE_REQUIRED');
             await memory.bind({ session: value, storage, context: ctx });

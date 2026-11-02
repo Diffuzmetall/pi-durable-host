@@ -1,12 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { loadFreshModule } from 'dpi-backend/native-profile';
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
-import { createAntigravityAccess, createAntigravityProvider } from './provider.mjs';
 import { antigravityApiKey, refreshAntigravityToken } from './compiled/bindings.mjs';
-import { getCurrentAntigravityModels, hydrateAntigravityCatalog, streamAntigravity, DEFAULT_ENDPOINT } from './compiled/antigravity.mjs';
 
 /** Explicitly bind the CLI account store; never persist its OAuth token via AuthStorage. */
 export async function operationalModelOptions({ agentDir, credentials }) {
+  // Reload code and transitive imports, but retain the existing static credential owner.
+  const { createAntigravityAccess, createAntigravityProvider } = loadFreshModule(fileURLToPath(new URL('./provider.mjs', import.meta.url)));
+  const { getCurrentAntigravityModels, hydrateAntigravityCatalog, streamAntigravity, DEFAULT_ENDPOINT } = loadFreshModule(fileURLToPath(new URL('./compiled/antigravity.mjs', import.meta.url)));
   const access = createAntigravityAccess({ agentDir, getApiKey: antigravityApiKey, refreshToken: refreshAntigravityToken });
   // Restore the latest existing offline catalogue through upstream's validator/routing hydrator.
   const snapshots = [];

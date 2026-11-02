@@ -1,0 +1,37 @@
+{
+  "revision": "host-commit-authorization-v1",
+  "package": "@earendil-works/pi-durable",
+  "version": "1.5.0",
+  "files": [
+    {
+      "file": "session/session.js",
+      "before": "a2429d4bad5ae08a7dfae32fe05e74cb881d9100d9035a6784eedca3f92d7496",
+      "after": "35bae612a14d3e7ba8cb49036d8baea3bb2902f477bf60452526c51c446106c1"
+    },
+    {
+      "file": "session/session.d.ts",
+      "before": "86deacb4998d62838e75302b61e100cd44510f7a3be6db6ef622982c43b7290f",
+      "after": "572be93648e02aa10a7fb7ac4245909033ad088c2aeb45a6844abd68f8295e9d"
+    },
+    {
+      "file": "harness/harness.js",
+      "before": "4096cbb0756c59606a0b6437909a879b5c603fde2d2a9bc25854398e30b25e47",
+      "after": "8c24049dfdf4546d9fa12491f1534f5bbc40e2f0a06d63f85678b915aaebdd2b"
+    },
+    {
+      "file": "harness/types.d.ts",
+      "before": "eff2fd6232680d3367a9e7c69fe158b38e1aff2d5f182086bfe6bfc1f2b1bb66",
+      "after": "de6d3406c73a3f2d07609683ace6162aca0328d88971bf0c4c547a4020c016c9"
+    },
+    {
+      "file": "index.js",
+      "before": "5ca348ed464ecc7f1017f8a988bda277621d33b9591cf9c8f385a2fa3d331318",
+      "after": "5946ad3d666ce38ff1795d8a75ad9148598d85672524883af809dc36307b0a21"
+    },
+    {
+      "file": "index.d.ts",
+      "before": "1f3ce1b8789b6257c6e50b9ac8db4f18c6bcc51461da2bb4d51350040cf9c5fa",
+      "after": "8837a27c4181adac781648d0221018f6704fcf5dcfdc46bf53e58ea7558deba9"
+    }
+  ]
+}

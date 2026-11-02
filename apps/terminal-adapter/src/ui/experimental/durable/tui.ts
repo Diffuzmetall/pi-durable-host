@@ -55,6 +55,8 @@ import { getEditorTheme, getMarkdownTheme, initTheme, theme } from "../../modes/
 import { InteractiveThemeController } from "../../modes/interactive/theme/theme-controller.ts";
 import { DcgToolCard } from "../dcg-tool-card.ts";
 import { agentOf, type DurableController, type DurableView, type DurableViewSource } from "./runtime.ts";
+import { SubmitDeliveryError } from "../../../types.js";
+import { EditorDrafts } from "../../../draft.js";
 import { activityRowAt, activityStatus, clean, renderActivity } from "../../extensions/activity-panel/activity.ts";
 import { renderMailLabel } from "../../extensions/activity-panel/mail-badge.ts";
 import { formatGoalResult, goalOperatorInput, renderNativeGoalRow, visibleNativeGoal } from "../../extensions/automation-footer/goal-view.ts";
@@ -96,7 +98,7 @@ const DURABLE_COMMANDS = [
 	{ name: "clear", description: "Start a new session (alias for /new) · очистить" },
 	{ name: "quit", description: "Exit Pi Durable · выйти" },
 	{ name: "compact", description: "Summarize context · сжать контекст" },
-	{ name: "reload", description: "Refresh terminal model/skill catalogues · обновить меню" },
+	{ name: "reload", description: "Reload trusted Host sources and refresh terminal menus · без рестарта Host" },
 	{ name: "mcp", description: "Show MCP connection status; on/off · подключения" },
 ];
 
@@ -250,6 +252,7 @@ export class DurableTui {
 	#footerView: DurableView | undefined;
 	readonly #editorContainer = new Container();
 	readonly #editor: CustomEditor;
+	readonly #drafts: EditorDrafts;
 	readonly #cwd: string;
 	/** The newest card per call ID; provider call IDs may repeat across turns. */
 	readonly #tools = new Map<string, ToolExecutionComponent>();
@@ -270,9 +273,11 @@ export class DurableTui {
 	#rebuilt = false;
 	#transcript: ScrollView;
 	#sessionTitle: string | undefined;
+	#submitError: SubmitDeliveryError | undefined;
 
 	constructor(cwd: string, sessionDirectory: string, handlers: Handlers) {
 		this.#cwd = cwd;
+		this.#drafts = new EditorDrafts(sessionDirectory);
 		this.#sessionTitle = readTitle(sessionDirectory);
 		this.#ui = new TuiAltScreen(this.#terminal, false, getAgentDir(), {
 			scrollToEndIndicator: () => theme.bg("selectedBg", theme.fg("text", ` ↓ Jump to latest message${keyText("tui.altScreen.bottom") ? ` · ${keyText("tui.altScreen.bottom")}` : ""} `)),
@@ -321,6 +326,9 @@ export class DurableTui {
 			}
 			return { handled: true, render: true };
 		});
+		this.#editor.onChange = text => {
+			if (this.#conversationId !== undefined) this.#drafts.write(this.#conversationId, text);
+		};
 		this.#editor.onSubmit = handlers.submit;
 		this.#editor.onEscape = handlers.abort;
 		this.#editor.onAction("app.clear", () => this.#editor.setText(""));
@@ -415,6 +423,7 @@ export class DurableTui {
 	insertSkill(name: string): void { this.#editor.insertTextAtCursor(skillPromptInsertion(name)); this.#ui.requestRender(); }
 
 	mount(component: Component, question?: string): void {
+		this.#submitError = undefined;
 		this.#programStatus.dialog(question);
 		this.#editorContainer.clear();
 		this.#editorContainer.addChild(component);
@@ -432,19 +441,42 @@ export class DurableTui {
 	}
 
 	showInputError(text: string, error: unknown): void {
+		const view = this.#footerView;
+		// A late failure belongs to its original editor, never the newly selected conversation.
+		if (error instanceof SubmitDeliveryError && view &&
+			(error.sessionId !== view.session.id || error.conversationId !== view.conversation.conversation.id)) return;
 		this.#editor.setText(text);
 		this.mount(new ListSelector(`Cannot submit: ${String(error)} (Esc to return)`, [],
 			() => this.restoreEditor(), () => this.restoreEditor()), "Cannot submit");
+		if (error instanceof SubmitDeliveryError) {
+			this.#submitError = error;
+			if (view) this.#recoverSubmit(view);
+		}
+	}
+
+	#recoverSubmit(view: DurableView): void {
+		const error = this.#submitError;
+		if (!error) return;
+		const changed = error.sessionId !== view.session.id || error.conversationId !== view.conversation.conversation.id;
+		if (changed || (view.connection === "online" && view.delivery && !view.delivery.uncertainRequestIds.includes(error.requestId))) {
+			this.restoreEditor();
+		}
 	}
 
 	apply(view: DurableView): void {
+		this.#recoverSubmit(view);
 		this.#programStatus.update(view);
 		const live = (view.conversation.docs["pi.live"] ?? {}) as LiveState;
 		const conversationId = view.conversation.conversation.id;
 		if (this.#conversationId !== undefined && this.#conversationId !== conversationId) {
 			this.#rebuild(view.conversation.entries);
 		}
-		this.#conversationId = conversationId;
+		if (this.#conversationId !== conversationId) {
+			// Read before changing the target: a read failure must not erase a saved draft.
+			const draft = this.#drafts.read(conversationId);
+			this.#conversationId = conversationId;
+			this.#editor.setText(draft);
+		}
 		this.#syncTranscript(view.conversation.entries);
 		const message = live.generation?.message as AssistantMessage | undefined;
 		// A partial without its entry was dropped, for example by a retry: render the transcript again.
@@ -529,7 +561,7 @@ export class DurableTui {
 		const runningTool = live.tools?.find((slot) => slot.status === "running");
 		let text = "";
 		if (generation?.retry !== undefined) {
-			text = `Retrying (attempt ${generation.attempt + 1}): ${generation.retry.error}`;
+			text = `Retrying: ${generation.retry.error}`;
 		} else if (generation?.deferred !== undefined) text = "Waiting for deferred response...";
 		else if (compaction !== undefined) {
 			text = compaction.retry
@@ -946,7 +978,8 @@ export async function runDurableTui(
 			}
 			if (trimmed === "/reload" || trimmed.startsWith("/reload ")) {
 				return void controller.reload(trimmed.slice("/reload".length).trim() || undefined).then(refreshAutocomplete)
-					.catch((error) => view.showInputError(text, error));
+					// The controller reports the reload result. Do not replace a newer draft with the command.
+					.catch(() => {});
 			}
 			if (trimmed === "/compact" || trimmed.startsWith("/compact ")) {
 				const instructions = trimmed.slice("/compact".length).trim();

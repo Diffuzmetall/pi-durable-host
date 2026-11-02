@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Context } from '@earendil-works/chord';
 import { awaitWithContext } from '@earendil-works/chord/context';
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import {
   createRegistry, defineDoc, defineExtension, defineTask, defineTool, section,
   type ConversationHandle, type ConversationId, type RegistryReader, type TaskId, type Harness,

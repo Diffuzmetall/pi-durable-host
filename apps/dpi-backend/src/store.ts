@@ -91,17 +91,8 @@ function skillInfo(skill: SkillInfo): SkillInfo {
   return { name, description, filePath, baseDir, disableModelInvocation };
 }
 
-/** Tools that create, update or delete: shell, files, App State, job runs, sessions, pages and subagents. */
-export const WRITE_TOOLS = new Set([
-  "bash",
-  "write",
-  "edit",
-  "update_state",
-  "run_durable_job",
-  "ping_on_call_engineer",
-  "subagent",
-  "start_session",
-]);
+import { WRITE_TOOLS } from "./durable/tool-policy.js";
+export { WRITE_TOOLS } from "./durable/tool-policy.js";
 
 export type SessionRow = {
   id: string;
@@ -169,7 +160,7 @@ export function lockFile(path: string) {
 type Opened = { harness: Harness; storage: Storage; profile: RuntimeComposition; models?: RuntimeModels; unlock: () => void; unsubscribe: () => void };
 type Resolved = { row: SessionRow; h: Harness; c: Conversation };
 
-const MessageReceipts = defineDocFamily<{ fingerprint: string }, null>({
+const MessageReceipts = defineDocFamily<{ fingerprint: string; retired?: boolean }, null>({
   kind: "host.message-receipts", version: 1, scope: "conversation", family: true,
   history: "latest", fork: "initial", checkpointWhen: () => true,
   initial: () => ({ fingerprint: "" }),
@@ -210,6 +201,14 @@ export class Store {
   /** Task labels never change once known: tool names of pi.tool tasks, job titles of job runs. */
   private taskLabels = new Map<string, { label?: string; callId?: string }>();
   private sessionCreates = new Map<string, Promise<SessionSummary>>();
+  private messageAdmissions = new Map<string, Promise<void>>();
+  private opening = new Map<string, Promise<Harness>>();
+  private creations = new Set<Promise<SessionSummary>>();
+  private recovery: Promise<void> = Promise.resolve();
+  private recoveryStates = new Map<string, "restoring" | "ready" | "failed">();
+  private lifecycle: "restoring" | "ready" | "closing" | "closed" = "restoring";
+  private closing?: Promise<void>;
+  private reloads = new Set<Promise<unknown>>();
 
   get catalogPath() {
     return join(this.options.dataDir, "catalog.sqlite");
@@ -264,6 +263,13 @@ export class Store {
   }
 
   static async open(options: StoreOptions) {
+    const store = await Store.openCatalog(options);
+    await store.whenRestored();
+    return store;
+  }
+
+  /** Open shared resources first; restore session runtimes independently in the background. */
+  static async openCatalog(options: StoreOptions) {
     const store = new Store({ ...options, dataDir: resolve(options.dataDir) });
     // Start dirs are where new sessions begin; create any that do not exist yet.
     await Promise.all(options.startDirs.map((dir) => mkdir(dir, { recursive: true }).catch(() => {})));
@@ -271,24 +277,50 @@ export class Store {
       const sharedStatePath = databasePath(store.sharedStatePath);
       store.unlockShared = lockFile(`${sharedStatePath}.lock`);
       store.shared = await SharedState.open(sharedStatePath);
-      store.shared.harness.subscribeCommits(() => store.notify());
-      for (const row of store.list()) {
-        try {
-          await store.openAgent(row);
-        } catch (e) {
-          store.errors.set(row.id, publicErrorMessage(e));
-          reportError(e, "session.restore");
-        }
-      }
+      store.shared.subscribe(() => store.notify());
       if (!(await store.shared.initialized()))
         await store.shared.initialize({ goal: "Explore durable agents", counter: 0, notes: [] });
       store.modelList = await store.loadModels();
-      for (const { harness } of store.opened.values()) harness.resume();
+      const rows = store.list();
+      for (const row of rows) store.recoveryStates.set(row.id, "restoring");
+      let next = 0;
+      store.recovery = Promise.all(Array.from({ length: Math.min(4, rows.length) }, async () => {
+        while (store.lifecycle === "restoring" && next < rows.length) {
+          const row = rows[next++]!;
+          try { await store.openAgent(row); }
+          catch (error) {
+            store.recoveryStates.set(row.id, "failed");
+            store.errors.set(row.id, publicErrorMessage(error));
+            reportError(error, "session.restore");
+            store.notify();
+          }
+        }
+      })).then(() => {
+        if (store.lifecycle === "restoring") store.lifecycle = "ready";
+        store.notify();
+      });
       return store;
     } catch (e) {
       await store.close().catch(() => {});
       throw e;
     }
+  }
+
+  whenRestored(): Promise<void> { return this.recovery; }
+
+  sessionReadiness(id: string): "restoring" | "ready" | "failed" {
+    return this.recoveryStates.get(id) ?? (this.opened.has(id) ? "ready" : "failed");
+  }
+
+  recoveryStatus() {
+    const counts = { total: this.recoveryStates.size, restoring: 0, ready: 0, failed: 0 };
+    for (const state of this.recoveryStates.values()) counts[state]++;
+    return { state: this.lifecycle, ...counts };
+  }
+
+  assertOpen() {
+    if (this.lifecycle === "closing" || this.lifecycle === "closed")
+      throw new ApiFault("unavailable", "Store is closing");
   }
 
   // ------------------------------------------------------------ change feed
@@ -481,6 +513,7 @@ export class Store {
   }
 
   private runtime(row: SessionRow): Opened {
+    this.assertOpen();
     const runtime = this.opened.get(row.id);
     if (!runtime) throw new ApiFault("unavailable", this.errors.get(row.id) ?? `Session ${row.name} is unavailable`);
     return runtime;
@@ -497,7 +530,14 @@ export class Store {
   }
 
   /** `spawnKey` records which tool call created the session, in the same transaction as the session row. */
-  async create(body: CreateSessionBody, spawnKey?: string, resourceId: string = randomUUID()): Promise<SessionSummary> {
+  create(body: CreateSessionBody, spawnKey?: string, resourceId: string = randomUUID()): Promise<SessionSummary> {
+    this.assertOpen();
+    const pending = this.createOwned(body, spawnKey, resourceId).finally(() => this.creations.delete(pending));
+    this.creations.add(pending);
+    return pending;
+  }
+
+  private async createOwned(body: CreateSessionBody, spawnKey: string | undefined, resourceId: string): Promise<SessionSummary> {
     if (typeof body?.name !== "string") throw invalid("name is required");
     if (typeof body.cwd !== "string" || !body.cwd.trim()) throw invalid("cwd is required");
     const path = body.cwd.trim();
@@ -540,6 +580,7 @@ export class Store {
 
   /** Catalog intent is committed before native creation and never expires with the HTTP cache. */
   async createSessionRequest(body: CreateSessionBody, key: string, identity: AdmissionIdentity): Promise<SessionSummary> {
+    this.assertOpen();
     identity.assertCurrent();
     requestKey(key);
     const hash = fingerprint({ body, source: identity.source, authority: identity.authority });
@@ -577,6 +618,7 @@ export class Store {
    * prompt reuses its requestId, so a crash never starts a second session or sends the prompt twice.
    */
   spawnSession: SpawnSession = async (input) => {
+    this.assertOpen();
     const found = this.catalog.prepare("SELECT sessionId FROM session_spawns WHERE key=?").get(input.key) as
       | { sessionId: string }
       | undefined;
@@ -594,6 +636,7 @@ export class Store {
   };
 
   rename(row: SessionRow, name: unknown) {
+    this.runtime(row);
     if (typeof name !== "string" || !name.trim()) throw invalid("A name is required");
     this.catalog.prepare("UPDATE sessions SET name=? WHERE id=?").run(name.trim().slice(0, 100), row.id);
     this.notify();
@@ -610,6 +653,7 @@ export class Store {
 
   /** Stop all work, close the harness and move its files to archive/. Nothing is deleted. */
   async archive(row: SessionRow) {
+    this.runtime(row);
     const path = this.sessionPath(row);
     const opened = this.opened.get(row.id);
     if (opened) {
@@ -639,7 +683,18 @@ export class Store {
     return { archived: target };
   }
 
-  async openAgent(row: SessionRow, create = false, thinkingLevel: ThinkingLevel = "low"): Promise<Harness> {
+  openAgent(row: SessionRow, create = false, thinkingLevel: ThinkingLevel = "low"): Promise<Harness> {
+    this.assertOpen();
+    const existing = this.opening.get(row.id);
+    if (existing) return existing;
+    const pending = this.initializeAgent(row, create, thinkingLevel).finally(() => {
+      this.opening.delete(row.id);
+    });
+    this.opening.set(row.id, pending);
+    return pending;
+  }
+
+  private async initializeAgent(row: SessionRow, create: boolean, thinkingLevel: ThinkingLevel): Promise<Harness> {
     const path = this.sessionPath(row);
     const current = this.opened.get(row.id);
     if (current) return current.harness;
@@ -650,6 +705,12 @@ export class Store {
     let storage: Storage | undefined;
     let profile: RuntimeComposition | undefined;
     let initializing = false;
+    let stageStarted = performance.now();
+    const measured = (stage: "profile" | "storage" | "harness" | "bind" | "ready") => {
+      const now = performance.now();
+      if (!create) console.error(`[dpi-backend] ${JSON.stringify({ event: "session_restore_stage", sessionId: row.id, stage, elapsedMs: Math.round(now - stageStarted) })}`);
+      stageStarted = now;
+    };
     try {
       const factory: RuntimeProfileFactory = this.options.profile ?? playgroundProfile;
       if (!factory.models) this.validateModel({ provider: row.provider, modelId: row.model });
@@ -669,9 +730,27 @@ export class Store {
       const scopedModels = await factory.models?.create(profileContext);
       await scopedModels?.requireModel({ provider: row.provider, modelId: row.model });
       profile = await factory({ ...profileContext, models: scopedModels });
-      (await profile.prepareReload?.())?.publish();
+      const initial = await profile.prepareReload?.();
+      if (initial) {
+        let published = false;
+        try {
+          initial.validate?.();
+          initial.publish();
+          published = true;
+          await initial.drain?.();
+        } catch (error) {
+          if (!published) {
+            try { await initial.discard?.(); }
+            catch (cleanup) { throw new AggregateError([error, cleanup], 'Runtime preparation and discard failed'); }
+          }
+          throw error;
+        }
+      }
+      measured("profile");
       const compaction = () => this.compactionOf(row.id);
       storage = await openNodeSqliteStorage(path);
+      await profile.assertCompatibleState?.(storage, ctx);
+      measured("storage");
       harness = await Harness.open(
         storage,
         {
@@ -711,11 +790,18 @@ export class Store {
       row.provider = rootModel.provider;
       row.model = rootModel.modelId;
       this.catalog.prepare("UPDATE sessions SET provider=?,model=? WHERE id=?").run(row.provider, row.model, row.id);
+      measured("harness");
       await profile.bind?.(harness, ctx, storage);
+      measured("bind");
       const unsubscribe = harness.subscribeCommits(() => this.notify());
       this.opened.set(row.id, { harness, storage, profile, models: scopedModels, unlock, unsubscribe });
       this.errors.delete(row.id);
-      if (create) harness.resume();
+      if (this.lifecycle !== "closing" && this.lifecycle !== "closed") {
+        harness.resume();
+        this.recoveryStates.set(row.id, "ready");
+        measured("ready");
+        this.notify();
+      }
       return harness;
     } catch (e) {
       let failure = e;
@@ -735,7 +821,15 @@ export class Store {
     if (opened && isDurableReloading(opened.harness)) throw new ApiFault('conflict', 'Session profile reload is in progress');
   }
 
-  async reloadProfile(row: SessionRow, assertCurrent: () => unknown) {
+  reloadProfile(row: SessionRow, assertCurrent: () => unknown) {
+    this.assertOpen();
+    const pending = this.reloadOpenedProfile(row, assertCurrent);
+    this.reloads.add(pending);
+    void pending.finally(() => this.reloads.delete(pending)).catch(() => {});
+    return pending;
+  }
+
+  private async reloadOpenedProfile(row: SessionRow, assertCurrent: () => unknown) {
     assertCurrent();
     const opened = this.runtime(row);
     try {
@@ -743,16 +837,18 @@ export class Store {
         prepareExtensions: opened.profile.prepareReload?.bind(opened.profile),
         assertCurrent: () => {
           assertCurrent();
+          this.assertOpen();
           if (this.opened.get(row.id) !== opened) throw new ApiFault('conflict', 'Session changed during reload');
         },
       });
       if (result.models) this.modelList = await this.loadModels({ catalogue: async () => result.models! });
       this.notify();
       return { sessionId: row.id, models: result.models?.length ?? this.modelList.length,
-        extensions: opened.profile.registry.snapshot().installed().length };
+        extensions: opened.profile.registry.snapshot().installed().length,
+        ...(result.cleanupError === undefined ? {} : { cleanup: 'failed' as const }) };
     } catch (error) {
       assertCurrent();
-      if (error instanceof DurableReloadError) throw new ApiFault(error.reason === 'busy' ? 'conflict' : 'unavailable', error.message);
+      if (error instanceof DurableReloadError) throw new ApiFault(error.reason === 'unsupported' ? 'unavailable' : 'conflict', error.message);
       if (error instanceof ApiFault && error.code === 'conflict') throw error;
       reportError(error, 'profile.reload');
       throw new ApiFault('unavailable', 'Profile reload rejected; previous runtime remains active');
@@ -1073,13 +1169,30 @@ export class Store {
     return (await this.agentDetail(row, c)).config;
   }
 
+  /** Serialize admission with retirement: a late HTTP request cannot pass a missing-receipt fence. */
+  private async messageAdmission<T>(key: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.messageAdmissions.get(key);
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    this.messageAdmissions.set(key, gate);
+    await previous;
+    try { return await action(); }
+    finally {
+      release();
+      if (this.messageAdmissions.get(key) === gate) this.messageAdmissions.delete(key);
+    }
+  }
+
   async send(c: Conversation, body: Record<string, unknown>, identity?: AdmissionIdentity, row?: SessionRow) {
+    this.assertOpen();
     if (typeof body.content !== "string" || !body.content.trim() || body.content.length > 100000)
       throw invalid("content must be a message under 100,000 characters");
+    const content = body.content;
     const whenBusy = (body.whenBusy ?? "followUp") as WhenBusy;
     if (!["steer", "followUp", "reject"].includes(whenBusy)) throw invalid("whenBusy must be followUp, steer or reject");
     if (typeof body.requestId !== "string" || !body.requestId || body.requestId.length > 128)
       throw invalid("requestId is required (≤128 chars) so retries never submit twice");
+    const requestId = body.requestId;
     identity?.assertCurrent();
     const profile = row ? this.runtime(row).profile : undefined;
     if (identity?.authority === "delegated" && (!profile?.prepareInput || !identity.policyReference))
@@ -1088,23 +1201,26 @@ export class Store {
     const request = nativeRequestKey(actor, "message", body.requestId);
     const hash = fingerprint({ content: body.content, whenBusy, source: identity?.source, authority: identity?.authority });
     const context = identity?.signal ? withAbortSignal(identity.signal, ctx) : ctx;
-    await c.commit(async (tx) => {
+    return this.messageAdmission(`${row?.id ?? 'local'}:${c.id}:${request}`, async () => {
+      await c.commit(async (tx) => {
+        identity?.assertCurrent();
+        const receipt = await tx.doc(MessageReceipts, c.id, request, null);
+        if (receipt.retired) throw new ApiFault("conflict", "Request was confirmed not accepted and retired; it will not execute");
+        if (receipt.fingerprint && receipt.fingerprint !== hash) throw new ApiFault("conflict", "Request key has a different payload");
+        if (row) this.harness(row);
+        if (identity) await profile?.prepareInput?.(tx, c.id, request, identity);
+        receipt.fingerprint = hash;
+      }, context);
       identity?.assertCurrent();
-      const receipt = await tx.doc(MessageReceipts, c.id, request, null);
-      if (receipt.fingerprint && receipt.fingerprint !== hash) throw new ApiFault("conflict", "Request key has a different payload");
       if (row) this.harness(row);
-      if (identity) await profile?.prepareInput?.(tx, c.id, request, identity);
-      receipt.fingerprint = hash;
-    }, context);
-    identity?.assertCurrent();
-    if (row) this.harness(row);
-    await profile?.admitInput?.(c, request, context);
-    identity?.assertCurrent();
-    if (row) this.harness(row);
-    return c.submit({
-      type: "input", content: body.content, requestId: request, whenBusy,
-      ...(identity ? { entry: { kind: "host.input", data: { actor, source: identity.source, authority: identity.authority, requestId: body.requestId } } } : {}),
-    }, context);
+      await profile?.admitInput?.(c, request, context);
+      identity?.assertCurrent();
+      if (row) this.harness(row);
+      return c.submit({
+        type: "input", content, requestId: request, whenBusy,
+        ...(identity ? { entry: { kind: "host.input", data: { actor, source: identity.source, authority: identity.authority, requestId } } } : {}),
+      }, context);
+    });
   }
 
   async messageReceipt(row: SessionRow, c: Conversation, key: string, identity: AdmissionIdentity) {
@@ -1118,6 +1234,22 @@ export class Store {
     identity.assertCurrent();
     if (!record) throw notFound("No native submission for this actor/requestId");
     return { submissionId: record.id as number, status: record.status };
+  }
+
+  async reconcileMessage(row: SessionRow, c: Conversation, key: string, identity: AdmissionIdentity) {
+    key = requestKey(key);
+    const request = nativeRequestKey(identity.actor, "message", key);
+    return this.messageAdmission(`${row.id}:${c.id}:${request}`, async () => {
+      identity.assertCurrent();
+      return this.harness(row).commit(async tx => {
+        identity.assertCurrent();
+        const record = await tx.submissionByRequest(c.id, request);
+        if (record) return { conversationId: c.id as number, requestId: key, accepted: true, submissionId: record.id as number, status: record.status };
+        const receipt = await tx.doc(MessageReceipts, c.id, request, null);
+        receipt.retired = true;
+        return { conversationId: c.id as number, requestId: key, accepted: false };
+      }, identity.signal ? withAbortSignal(identity.signal, ctx) : ctx);
+    });
   }
 
   async goalCommand(row: SessionRow, c: Conversation, body: Record<string, unknown>, identity: AdmissionIdentity) {
@@ -1382,6 +1514,7 @@ export class Store {
   }
 
   async abort(c: Conversation, background: boolean, row?: SessionRow) {
+    this.assertOpen();
     if (row && await this.runtime(row).profile.protectsExecution?.(c.id, ctx))
       throw new ApiFault("conflict", "Native Goal protects this execution; use its operator control");
     await c.abort(ctx, { background });
@@ -1389,14 +1522,17 @@ export class Store {
   }
 
   async withdraw(h: Harness, c: Conversation, submissionId: number) {
+    this.assertOpen();
     return { status: await h.abortSubmission(submissionId as SubmissionId, ctx, c.id) };
   }
 
   async compact(c: Conversation, instructions?: unknown) {
+    this.assertOpen();
     return { taskId: (await c.compact(typeof instructions === "string" && instructions.trim() ? instructions : undefined, ctx)) as number };
   }
 
   async reset(c: Conversation, note?: unknown) {
+    this.assertOpen();
     await c.reset(typeof note === "string" && note.trim() ? note : undefined, ctx);
     return { ok: true as const };
   }
@@ -1579,6 +1715,7 @@ export class Store {
 
   /** Validate and store new thresholds; pi-durable reads them at its next use, so they apply from the next request. */
   setCompaction(row: SessionRow, body: Record<string, unknown>): CompactionSettings {
+    this.runtime(row);
     const next = this.compactionOf(row.id);
     const int = (key: "reserveTokens" | "backgroundTokens" | "keepRecentTokens", min: number, max: number) => {
       if (body[key] === undefined) return;
@@ -1640,6 +1777,7 @@ export class Store {
   sessionSummaryBase(row: SessionRow) {
     return {
       id: row.id,
+      readiness: this.sessionReadiness(row.id),
       name: row.name,
       cwd: row.cwd,
       model: row.model,
@@ -1732,7 +1870,16 @@ export class Store {
     if (errors.length) throw new AggregateError(errors, "Runtime shutdown failed");
   }
 
-  async close() {
+  close(): Promise<void> {
+    if (this.closing) return this.closing;
+    this.lifecycle = "closing";
+    this.closing = this.closeOwned();
+    return this.closing;
+  }
+
+  private async closeOwned() {
+    await this.recovery;
+    await Promise.allSettled([...this.opening.values(), ...this.creations, ...this.sessionCreates.values(), ...this.reloads]);
     const sessions = [...this.opened.values()];
     this.opened.clear();
     const errors: unknown[] = [];
@@ -1745,6 +1892,7 @@ export class Store {
     for (const operation of [() => this.shared?.close(), () => this.unlockShared?.(), () => this.catalog.close(), () => this.unlockCatalog()]) {
       try { await operation(); } catch (error) { errors.push(error); }
     }
+    this.lifecycle = "closed";
     if (errors.length === 1) throw errors[0];
     if (errors.length) throw new AggregateError(errors, "Store shutdown failed");
   }

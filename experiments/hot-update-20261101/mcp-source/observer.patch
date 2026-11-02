@@ -1,0 +1,16 @@
+--- a/manager.ts
++++ b/manager.ts
+@@ -140,7 +140,12 @@
+     }
+   }
+ 
+-  private changed() { for (const listener of this.listeners) listener(); }
++  private changed() {
++    for (const listener of this.listeners) {
++      // Catalogue observers cannot veto a committed generation or skip other observers.
++      try { listener(); } catch { /* Observation is not part of the publication transaction. */ }
++    }
++  }
+   onChange(listener: () => void) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+ 
+   ready() {

@@ -1,0 +1,13 @@
+{
+  "name": "pi-host-dm1-isolated-build",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "apps/dpi-backend",
+    "apps/dpi-sdk",
+    "apps/terminal-adapter",
+    "apps/iii-adapter",
+    "packages/durable-reload"
+  ]
+}

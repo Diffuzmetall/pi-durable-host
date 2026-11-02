@@ -1,6 +1,7 @@
 /** Standalone Codex second opinions through the host's native model runtime. */
 import { randomUUID } from "node:crypto";
-import { Type, contentText } from "@earendil-works/pi-ai";
+import { contentText } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-durable";
 import { Check } from "typebox/value";
 import { makeRuntime, type Host } from "./runtime.js";

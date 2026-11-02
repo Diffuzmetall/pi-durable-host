@@ -4,6 +4,7 @@ import { isAbsolute, join } from 'node:path';
 import { once } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { cleanupSessionResources } from '@earendil-works/pi-ai';
 import { Store } from 'dpi-backend/store';
 import { createHttpServer, GrantPolicy } from 'dpi-backend/server';
 import { createOperationalProfile } from './operational-profile.mjs';
@@ -33,17 +34,44 @@ async function main() {
     if (lock) throw Error('EXISTING_OWNER_LOCK_REFUSED');
   }
   const policy = new GrantPolicy(config.grants);
-  const profile = await createOperationalProfile({ policy, owner: policy.authenticate(ownerGrant.token), trustedWorkspaces: config.trustedWorkspaces, nativeExtensions: config.nativeExtensions });
-  const store = await Store.open({ dataDir: config.dataDir, startDirs: config.startDirs, name: 'durable-host', profile });
-  const server = createHttpServer(store, policy);
-  let closing;
-  const close = () => closing ??= (async () => { server.closeAllConnections(); server.close(); await store.close(); })();
-  process.once('SIGINT', close); process.once('SIGTERM', close);
+  let profile, opening, server, closing;
+  const started = performance.now();
+  // Startup owns locks before HTTP exists. Drain opening before releasing that owner.
+  const close = () => closing ??= (async () => {
+    const shutdownStarted = performance.now();
+    try {
+      const store = await opening;
+      // Stop HTTP admission before closing Store; drain SSE sockets before releasing shared state.
+      const drained = server ? new Promise(resolve => server.close(resolve)) : undefined;
+      server?.closeAllConnections();
+      await drained;
+      await store?.close();
+    } finally {
+      // All Harnesses have stopped; release process-wide provider sockets and cache timers.
+      cleanupSessionResources();
+      console.log(JSON.stringify({ status: 'NATIVE_HOST_STAGE', stage: 'shutdown-settled', elapsedMs: Math.round(performance.now() - shutdownStarted) }));
+    }
+  })();
+  const requestClose = () => { void close().catch(() => { process.exitCode = 1; }); };
+  process.on('SIGINT', requestClose); process.on('SIGTERM', requestClose);
+  // Install signal handlers before the first async profile initializer.
+  opening = (async () => {
+    profile = await createOperationalProfile({ policy, owner: policy.authenticate(ownerGrant.token), trustedWorkspaces: config.trustedWorkspaces, nativeExtensions: config.nativeExtensions });
+    if (closing) return;
+    console.log(JSON.stringify({ status: 'NATIVE_HOST_STAGE', stage: 'profile-created', elapsedMs: Math.round(performance.now() - started) }));
+    return Store.openCatalog({ dataDir: config.dataDir, startDirs: config.startDirs, name: 'durable-host', profile });
+  })();
   try {
+    const store = await opening;
+    if (closing) { await closing; return; }
+    console.log(JSON.stringify({ status: 'NATIVE_HOST_STAGE', stage: 'catalogue-open', elapsedMs: Math.round(performance.now() - started) }));
+    server = createHttpServer(store, policy);
     server.listen(config.port, '127.0.0.1'); await once(server, 'listening');
+    if (closing) { await closing; return; }
     if (process.env.NOTIFY_SOCKET) await promisify(execFile)('/usr/bin/systemd-notify', ['--ready']);
+    if (closing) { await closing; return; }
+    console.log(JSON.stringify({ status: 'NATIVE_HOST_READY', endpoint: `http://127.0.0.1:${server.address().port}`, profile: profile.id, pid: process.pid }));
   } catch { await close(); throw Error('HOST_STARTUP_FAILED'); }
-  console.log(JSON.stringify({ status: 'NATIVE_HOST_READY', endpoint: `http://127.0.0.1:${server.address().port}`, profile: profile.id, pid: process.pid }));
 }
 await main().catch(error => { console.error(['EXISTING_OWNER_LOCK_REFUSED','PRIVATE_HOST_CONFIG_REQUIRED','HOST_CONFIG_INVALID'].includes(error.message)
   ? error.message : 'NATIVE_HOST_START_FAILED — inspect private configuration and credential capability'); process.exitCode = 1; });

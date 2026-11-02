@@ -1,0 +1,41 @@
+{
+  "productionActivation": "NOT RUN",
+  "releaseReturn": "BLOCKED",
+  "previous": {
+    "root": "/tmp/pi-host-restart-candidate-20261101-alice-v2",
+    "manifest": "RESTART-CANDIDATE.json",
+    "manifestSha256": "672b7e5e746dcabfbf5ca82a571cd35f328e457f717b64e2b852b3afa3931665",
+    "integrity": "PASS",
+    "filesVerified": 27124,
+    "operationalEntry": "operational-service.mjs",
+    "operationalEntrySha256": "5643afccd8d8f9f3f1136c3a1a5689731ca1381027fb1c7a95fbb25a7ae49a2c",
+    "operationalProfile": "operational-profile.mjs",
+    "operationalProfileSha256": "d748e744ff0ecc724aac202e264855f1ceba48b729bd05529df8c3c4058cb29a",
+    "backendEntry": "node_modules/dpi-backend/dist/dpi-backend/src/main.js",
+    "backendEntrySha256": "6dd554fb7507916c3c7b407f35b8b446a1b13361badeb280489a21315adcc3fa",
+    "nativeImportModule": "node_modules/dpi-backend/dist/dpi-backend/src/native-import.js",
+    "nativeImportModuleSha256": "65387a459797669e6d109b4b79f1f8b030fb145398daf97fa8e645e9f962ffb4",
+    "cleanNativeImportTarget": null,
+    "compatibility": "UNKNOWN",
+    "reason": "No complete resource-free target for this exact sealed operational profile has been supplied. Its adoptNativeCopy export is not read-only. Never substitute the current registry or execute the service as preflight."
+  },
+  "new": {
+    "root": null,
+    "manifestSha256": null,
+    "status": "NOT BUILT",
+    "reason": "Final R4 source producers are incomplete. No second autonomous R4 Host closure is available. The failed earlier candidate without -v2 is not an approved target."
+  },
+  "integrityInterface": {
+    "module": "experiments/sdk-host-cutover/native-artifact.mjs",
+    "export": "validateSealedArtifact",
+    "input": "{root:absolutePath,manifestSha256:pinnedDigest}",
+    "output": "Promise<{root:string,files:Set<string>}>",
+    "effects": "Reads the pinned manifest and complete sealed file closure. Does not import artifact code, read configuration, open SQLite, create controllers, resume tasks or prove compatibility."
+  },
+  "next": [
+    "Carol: extract the existing read-only validation boundary from adoptNativeCopy without weakening terminal-only, document, model or submission refusals. The supplied NativeImportTarget must belong to the exact previous full release; absent target remains UNKNOWN.",
+    "Frank: keep switch denied while target or state compatibility is unknown. Test lifecycle mechanics on isolated explicit fixture releases, without describing them as the final R4 closures.",
+    "Alice: build the final R4 closure only after implementation outputs are complete. Early validator/target and command development must not wait cyclically for that final closure.",
+    "Heidi: verify both return paths against the eventual same final manifest. Integrity-only PASS cannot close ISC-74/78."
+  ]
+}

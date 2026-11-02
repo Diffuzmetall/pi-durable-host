@@ -1,5 +1,5 @@
 /** Native Codex image generation and editing, with bounded PNG output and exclusive saves. */
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-durable";
 import { constants } from "node:fs";
 import { open, mkdir, realpath, lstat, link } from "node:fs/promises";

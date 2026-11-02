@@ -1,0 +1,89 @@
+{
+  "status": "PRELIMINARY_PROBES_PASS_NOT_ACCEPTED",
+  "candidate": "/tmp/pi-host-hot-update-preliminary-20261101-alice-v1",
+  "manifest": "RESTART-CANDIDATE.json",
+  "manifestSha256": "18724c7afeffda96d63b10c57ca77e1c280598f6fd0c6f60e778e5402c78e73a",
+  "artifactFiles": 27129,
+  "productionActivation": "NOT RUN",
+  "finalAcceptance": "NOT RUN",
+  "probes": [
+    {
+      "mode": "core",
+      "status": "PASS",
+      "exitCode": 0,
+      "sandbox": "/tmp/hot-update-sandbox-sliwnglb",
+      "result": "work/tmp/heidi-r4-core-cLszLG/result.json",
+      "integrityResult": "work/tmp/heidi-r4-stage-ksi2ano7/result.json",
+      "fixtureSha256": "91bd26cd1711933bf19c3a7e5614157d46fb414e24031892f3e19871e1a22617",
+      "observations": ["100 verified code swaps", "native busy phase and schema fences", "hidden base hook", "native settings/context/skills", "nested JS/TS dependency updates", "unsafe effect not repeated on reopen", "missing artifact refused before task mutation"]
+    },
+    {
+      "mode": "resources",
+      "status": "PASS",
+      "exitCode": 0,
+      "sandbox": "/tmp/hot-update-sandbox-5bochath",
+      "result": "work/tmp/heidi-installed-resources-pKtLma/result.json",
+      "integrityResult": "work/tmp/heidi-r4-stage-a14tpgmq/result.json",
+      "fixtureSha256": "04f9f2a64355fecdff0dc795567f307f2692be9e02414aead2e945adc29f46fb",
+      "observations": ["20 real post-warmup MCP replacements/native calls", "same owner/Harness/root", "quiescent FD/children/handles/listeners equal warm baseline"],
+      "rssBaseline": 342904832,
+      "rssFinal": 372744192,
+      "heapBaseline": 70817184,
+      "heapFinal": 76554664,
+      "finalRetainedRegistrySnapshots": 0,
+      "limitation": "No full ISC-70 verdict: RSS/heap attribution and voice/memory cohorts remain open. Registry WeakRefs are not a whole-heap retention proof."
+    },
+    {
+      "mode": "backend",
+      "status": "PASS",
+      "exitCode": 0,
+      "sandbox": "/tmp/hot-update-sandbox-ha3vimgt",
+      "result": "work/tmp/heidi-installed-regressions-6kskzqrx/result.json",
+      "fixtureSha256": "f0cdf5af46630e3e77bd23a7abc3a199679c465115e5f8b8f622f78ffab0b597",
+      "tests": 71,
+      "failures": 0,
+      "skipped": 0,
+      "scope": "13 frozen author suites plus frozen helper; supplementary, not independent acceptance"
+    },
+    {
+      "mode": "pty",
+      "status": "PASS",
+      "exitCode": 0,
+      "sandbox": "/tmp/hot-update-sandbox-ia11fjyh",
+      "result": "work/tmp/heidi-installed-pty-fu6z4neg/result.json",
+      "integrityResults": ["work/tmp/heidi-installed-pty-fu6z4neg/manifest-before.json", "work/tmp/heidi-installed-pty-fu6z4neg/manifest-after.json"],
+      "fixtureSha256": "71999c97521a6023e42a6cec7de12b865d98f3d9e5c65e7f92c0112832f4e8f7",
+      "hostFixtureSha256": "4fdfd6bab134d6ab9a8e370de76e71e69fada3c5deec3a94f1d51e86097253b6",
+      "observations": ["new client PID with exact unsent Unicode draft/history/focus and no automatic submit", "actual reload refreshes skill menu", "injected post-drain error reaches real backend/SDK/PTY as applied cleanup warning", "published skill remains in actual menu; private error not exposed", "path admission refusal preserves focus", "same Host PID/startticks/session/root/Harness; exactly three explicit faux model turns"],
+      "limitation": "Post-drain error is injected after the real empty-MCP owner drains. It does not prove failed real transport retirement or next-generation fencing."
+    },
+    {
+      "mode": "delm",
+      "status": "PASS",
+      "exitCode": 0,
+      "sandbox": "/tmp/hot-update-sandbox-daz7u7v1",
+      "result": "work/tmp/heidi-installed-delm-ygWgKO/result.json",
+      "integrityResult": "work/tmp/heidi-r4-stage-ie7rqpq3/result.json",
+      "fixtureSha256": "c060e7cf92d77726b5c4ad61f0b3df52b8fd57d06bb911c12d1e6bf2bba2aa50",
+      "observations": ["SDK publication with genuine pending native wait", "new phase emits one wake with unchanged task/wait/request/receipt IDs", "same owner/session/root"],
+      "limitation": "Disposable board only; not live DeLM admission."
+    },
+    {
+      "mode": "rollback",
+      "status": "PASS",
+      "exitCode": 0,
+      "sandbox": "/tmp/hot-update-sandbox-81zlfgr0",
+      "result": "work/tmp/heidi-installed-regressions-b2wc7apa/result.json",
+      "tests": 5,
+      "failures": 0,
+      "skipped": 0,
+      "scope": "Frozen author native hot-rollback/boundary fixtures; not full release-return"
+    }
+  ],
+  "initialQaFailures": [
+    {"sandbox": "/tmp/hot-update-sandbox-ul4hfdm_", "cause": "Staging omitted helpers.ts and generated provider modules had no installed package ancestor.", "correction": "Stage frozen helper, rebind helpers.js to helpers.ts, set child TMPDIR inside staged root with installed node_modules. Assertions unchanged."},
+    {"sandbox": "/tmp/hot-update-sandbox-dnbgyg70", "cause": "QA native profile never configured options.skills, so the new skill could not appear.", "correction": "Use explicit sandbox skill roots and native readResourceSettings; original menu assertion unchanged."}
+  ],
+  "qaTools": {"tests": 14, "status": "PASS", "log": "/tmp/heidi-prelim-tools-green.log"},
+  "remaining": ["Full U01-U20 and all 36 ISC leaves on one final digest", "Full resource retention attribution and voice/memory cohorts", "Independent remaining fault/restart regressions", "Exact previous full-profile release-return", "Grace review on the same final digest", "Operator-only auth incident remains unresolved"]
+}

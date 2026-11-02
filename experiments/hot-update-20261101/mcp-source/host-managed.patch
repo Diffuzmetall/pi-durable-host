@@ -1,0 +1,56 @@
+--- a/node_modules/pi-mcp-adapter/host-managed.ts
++++ b/node_modules/pi-mcp-adapter/host-managed.ts
+@@ -263,6 +263,8 @@
+   const lifetime = new AbortController();
+   const connections = new Map<string, Connection>();
+   const inFlight = new Set<Promise<unknown>>();
++  const transportFactories = new Set<Promise<void>>();
++  let factoryCleanupFailed = false;
+   let catalog: readonly CatalogTool[] | undefined;
+   let readyPromise: Promise<void> | undefined;
+   let closePromise: Promise<void> | undefined;
+@@ -310,7 +312,12 @@
+       const pending = Promise.resolve().then(() => definition.createTransport({ server, signal: lifetime.signal }));
+       // A factory that ignores the abort must not hold ready() open after
+       // close(); a transport it delivers late is closed, never adopted.
+-      void pending.then((late) => { if (closed) void late.close().catch(() => {}); }, () => {});
++      const settling = pending.then(async late => { if (closed) await late.close(); }, () => {});
++      transportFactories.add(settling);
++      void settling.then(() => transportFactories.delete(settling), () => {
++        factoryCleanupFailed = true;
++        transportFactories.delete(settling);
++      });
+       const transport = await abortable(pending, lifetime.signal);
+       const client = new Client(
+         { name: `pi-mcp-${server}`, version: "1.0.0" },
+@@ -340,7 +347,7 @@
+       connections.set(server, created);
+       if (closed) {
+         // close() already swept the connections it could see.
+-        await transport.close().catch(() => {});
++        await transport.close();
+         throw new HostManagedMcpError("not_sent", server);
+       }
+       await client.connect(transport, requestOptions(lifetime.signal));
+@@ -605,14 +612,18 @@
+     lifetime.abort();
+     // One deadline bounds both the drain and the host's transport.close() calls.
+     let timer: ReturnType<typeof setTimeout> | undefined;
+-    const deadline = new Promise<void>((resolve) => { timer = setTimeout(resolve, CLOSE_TIMEOUT_MS); });
+-    await Promise.race([Promise.allSettled([...inFlight]), deadline]);
++    const deadline = new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), CLOSE_TIMEOUT_MS); });
++    const drained = await Promise.race([Promise.allSettled([...inFlight, ...transportFactories]), deadline]);
+     const closing = Promise.allSettled([...connections.values()].map(async (connection) => {
+       connection.open = false;
+       await connection.transport.close();
+     }));
+-    await Promise.race([closing, deadline]);
++    const results = await Promise.race([closing, deadline]);
+     clearTimeout(timer);
++    // A deadline or rejected transport close is not successful cleanup. Keep
++    // ownership visible and return a fixed error without credential-bearing causes.
++    if (!drained || !results || factoryCleanupFailed || results.some(result => result.status === 'rejected'))
++      throw new Error('MCP_TRANSPORT_CLEANUP_FAILED');
+     connections.clear();
+     cleanupMaterializedBinaryResources(lifetime.signal);
+   }

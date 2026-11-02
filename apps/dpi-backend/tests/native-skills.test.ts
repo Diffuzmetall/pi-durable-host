@@ -175,6 +175,10 @@ test('real native Harness consumes refreshed selected context/read tool and pers
     }, ctx), /GOAL_SKILL_UNAVAILABLE/);
     await put(skillA, skillText('renamed-a', 'Updated description', 'NATIVE_SKILL_BODY_A_UPDATED'));
     await run(first, 'A', skillA, 'renamed-a');
+    (await first.skills.prepareReload({ projectSettings: { skills: ['-skills/owned-a'] } })).publish();
+    assert.deepEqual((await first.skills.catalogue()).skills, []);
+    const pinned = await first.host.commit(async tx => (await tx.doc(NativeGoalRuntime)).goals[goal.id].skillText['owned-a'], ctx);
+    assert.equal(pinned, admitted, 'disabling a skill on reload preserves the active Goal admitted contract');
     await first.host.close(ctx); hosts.splice(hosts.indexOf(first.host), 1);
     await run(second, 'B', skillB, 'owned-b');
     const reopened = await open(a, 'A-reopen');

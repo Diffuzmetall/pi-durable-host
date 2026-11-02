@@ -1,0 +1,13 @@
+{
+  "extends": "/home/ubuntu/Projects/pi-durable-host/apps/dpi-backend/tsconfig.build.json",
+  "compilerOptions": {
+    "typeRoots": [
+      "/home/ubuntu/Projects/pi-durable-host/apps/dpi-backend/node_modules/@types"
+    ],
+    "paths": {
+      "@local/pi-durable-reload": [
+        "/home/ubuntu/Projects/pi-durable-host/packages/durable-reload/dist/index.d.ts"
+      ]
+    }
+  }
+}

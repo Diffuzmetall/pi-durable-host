@@ -1,11 +1,11 @@
-import { createRegistry, type Extension, type HarnessOptions, type Harness, type Conversation, type ConversationId, type Tx, type Storage } from "@earendil-works/pi-durable";
+import { createRegistry, type Extension, type HarnessOptions, type Harness, type Conversation, type ConversationId, type Storage } from "@earendil-works/pi-durable";
 import { CodingTools } from "@earendil-works/pi-durable/tools";
 import { createPlayground, Workspace, type SpawnSession } from "./extensions.js";
 import { createJobs, JobRuns, type Jobs } from "./jobs.js";
 import { createAddons, type Addons } from "./addons.js";
 import type { SharedState } from "./shared-state.js";
 import type { Context } from "@earendil-works/chord";
-import type { AdmissionIdentity } from "./idempotency.js";
+import type { NativeInputBinding } from "./durable/input-binding.js";
 import type { createGoalOperator } from "./native-profile/operator/goal-operator.js";
 import type { createNativeModels, NativeModelReference } from "./native-profile/models/index.js";
 import type { createNativeSkills } from "./native-profile/skills/index.js";
@@ -32,7 +32,7 @@ export interface RuntimeProfileContext {
   models?: RuntimeModels;
 }
 
-export interface RuntimeComposition {
+export interface RuntimeComposition extends NativeInputBinding {
   registry: ReturnType<typeof createRegistry>;
   extensions: Extension[];
   skills?: Pick<ReturnType<typeof createNativeSkills>, 'catalogue' | 'getSkill'>;
@@ -40,10 +40,13 @@ export interface RuntimeComposition {
   jobs?: Jobs;
   addons?: Addons;
   env?: HarnessOptions["env"];
+  /** Read-only persisted contract preflight before Harness.open reconciles tasks. */
+  assertCompatibleState?(storage: Storage, context: Context): Promise<void>;
   bind?(harness: Harness, context: Context, storage?: Storage): Promise<void>;
-  /** Stage trusted resource-free adapters without changing the active registry.
-   * Publication must be synchronous and nonthrowing; Durable owns idle/auth/concurrency checks. */
-  prepareReload?(additions?: readonly Extension[]): Promise<import('@local/pi-durable-reload').DurableReloadPreparation>;
+  /** Stage trusted adapters/resources without changing the active registry.
+   * Publication must be synchronous and nonthrowing. Discard closes unpublished resources;
+   * drain retires old resources outside the native commit. Durable owns auth/concurrency checks. */
+  prepareReload?(additions?: readonly Extension[], replacements?: readonly import('@local/pi-durable-reload').NativeExtensionReplacement[]): Promise<import('@local/pi-durable-reload').DurableReloadPreparation>;
   shutdown?(context: Context): Promise<void>;
   cleanup?(context: Context): Promise<void>;
   readOnlyTools?: readonly string[];
@@ -52,7 +55,6 @@ export interface RuntimeComposition {
   iii?: NativeIii;
   protectsExecution?(conversation: ConversationId, context: Context): Promise<boolean>;
   admitInput?(conversation: Conversation, nativeRequestId: string, context: Context): Promise<void>;
-  prepareInput?(tx: Tx, conversation: ConversationId, nativeRequestId: string, identity: AdmissionIdentity): Promise<void>;
   documentReaders?: ReadonlyMap<string, (harness: Harness, conversation: Conversation, context: Context) => Promise<unknown>>;
 }
 

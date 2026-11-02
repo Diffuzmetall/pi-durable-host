@@ -12,7 +12,7 @@ The full profile owner must confirm that no other component imports a global dis
 
 `LICENSE.native` retains the native MIT notice for Mario Zechner. `hindsight/vendor/LICENSE` retains the Vectorize AI MIT notice. The vendor directory retains its original dependency and source metadata. This is one integration dependency closure, not a copy of the installed Durable runtime.
 
-`mail.ts` preserves the actual `authorizeAgentMail` policy from `host-lane/host/packages/coding-agent/src/experimental/durable/mcp.ts`. It preserves the actor fields and the deny list for administrative operations. It replaces the original identity callback with explicit session state. It does not read MCP config, register an agent or copy a credential from the current machine.
+`mail.ts` derives its `authorizeAgentMail` policy from `host-lane/host/packages/coding-agent/src/experimental/durable/mcp.ts`. It preserves the actor fields and the deny list for administrative operations, but permits the same session actor to coordinate across existing project directories inside `/home/ubuntu/Projects`. Both the home and target project must resolve inside that workspace; symlink escapes, the workspace root itself and non-directories are rejected. Authorization returns canonical arguments without mutating its input, so aliases share a lease namespace and Nico's frozen arguments remain valid. It replaces the original identity callback with explicit session state. It does not read MCP config, automatically register an agent or copy a credential from the current machine.
 
 ## Narrow local changes
 
@@ -20,7 +20,7 @@ The full profile owner must confirm that no other component imports a global dis
 - The native controller reconciliation lane enters the same scope. The adapter scopes actual tool, section, hook and delivery-task callbacks. Native document kinds, versions, task identities, payload schemas and acceptance logic remain unchanged.
 - The delivery reader recognizes application inputs through actual native `type=input` receipts, not a literal entry-kind alias. A model user role alone is insufficient. Canonical `pi.user` retains its original behavior.
 - The pinned client and pure config resolver now have explicit exports. The wrapper requires both binding and client resolvers. It has no automatic config or memory-bank lookup.
-- Agent Mail uses a real session-owned MCP client and an explicit transport. The native CodeMode boundary checks the current grant and the original identity policy on every call. Registration tokens enter only the bound server request, not the model result or process environment.
+- Agent Mail uses a real session-owned MCP client and an explicit transport. The native CodeMode boundary checks the current grant and the session actor policy on every call. The home registration token is injected only for home-project messages, never into a different project's registration. Cross-project registration must explicitly reuse the session's exact actor name; it does not change the home binding. Server lease conflicts are returned unchanged. Registration tokens are not added to the process environment.
 
 The local code does not import the terminal HTTP configurator. The Hindsight client reads an existing dispatcher but does not replace it. No code in this directory assigns a process environment variable.
 
@@ -45,13 +45,15 @@ node --import tsx --test tests/native-memory-isolation.test.mjs tests/native-aut
 
 PASS: strict check and the actual two-Harness/SQLite/faux scenario. Two controllers execute recall, page tools and durable retain through distinct loopback bank bindings. Model context and log/diagnostic/usage files contain no data from the other session. The check also confirms that the five original environment keys remain unchanged.
 
-Two real MCP clients execute native CodeMode calls with separate actor and registration grants. A cross-project call and a revoked grant reach no Mail effect. Close of session A leaves session B usable. Credential sentinels appear in neither transcript results nor log files.
+Two real MCP clients execute native CodeMode calls with separate actor and registration grants. A cross-project call outside the approved workspace and a revoked grant reach no Mail effect. Close of session A leaves session B usable. Credential sentinels appear in neither transcript results nor log files.
 
 The authenticated regression first fails on assistant-only retention. The corrected reader retains actual Store input, another admitted application input and their answers. It excludes a passive entry with a user-shaped model message. Retry, conflict, revoke and trusted metadata checks also pass. Native input IDs come from receipts, not the narrower `UserEntry` token.
 
 Logs: `/tmp/alice-auth-memory-backend-check.log`, `/tmp/alice-authenticated-memory-red.log` and `/tmp/alice-authenticated-memory-green.log`. The combined corrected checks are 3/3 PASS. The check uses no live provider, personal bank, real Mail server, production database or global config. Seed, survey and update effects are disabled in the explicit fixture config.
 
 The explicit-registry reload regression was found by independent gate on immutable backend `379cf10a...`: an actual native section wrapper cleared ambient ALS, reload bypassed the decorator, and a fresh native fork lost recall. The owning correction decorates the actual reload target. `native-memory-reload.test.mjs` passes with two real Harness/SQLite/faux sessions, neutral native callers, explicit/default registry reload, fresh forks, real loopback recall and independent bank/log bindings. This is a corrective self-check, not independent milestone acceptance.
+
+The cross-project regression is `tests/agent-mail-project-scope.test.ts`. It checks workspace boundaries, canonical keys, immutable arguments, actor/admin restrictions, home-token isolation, revocation and close. Both session MCP facades run through the existing Nico manager and a loopback recording server with the current source policy; registration and lease calls reach that transport, denied calls have zero server effects, and fixture conflicts are returned unchanged. This is not a live Mail registration or a production lease-conflict check. Run it with `node --import tsx --test tests/agent-mail-project-scope.test.ts tests/native-memory-isolation.test.mjs`. Source changes alone do not update a sealed runtime; rebuild and activate separately with operator approval.
 
 ## Remaining limits
 

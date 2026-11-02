@@ -54,7 +54,11 @@ export function v1(store: Store) {
     try {
       const row = store.resolveSession(value);
       res.locals.row = row;
-      if (!['GET', 'HEAD'].includes(req.method)) store.assertNotReloading(row);
+      if (!['GET', 'HEAD'].includes(req.method)) {
+        // Even legacy clients must not mutate metadata of an unready session.
+        store.harness(row);
+        store.assertNotReloading(row);
+      }
       next();
     } catch (e) {
       next(e);
@@ -237,6 +241,7 @@ export function v1(store: Store) {
   r.post(`${a}/parent-control/reconcile`, route(async (_req, res) =>
     res.json(await store.parentOperation(L(res).row, L(res).c, authorizationOf(res)!, { kind: 'reconcile' }))));
   r.get(`${a}/receipts/:requestId`, route(async (req, res) => res.json(await store.messageReceipt(L(res).row, L(res).c, param(req, "requestId"), admission(res)))));
+  r.post(`${a}/receipts/:requestId/reconcile`, route(async (req, res) => res.json(await store.reconcileMessage(L(res).row, L(res).c, param(req, "requestId"), admission(res)))));
   r.delete(
     `${a}/inbox/:submissionId`,
     route(async (req, res) => res.json(await store.withdraw(L(res).h, L(res).c, int(req.params.submissionId, "submissionId")))),

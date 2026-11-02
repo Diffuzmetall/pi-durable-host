@@ -1,6 +1,7 @@
 import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createHindsightController } from './hindsight/index.mjs';
+import { ContextState } from './hindsight/extension.mjs';
 import { withRetainAcceptance } from './hindsight/bridge.mjs';
 import { ensurePrivateDirectory, ensurePrivateFile } from './hindsight/private-fs.mjs';
 import { withSessionLogs } from './logging-scope.mjs';
@@ -61,6 +62,18 @@ export async function createSessionMemory(registry, { directory, resolveBinding,
   return {
     controller,
     paths: Object.freeze({ log: paths.log, diag: paths.diag, usage: paths.usage }),
+    async prepareReload() {
+      // Reuse the scoped controller without publishing or acquiring another subscription.
+      let extension;
+      await controller.reload({
+        snapshot: () => registry.snapshot(),
+        install: candidate => {
+          if (candidate.name !== 'hindsight') throw Error('MEMORY_DELIVERY_KERNEL_REPLACEMENT_DENIED');
+          extension = candidate;
+        },
+      });
+      return [{ extension, documents: [ContextState.definition] }];
+    },
     async bind({ session, storage, context }) {
       await controller.bind({ session, storage, directory: root, context });
     },

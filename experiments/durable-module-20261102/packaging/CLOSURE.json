@@ -1,0 +1,86 @@
+{
+  "root": "/tmp/pi-host-dm1-build-20261102-alice-v1",
+  "sourceBaseline": "/tmp/pi-host-dm1-source-20261102-alice-v1",
+  "workspaces": [
+    "apps/dpi-backend",
+    "apps/dpi-sdk",
+    "apps/terminal-adapter",
+    "apps/iii-adapter",
+    "packages/durable-reload"
+  ],
+  "manifestChanges": [
+    {
+      "path": "apps/dpi-backend/package.json",
+      "group": "dependencies",
+      "name": "@earendil-works/chord",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "apps/dpi-backend/package.json",
+      "group": "dependencies",
+      "name": "@earendil-works/pi-ai",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "apps/dpi-backend/package.json",
+      "group": "dependencies",
+      "name": "@earendil-works/pi-codemode",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "apps/dpi-backend/package.json",
+      "group": "dependencies",
+      "name": "@earendil-works/pi-durable",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "apps/dpi-backend/package.json",
+      "group": "dependencies",
+      "name": "@earendil-works/pi-mcp",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "packages/durable-reload/package.json",
+      "group": "peerDependencies",
+      "name": "@earendil-works/chord",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "packages/durable-reload/package.json",
+      "group": "peerDependencies",
+      "name": "@earendil-works/pi-ai",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    },
+    {
+      "path": "packages/durable-reload/package.json",
+      "group": "peerDependencies",
+      "name": "@earendil-works/pi-durable",
+      "from": "1.4.0",
+      "to": "1.5.0"
+    }
+  ],
+  "install": {
+    "argv": [
+      "npm",
+      "install",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+      "--fetch-retries=0"
+    ],
+    "exitCode": 0,
+    "log": "/tmp/pi-host-dm1-build-20261102-alice-v1/logs/npm-install-config-fixed.log"
+  },
+  "lockSha256": "46482cfa4ca28e91d4a43de4b799ecc22be5b64e5949fc7af3cfa23f894f77eb",
+  "qualification": "experiments/durable-module-20261102/packaging/QUALIFICATION.json",
+  "qualificationSha256": "90702306bbfd32a4d8bcc476a3a6437a15daf8bd26a1baec20a5c75191f92a58",
+  "scope": "D0 dependency closure only; no product build or acceptance; terminal pi-tui stays independently pinned1.4.0",
+  "productionActivation": "NOT RUN"
+}

@@ -1,6 +1,10 @@
 import { AgentDoc } from '@earendil-works/pi-durable';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { loadFreshModule } from '@local/pi-durable-reload';
+import * as loggingScope from '../logging-scope.mjs';
+import * as pinnedMemorySdk from './vendor/pi.mjs';
 import { withCancel, awaitWithContext } from '@earendil-works/chord/context';
 import { createHindsightExtension, createPinnedContextBuilder, resolveContextBinding, bindContextAdmission, ContextState, durableDeliveryStatus } from './extension.mjs';
 import { registerDelivery, reconcileDelivery, DeliveryState } from './delivery.mjs';
@@ -160,7 +164,11 @@ export function createHindsightController(registry, options = {}) {
     },
     async reload(target = registry) {
       if (!host || closed) throw new Error('Hindsight controller is not available');
-      const fresh = await import(`./extension.mjs?reload=${randomUUID()}`);
+      // Fresh behavior/dependencies, but the existing session log owner remains shared.
+      const fresh = loadFreshModule(fileURLToPath(new URL('./extension.mjs', import.meta.url)), {
+        [fileURLToPath(new URL('../logging-scope.mjs', import.meta.url))]: loggingScope,
+        [fileURLToPath(new URL('./vendor/pi.mjs', import.meta.url))]: pinnedMemorySdk,
+      });
       const freshBuilder = options.buildContext ?? fresh.createPinnedContextBuilder({
         cacheFileFor: id => resolve(host.directory, `hindsight-context-${id}`), resolveBinding, resolveClient,
       });

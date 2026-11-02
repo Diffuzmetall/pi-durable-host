@@ -114,7 +114,7 @@ test('failed extension or missing saved model keeps the old registry, dispatch, 
   } finally { await f.close(); }
 });
 
-test('active Durable tasks reject reload without disrupting generation or another idle session', async () => {
+test('active Durable generation retains its phase while future definitions and another session reload', async () => {
   const f = await fixture();
   try {
     const a = f.opened(f.a.id), old = a.profile.registry.snapshot();
@@ -123,8 +123,8 @@ test('active Durable tasks reject reload without disrupting generation or anothe
     const executing=run(a,'active-generation');
     await started;
     f.state.version=2;
-    await assert.rejects(f.client.session(f.a.id).reload(),error => error.status===409);
-    assert.equal(a.profile.registry.snapshot(),old);
+    await f.client.session(f.a.id).reload();
+    assert.notEqual(a.profile.registry.snapshot(),old);
     await f.client.session(f.b.id).reload();
     f.state.release(); await executing;
     f.state.gate=undefined;
@@ -176,6 +176,9 @@ test('trusted adapter reload refreshes transitive imports and rejects duplicate 
     const old=a.profile.registry.snapshot();
     await assert.rejects(a.profile.registry.prepare([()=>createRegistry()]),/BASE/);
     await assert.rejects(a.profile.registry.prepare([base=>{const registry=createRegistry();for(const ext of base.snapshot().installed())registry.install(ext);registry.install(addition(2)); registry.install(defineExtension({name:'duplicate',tools:[addition(3).tools[0]]}));return registry;}]),/DUPLICATE/);
+    assert.equal(a.profile.registry.snapshot(),old);
+    await writeFile(module,'export default (');
+    await assert.rejects(loadRegistryAdapters([module],f.directory));
     assert.equal(a.profile.registry.snapshot(),old);
   } finally { await f.close(); }
 });

@@ -1,0 +1,132 @@
+{
+  "baseline": "Alice immutable closure seed; original source archive separately retained",
+  "curatedEngine": "/tmp/frank-delm-source-ao8tjhv2/extensions/delm (prior isolated R4 curated snapshot, not upstream pristine claim)",
+  "files": [
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/automation.ts",
+      "sha256": "86270a6d672f20ab54a7ea6e370bb4c71d2633a154c6b42b4dd5a335f4525ff4",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/automation.ts",
+      "baselineSha256": "86270a6d672f20ab54a7ea6e370bb4c71d2633a154c6b42b4dd5a335f4525ff4",
+      "unchanged": true
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/github-triggers.mjs",
+      "sha256": "5517734a963792cc297c8b3016d5ea46c68b5c61ea2527b1b15731d535586ee9",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/github-triggers.mjs",
+      "baselineSha256": "5517734a963792cc297c8b3016d5ea46c68b5c61ea2527b1b15731d535586ee9",
+      "unchanged": true
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/goal-run.ts",
+      "sha256": "f4657ad521836d65835a5731a909b64052d3776aca63918caf5cfd96c36220a3",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/goal-run.ts",
+      "baselineSha256": "920f4378d6287642e7b832f09d0471bda29a1358b0184444406e5c83bbccec4b",
+      "unchanged": false
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/goal-skills.ts",
+      "sha256": "9ca2bb8a0adf2d645e354fecede42093dc1cd792cf59c0456015a9b807f5aa26",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/goal-skills.ts",
+      "baselineSha256": "9ca2bb8a0adf2d645e354fecede42093dc1cd792cf59c0456015a9b807f5aa26",
+      "unchanged": true
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/native-contract.ts",
+      "sha256": "26ce664b3e8559cc2c0517f70eba06bfd1191f5032f46ab77929903d41650d4a",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/native-contract.ts",
+      "baselineSha256": "26ce664b3e8559cc2c0517f70eba06bfd1191f5032f46ab77929903d41650d4a",
+      "unchanged": true
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/native-goal-control.ts",
+      "sha256": "1c2f0b95ffcecd391019e9e7d5c3dae41d0592434bbbd49e135c4157ab3ae222",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/native-goal-control.ts",
+      "baselineSha256": "60df37cc7b123d2f6f50138f2e0c33e11e5d490544c92167fde2535caa2d5319",
+      "unchanged": false
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/native-goals.ts",
+      "sha256": "dd059ed5e3a974e95e37cce86f252f276a50841bfffaacd9e32a58845c0bf96c",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/native-goals.ts",
+      "baselineSha256": "dd059ed5e3a974e95e37cce86f252f276a50841bfffaacd9e32a58845c0bf96c",
+      "unchanged": true
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/schedules.ts",
+      "sha256": "9a4e184e3966d721382643dfdd01ce5ab0ef0e8417ae769a360c5e02745a3192",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/schedules.ts",
+      "baselineSha256": "0c6a72c41a3e0fd21233012c5cb5fb128c54dc2a23ca09d234c8aaa5327e46f4",
+      "unchanged": false
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/session-goals.ts",
+      "sha256": "cd1914cb33a035fe4b66ab1dfa64f90b9650f00bff166ca62642d48cb5836a2d",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/session-goals.ts",
+      "baselineSha256": "ad90309ad5c57857b12f57abbdc9ef0814a3983a5ff739e6d275c138c407651e",
+      "unchanged": false
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/triggers.mjs",
+      "sha256": "13337d2924c6ace943d7b43f586a27155d27549ac7b9d5616106053e25551a43",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/triggers.mjs",
+      "baselineSha256": "b08fee3d3ef5645251879484d993c5668ac3515d462284d0dea651cd916ef9bc",
+      "unchanged": false
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/automation/when.ts",
+      "sha256": "b862ad4a747d7e8ba6da77f5a906ecaa58771e078d01a7e7350201053feb99f8",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/apps/dpi-backend/src/native-profile/automation/when.ts",
+      "baselineSha256": "b862ad4a747d7e8ba6da77f5a906ecaa58771e078d01a7e7350201053feb99f8",
+      "unchanged": true
+    },
+    {
+      "path": "experiments/durable-module-20261102/delm-automation/engine/control.js",
+      "sha256": "bd0c09a57258fef364e7f99635fc74c1112e95ae851cad299eef83702e2873b0",
+      "baseline": "/tmp/frank-delm-source-ao8tjhv2/extensions/delm/control.js",
+      "baselineSha256": "bd0c09a57258fef364e7f99635fc74c1112e95ae851cad299eef83702e2873b0",
+      "unchanged": true
+    },
+    {
+      "path": "experiments/durable-module-20261102/delm-automation/engine/index.js",
+      "sha256": "73ed5350578019ac4ad2c5a86e18a37aebe724d18217780535976e412a50f69d",
+      "baseline": "/tmp/frank-delm-source-ao8tjhv2/extensions/delm/index.js",
+      "baselineSha256": "71c988a5e19030ef62fde4ce676ff5813e3aa3c965af5274687a6fefbc7595a3",
+      "unchanged": false
+    },
+    {
+      "path": "experiments/durable-module-20261102/delm-automation/engine/protocol.js",
+      "sha256": "4a538bb850c9b285c6de9920f99397519b3a7cd464bc629b462807aa9fd1b4cd",
+      "baseline": "/tmp/frank-delm-source-ao8tjhv2/extensions/delm/protocol.js",
+      "baselineSha256": "4a538bb850c9b285c6de9920f99397519b3a7cd464bc629b462807aa9fd1b4cd",
+      "unchanged": true
+    },
+    {
+      "path": "experiments/durable-module-20261102/delm-automation/engine/session-facet.js",
+      "sha256": "63056e6a2c53dc1720fa698505b9301e585817a18ae68e534dea59e1799b218a",
+      "baseline": "/tmp/frank-delm-source-ao8tjhv2/extensions/delm/session-facet.js",
+      "baselineSha256": "63056e6a2c53dc1720fa698505b9301e585817a18ae68e534dea59e1799b218a",
+      "unchanged": true
+    },
+    {
+      "path": "experiments/durable-module-20261102/delm-automation/source-hook.mjs",
+      "sha256": "8936228f9825762c023d216ca959e0304e5b853e7cf54b137479485340bc02dd",
+      "baseline": null,
+      "baselineSha256": null,
+      "unchanged": false
+    },
+    {
+      "path": "experiments/durable-module-20261102/delm-automation/native-bindings.test.mjs",
+      "sha256": "6c898d97351480a551dc31d7ee0845bc28c0e36ab47ae03c966e6eb308984ff5",
+      "baseline": null,
+      "baselineSha256": null,
+      "unchanged": false
+    },
+    {
+      "path": "experiments/sdk-host-cutover/delm-profile.mjs",
+      "sha256": "bf65c30ce4f226a02d04771d500e52559ed4d9a4863a8059121596cd25e4b83f",
+      "baseline": "/tmp/pi-host-dm1-build-20261102-alice-v1/experiments/sdk-host-cutover/delm-profile.mjs",
+      "baselineSha256": "bf65c30ce4f226a02d04771d500e52559ed4d9a4863a8059121596cd25e4b83f",
+      "unchanged": true
+    }
+  ]
+}

@@ -1,24 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { ErrorRequestHandler } from "express";
 import { ConversationBusy } from "@earendil-works/pi-durable";
-import type { ErrorCode } from "../../dpi-sdk/src/api.js";
 import { GrantDenied } from "./grants.js";
-
-const STATUS: Record<ErrorCode, number> = {
-  unauthorized: 401, not_found: 404, invalid: 400, busy: 409, conflict: 409,
-  ambiguous: 409, unavailable: 503, internal: 500, offline: 503,
-};
-
-export class ApiFault extends Error {
-  readonly status: number;
-  constructor(readonly code: ErrorCode, message: string) {
-    super(message);
-    this.status = STATUS[code];
-  }
-}
-
-export const invalid = (message: string) => new ApiFault("invalid", message);
-export const notFound = (message: string) => new ApiFault("not_found", message);
+import { ApiFault, invalid } from "./fault.js";
+export { ApiFault, invalid, notFound } from "./fault.js";
 
 /** Only explicit client faults may carry application-owned explanations; internal causes never do. */
 export function publicErrorMessage(error: unknown): string {

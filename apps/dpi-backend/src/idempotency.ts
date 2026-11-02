@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { invalid } from "./errors.js";
+import { invalid } from "./fault.js";
 
 /** Supplied by trusted server policy, never copied from an HTTP request body. */
 export interface AdmissionIdentity {

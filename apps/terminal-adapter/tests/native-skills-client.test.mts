@@ -5,6 +5,7 @@ import { DpiClient, type RequestOptions } from 'dpi-sdk/client';
 import { nativeAttentionFixture } from '../../dpi-backend/tests/fixtures/terminal-native-attention.js';
 import { until } from '../../dpi-backend/tests/helpers.js';
 import { RemoteTerminal } from '../src/remote-controller.js';
+import { SubmitDeliveryError } from '../src/types.js';
 
 class SkillClient extends DpiClient {
   failBeforeSend = false;
@@ -37,7 +38,7 @@ test('real server skill body freezes before POST; explicit retry after viewer/ow
     assert(terminal.current().skills?.some(skill => skill.name === 'terminal-fixture'));
     assert(terminal.current().skills?.every(skill => !('content' in skill)), 'Catalogue never downloads private bodies');
     first.failBeforeSend = true;
-    await assert.rejects(() => terminal!.submit('/skill:terminal-fixture carry on', 'steer'), /Uncertain skill transport/);
+    await assert.rejects(() => terminal!.submit('/skill:terminal-fixture carry on', 'steer'), SubmitDeliveryError);
     assert.equal(first.bodies, 1);
     assert.match(first.posts[0].content, /ORIGINAL_REMOTE_SKILL_BODY/);
     assert.match(first.posts[0].content, /<\/skill>\n\ncarry on$/);

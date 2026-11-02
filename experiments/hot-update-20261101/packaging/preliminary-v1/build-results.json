@@ -1,0 +1,73 @@
+[
+  {
+    "name": "reload",
+    "argv": [
+      "npm",
+      "--prefix",
+      "packages/durable-reload",
+      "run",
+      "build"
+    ],
+    "cwd": "/home/ubuntu/Projects/pi-durable-host",
+    "exitCode": 0,
+    "log": "/tmp/alice-preliminary-build-2ngrbym6/reload.log"
+  },
+  {
+    "name": "sdk",
+    "argv": [
+      "npm",
+      "--prefix",
+      "apps/dpi-sdk",
+      "run",
+      "build"
+    ],
+    "cwd": "/home/ubuntu/Projects/pi-durable-host",
+    "exitCode": 0,
+    "log": "/tmp/alice-preliminary-build-2ngrbym6/sdk.log"
+  },
+  {
+    "name": "backend-types",
+    "argv": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "/home/ubuntu/Projects/pi-durable-host/experiments/hot-update-20261101/packaging/preliminary-v1/backend.tsconfig.json"
+    ],
+    "cwd": "/home/ubuntu/Projects/pi-durable-host/apps/dpi-backend",
+    "exitCode": 0,
+    "log": "/tmp/alice-preliminary-build-2ngrbym6/backend-types.log"
+  },
+  {
+    "name": "backend-assets",
+    "argv": [
+      "node",
+      "scripts/build.mjs"
+    ],
+    "cwd": "/home/ubuntu/Projects/pi-durable-host/apps/dpi-backend",
+    "exitCode": 0,
+    "log": "/tmp/alice-preliminary-build-2ngrbym6/backend-assets.log"
+  },
+  {
+    "name": "terminal-types",
+    "argv": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "/home/ubuntu/Projects/pi-durable-host/experiments/hot-update-20261101/packaging/preliminary-v1/terminal.tsconfig.json"
+    ],
+    "cwd": "/home/ubuntu/Projects/pi-durable-host/apps/terminal-adapter",
+    "exitCode": 0,
+    "log": "/tmp/alice-preliminary-build-2ngrbym6/terminal-types.log"
+  },
+  {
+    "name": "terminal-assets",
+    "argv": [
+      "bash",
+      "-c",
+      "node --input-type=module -e \"import { cpSync } from 'node:fs'; for (const n of ['dark.json','light.json','theme-schema.json']) cpSync('src/ui/modes/interactive/theme/'+n,'dist/ui/modes/interactive/theme/'+n); cpSync('src/ui/licenses','dist/ui/licenses',{recursive:true}); cpSync('src/ui/SOURCE.json','dist/ui/SOURCE.json');\""
+    ],
+    "cwd": "/home/ubuntu/Projects/pi-durable-host/apps/terminal-adapter",
+    "exitCode": 0,
+    "log": "/tmp/alice-preliminary-build-2ngrbym6/terminal-assets.log"
+  }
+]

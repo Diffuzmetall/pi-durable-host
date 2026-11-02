@@ -1,0 +1,46 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPATIBLE_ARTIFACT",
+  "repository": "https://github.com/IgorWarzocha/pi-durable-components",
+  "commit": "63414a3c2b30143bb31f881c4f2224d9a27d4dd9",
+  "archive": {
+    "url": "https://codeload.github.com/IgorWarzocha/pi-durable-components/tar.gz/63414a3c2b30143bb31f881c4f2224d9a27d4dd9",
+    "path": "/tmp/pi-host-dm1-gippity-source-20261102-dave-v1/pinned-source.tar.gz",
+    "size": 22423018,
+    "sha256": "7d4e03df133b71cd98abfb8ff05c4cbc130d72a3ef2772fdcb4786661d08d68a"
+  },
+  "sourceRoot": "/tmp/pi-host-dm1-gippity-source-20261102-dave-v1/source",
+  "extraction": {
+    "regularFiles": 888,
+    "maximumExtractedFileBytes": 2000000,
+    "omittedFiles": "Six platform helper binaries above the extraction size bound remain in the original archive; no binary or install script was executed.",
+    "safety": "Only regular files under the exact archive prefix were written; parent traversals were refused. Three previously downloaded raw files matched archive bytes."
+  },
+  "controller": {
+    "path": "packages/gippity-voice/src/controller.ts",
+    "sha256": "fab43c01743ad401e4db887d1ffd4f8d0bb77824525779a5ee3eb576ae350e98",
+    "removedObservationImports": ["AgentEvent", "AgentEventStream", "watchEvents"],
+    "nativeConsumers": [
+      "service ready/active lifecycle acquires and stops AgentEventStream",
+      "handleEvent drives voice delegation, partial text, progress, final results and compaction refresh",
+      "ensureLan replays events.snapshot into the LAN activity projection",
+      "voice/lan/server.ts also imports AgentEvent and relays legacy event representations"
+    ],
+    "migrationConstraint": "Use native state-first observation directly; rebuilding the removed watchEvents event machine is not an accepted adaptation."
+  },
+  "failuresPreserved": [
+    "An initial bounded archive read refused a payload larger than 20000000 bytes before creating the scratch root.",
+    "Raw guesses lan-server.ts, types.ts and build.mjs returned HTTP404; actual source paths were resolved from the pinned tree."
+  ],
+  "currentIntegrationBlocker": {
+    "publication": "7c6b7bf09be84182962ce393bb6e41d2",
+    "owner": "carol",
+    "task": "8d3dcd415f8e49ec8637199c8ff05acf",
+    "status": "UNRESOLVED_FAIL_NOT_READY",
+    "scope": "Native interrupt commit atomicity under grant revocation. Existing Dave schema/import probe does not test a corrected native patch."
+  },
+  "limitations": [
+    "Pinned source is unchanged and is not a rebuilt GipPity artifact.",
+    "No native observer adaptation, declaration build or synthetic voice runtime check was executed in this continuation.",
+    "Production activation NOT RUN."
+  ]
+}

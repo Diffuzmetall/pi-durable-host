@@ -80,8 +80,14 @@ export async function connectSessionMcp(context, { agentDir, projectTrusted, aut
   if (projection.blockers.length) throw Error(`MCP_UNSUPPORTED_CONFIG: ${JSON.stringify(projection.blockers)}`);
   const specs = projection.servers.filter(server => server.name !== 'mcp-agent-mail' || identity);
   const manager = createMcpManager({ servers: specs,
-    canonicalize: call => call.server === 'mcp-agent-mail' && identity?.token && ['send_message', 'reply_message'].includes(call.tool)
-      ? { ...call.arguments, sender_token: identity.token } : { ...call.arguments },
+    canonicalize: call => {
+      if (call.server !== 'mcp-agent-mail' || !identity) return { ...call.arguments };
+      // Nico freezes arguments before authorization; canonicalize before that boundary.
+      const args = authorizeAgentMail(call.tool, call.arguments, identity.project, identity.name);
+      // Never forward the home token to another project's registration.
+      return identity.token && (args.project_key ?? identity.project) === identity.project && ['send_message', 'reply_message'].includes(call.tool)
+        ? { ...args, sender_token: identity.token } : args;
+    },
     authorize: async call => {
       await current(call.server, { name: call.tool }, call.arguments);
       await projection.preflight(call);

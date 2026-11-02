@@ -15,6 +15,7 @@ import type {
   Page,
   ProtocolInfo,
   RuntimeRefreshResult,
+  ReloadResult,
   GoalOperatorReceipt,
   ModelInfo,
   NativeParentCommand,
@@ -34,7 +35,8 @@ import type {
   WhenBusy,
   WireEntry,
 } from "./api.js";
-import { API_VERSION } from "./api.js";
+import { API_VERSION, API_VERSION_HEADER, AGENT_STATE_CAPABILITY, type AgentScope } from "./api.js";
+import { parseAgentObservationFrame, parseSendResult } from "./observation-wire.js";
 import { DpiError } from "./errors.js";
 import { readSse } from "./sse.js";
 
@@ -65,10 +67,20 @@ export class DpiClient {
 
   private headers(json: boolean, extra: Record<string, string> = {}) {
     return {
+      [API_VERSION_HEADER]: String(API_VERSION),
       ...(this.token ? { authorization: `Bearer ${this.token}`, "x-dpi-token": this.token } : {}),
       ...(json ? { "content-type": "application/json" } : {}),
       ...extra,
     };
+  }
+
+  private async checkProtocol(options: RequestOptions = {}, capabilities: readonly string[] = []) {
+    const protocol = await this.protocol({ signal: options.signal, timeoutMs: options.timeoutMs });
+    if (protocol.apiVersion !== API_VERSION)
+      throw new DpiError("unavailable", `Unsupported host protocol ${protocol.apiVersion}; SDK requires ${API_VERSION}`, 426);
+    const missing = [...new Set([...(this.requirements.requiredCapabilities ?? []), ...(options.requiredCapabilities ?? []), ...capabilities])]
+      .filter(name => !protocol.capabilities.includes(name));
+    if (missing.length) throw new DpiError("unavailable", `Host is missing required capabilities: ${missing.join(", ")}`, 426);
   }
 
   async request<T>(
@@ -78,13 +90,7 @@ export class DpiClient {
     options: RequestOptions = {},
   ): Promise<T> {
     if (!["GET", "HEAD"].includes(method.toUpperCase()) || options.requiredCapabilities?.length) {
-      const protocol = await this.protocol({ signal: options.signal, timeoutMs: options.timeoutMs });
-      if (protocol.apiVersion !== API_VERSION)
-        throw new DpiError("unavailable", `Unsupported host protocol ${protocol.apiVersion}; SDK requires ${API_VERSION}`);
-      const missing = [...new Set([...(this.requirements.requiredCapabilities ?? []), ...(options.requiredCapabilities ?? [])])]
-        .filter((name) => !protocol.capabilities.includes(name));
-      if (missing.length)
-        throw new DpiError("unavailable", `Host is missing required capabilities: ${missing.join(", ")}`);
+      await this.checkProtocol(options, [AGENT_STATE_CAPABILITY]);
     }
     const timeout = AbortSignal.timeout(options.timeoutMs ?? 20_000);
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
@@ -122,6 +128,7 @@ export class DpiClient {
 
   /** Open one SSE stream and yield its frames until it ends. Throws `DpiError` on failure. */
   async *stream(path: string, signal: AbortSignal, idleMs?: number): AsyncGenerator<Frame> {
+    await this.checkProtocol({ signal }, /\/agents\/[^/]+\/events(?:\?|$)/.test(path) ? [AGENT_STATE_CAPABILITY] : []);
     let response: Response;
     try {
       response = await fetch(this.baseUrl + path, {
@@ -141,7 +148,43 @@ export class DpiClient {
       throw new DpiError(code, body?.error?.message ?? `Stream failed (${response.status})`, response.status);
     }
     try {
-      for await (const message of readSse(response.body, idleMs)) yield JSON.parse(message.data) as Frame;
+      let scope: AgentScope | undefined;
+      let revision: string | undefined;
+      let greeted = false;
+      for await (const message of readSse(response.body, idleMs)) {
+        const value: unknown = JSON.parse(message.data);
+        if (!value || typeof value !== "object" || !("type" in value) || typeof value.type !== "string")
+          throw new DpiError("unavailable", "Host returned an invalid stream frame", 502);
+        if (value.type === "hello") {
+          if (!("apiVersion" in value) || value.apiVersion !== API_VERSION || !("scope" in value) || !value.scope || typeof value.scope !== "object" || !("kind" in value.scope))
+            throw new DpiError("unavailable", "Host stream protocol is incompatible", 426);
+          if (value.scope.kind === "agent") {
+            if (!("sessionId" in value.scope) || typeof value.scope.sessionId !== "string" || !("agentId" in value.scope) || typeof value.scope.agentId !== "number")
+              throw new DpiError("unavailable", "Host stream scope is invalid", 502);
+            scope = { sessionId: value.scope.sessionId, conversationId: value.scope.agentId };
+          }
+          greeted = true;
+        } else if (!greeted) throw new DpiError("unavailable", "Host stream omitted its protocol handshake", 426);
+        if (value.type === "agent.state" || value.type === "agent.update" || value.type === "agent.end") {
+          const frame = parseAgentObservationFrame(value);
+          if (!scope || frame.sessionId !== scope.sessionId || frame.conversationId !== scope.conversationId)
+            throw new DpiError("unauthorized", "Host stream scope changed; observation stopped", 403);
+          if (frame.type === "agent.update") {
+            if (frame.revision === revision) continue;
+            if (!revision || frame.baseRevision !== revision) {
+              yield { type: "agent.end", ...scope, reason: "resync" };
+              return;
+            }
+          }
+          if (frame.type !== "agent.end") revision = frame.revision;
+          yield frame;
+          if (frame.type === "agent.end") return;
+        } else {
+          if (value.type === "snapshot" || value.type === "batch")
+            throw new DpiError("unavailable", "Host sent an unsupported legacy observation", 426);
+          yield value as Frame;
+        }
+      }
     } catch (error) {
       if (signal.aborted) return;
       throw error;
@@ -153,13 +196,13 @@ export class DpiClient {
   async protocol(options?: RequestOptions): Promise<ProtocolInfo> {
     const value = await this.request<unknown>("GET", "/v1/protocol", undefined, options).catch((error: unknown) => {
       if (error instanceof DpiError && error.status === 404)
-        throw new DpiError("unavailable", "Host does not support protocol discovery; mutation was not sent", 404);
+        throw new DpiError("unavailable", "Host does not support protocol discovery; mutation was not sent", 426);
       throw error;
     });
     if (!value || typeof value !== "object" || !("apiVersion" in value) || !("capabilities" in value) ||
         typeof value.apiVersion !== "number" || !Number.isInteger(value.apiVersion) || !Array.isArray(value.capabilities) ||
         !value.capabilities.every((name: unknown) => typeof name === "string"))
-      throw new DpiError("unavailable", "Host returned invalid protocol discovery metadata");
+      throw new DpiError("unavailable", "Host returned invalid protocol discovery metadata", 426);
     return { apiVersion: value.apiVersion, capabilities: value.capabilities };
   }
   device(options?: RequestOptions) {
@@ -218,9 +261,9 @@ export class SessionHandle {
     return this.client.request<RuntimeRefreshResult>("POST", `${this.base}/runtime/refresh`, {},
       { requiredCapabilities: ['runtime-refresh.v1'] });
   }
-  /** Reload trusted native providers/adapters on the existing idle Durable Harness. */
+  /** Reload server-owned sources on the same Harness. Failure is not retried or turned into a model input. */
   reload() {
-    return this.client.request<{ sessionId: string; models: number; extensions: number }>(
+    return this.client.request<ReloadResult>(
       'POST', `${this.base}/reload`, {}, { requiredCapabilities: ['profile-reload.v1'] });
   }
   /** Current catalogue of this session's actual native Models container. */
@@ -253,10 +296,10 @@ export class SessionHandle {
   setCompaction(patch: Partial<CompactionSettings>) {
     return this.client.request<CompactionSettings>("PATCH", `${this.base}/compaction`, patch);
   }
-  submission(id: number, waitMs = 0) {
-    return this.client.request<SendResult>("GET", `${this.base}/submissions/${id}?waitMs=${waitMs}`, undefined, {
+  async submission(id: number, waitMs = 0) {
+    return parseSendResult(await this.client.request<unknown>("GET", `${this.base}/submissions/${id}?waitMs=${waitMs}`, undefined, {
       timeoutMs: waitMs + 20_000,
-    });
+    }));
   }
   events(signal: AbortSignal) {
     return this.client.stream(`${this.base}/events`, signal);
@@ -278,13 +321,13 @@ export class AgentHandle {
   rename(name: string) {
     return this.client.request<AgentSummary>("PATCH", this.base, { name });
   }
-  send(content: string, whenBusy: WhenBusy = "followUp", requestId = newId(), waitMs?: number) {
-    return this.client.request<SendResult>(
+  async send(content: string, whenBusy: WhenBusy = "followUp", requestId = newId(), waitMs?: number) {
+    return parseSendResult(await this.client.request<unknown>(
       "POST",
       `${this.base}/messages`,
       { content, whenBusy, requestId, waitMs },
       { timeoutMs: (waitMs ?? 0) + 20_000 },
-    );
+    ));
   }
   models() {
     return this.client.request<ModelInfo[]>('GET', `${this.base}/models`, undefined, { requiredCapabilities: ['agent-models.v1'] });
@@ -437,6 +480,7 @@ export async function follow(
   signal: AbortSignal,
 ) {
   let backoff = 1_000;
+  let observedScope: AgentScope | undefined;
   while (!signal.aborted) {
     onState("connecting");
     try {
@@ -445,7 +489,12 @@ export async function follow(
           backoff = 1_000;
           onState("live");
         }
+        if (frame.type === "agent.state") observedScope = { sessionId: frame.sessionId, conversationId: frame.conversationId };
         onFrame(frame);
+        if (frame.type === "agent.end") {
+          if (frame.reason === "revoked") return onState("unauthorized", new DpiError("unauthorized", "Observation permission was revoked", 403));
+          if (frame.reason === "closed") return onState("gone");
+        }
       }
       if (signal.aborted) return;
       onFrame({ type: "disconnected", reason: "Stream ended" });
@@ -454,7 +503,11 @@ export async function follow(
       const e =
         error instanceof DpiError ? error : new DpiError("offline", String((error as Error)?.message ?? error));
       onFrame({ type: "disconnected", reason: e.message });
-      if (e.code === "unauthorized") return onState("unauthorized", e);
+      if (e.code === "unauthorized" || e.status === 403) {
+        if (observedScope) onFrame({ type: "agent.end", ...observedScope, reason: "revoked" });
+        return onState("unauthorized", e);
+      }
+      if (e.status === 426) return onState("gone", e);
       if (e.code === "not_found") return onState("gone", e);
       onState("offline", e);
     }

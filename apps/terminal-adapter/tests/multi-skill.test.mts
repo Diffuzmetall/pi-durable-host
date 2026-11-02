@@ -5,6 +5,7 @@ import test from 'node:test';
 import { DpiClient, type RequestOptions } from 'dpi-sdk/client';
 import { nativeAttentionFixture } from '../../dpi-backend/tests/fixtures/terminal-native-attention.js';
 import { RemoteTerminal } from '../src/remote-controller.js';
+import { SubmitDeliveryError } from '../src/types.js';
 
 test('multiple actual Host skill bodies freeze before POST and survive uncertain-delivery retry', { timeout: 30000 }, async () => {
   const host = await nativeAttentionFixture();
@@ -33,7 +34,7 @@ test('multiple actual Host skill bodies freeze before POST and survive uncertain
     terminal = await RemoteTerminal.open(client, host.sessionId, cache);
     client.fail = true;
     const text = 'Use /skill:terminal-fixture and /skill:second /skill:terminal-fixture together';
-    await assert.rejects(() => terminal!.submit(text, 'steer'), /uncertain multi-skill/);
+    await assert.rejects(() => terminal!.submit(text, 'steer'), SubmitDeliveryError);
     assert.equal(client.reads, 2);
     assert.match(client.posts[0].content, /ORIGINAL_REMOTE_SKILL_BODY[\s\S]*SECOND_REMOTE_BODY/);
     assert.equal((client.posts[0].content.match(/<skill name=/g) ?? []).length, 2);

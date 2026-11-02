@@ -4,6 +4,7 @@ import { isAbsolute, join } from 'node:path';
 import { once } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { cleanupSessionResources } from '@earendil-works/pi-ai';
 import { Store } from 'dpi-backend/store';
 import { createHttpServer, GrantPolicy } from 'dpi-backend/server';
 import { createOperationalProfile } from './operational-profile.mjs';
@@ -35,16 +36,21 @@ async function main() {
   }
   const policy = new GrantPolicy(config.grants);
   const profile = await createOperationalProfile({ policy, owner: policy.authenticate(ownerGrant.token), trustedWorkspaces: config.trustedWorkspaces, nativeExtensions: config.nativeExtensions });
-  const opening = Store.open({ dataDir: config.dataDir, startDirs: config.startDirs, name: 'durable-host', profile });
-  let server, closing;
+  let opening, server, closing;
   // Startup owns locks before HTTP exists. Drain opening before releasing that owner.
   const close = () => closing ??= (async () => {
-    const store = await opening;
-    server?.closeAllConnections(); server?.close();
-    await store.close();
+    try {
+      const store = await opening;
+      server?.closeAllConnections(); server?.close();
+      await store.close();
+    } finally {
+      // All Harnesses have stopped; release process-wide provider sockets and cache timers.
+      cleanupSessionResources();
+    }
   })();
   const requestClose = () => { void close().catch(() => { process.exitCode = 1; }); };
   process.on('SIGINT', requestClose); process.on('SIGTERM', requestClose);
+  opening = Store.open({ dataDir: config.dataDir, startDirs: config.startDirs, name: 'durable-host', profile });
   const store = await opening;
   if (closing) { await closing; return; }
   try {

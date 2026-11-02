@@ -12,13 +12,14 @@ import { canonicalizePath } from './upstream/utils/paths.js';
 import type { ResourceDiagnostic } from './upstream/core/diagnostics.js';
 
 export type { Skill, ResourceSettings, ResourceDiagnostic };
+export { readResourceSettings } from './upstream/core/settings-manager.js';
 export interface NativeSkillsOptions {
   cwd: string;
   /** Inclusive ancestor boundary; directories above it are never discovered. */
   projectRoot: string;
   /** Explicit home for .agents/skills and ~ resources, not process.env.HOME. */
   homeDir: string;
-  /** Explicit agent resources/context root; settings.json is never opened. */
+  /** Explicit agent resources/context root. Settings are supplied by the server owner. */
   agentDir: string;
   projectTrusted: boolean;
   globalSettings?: ResourceSettings;
@@ -65,16 +66,16 @@ export function createNativeSkills(options: NativeSkillsOptions) {
     return resolved;
   };
   scopeCwd(roots.cwd);
-  const settingsManager = readOnlyResourceSettings(options.globalSettings ?? {}, options.projectSettings ?? {}, options.projectTrusted);
+  let settingsManager = readOnlyResourceSettings(options.globalSettings ?? {}, options.projectSettings ?? {}, options.projectTrusted);
 
   // Selected experimental/durable/skills.ts, retaining skip (never install) and
   // includeDefaults:false: the real resource resolver owns defaults/filtering.
-  const catalogue = async (cwd = roots.cwd): Promise<LoadSkillsResult> => {
+  const catalogue = async (cwd = roots.cwd, settings = settingsManager): Promise<LoadSkillsResult> => {
     const directory = scopeCwd(cwd);
     const missing: ResourceDiagnostic[] = [];
     const resources = await new DefaultPackageManager({
       cwd: directory, agentDir: roots.agentDir, homeDir: roots.homeDir,
-      projectRoot: roots.projectRoot, settingsManager,
+      projectRoot: roots.projectRoot, settingsManager: settings,
     }).resolve(async () => {
       missing.push({ type: 'warning', message: 'Missing package skipped without installation (explicit resource configuration)' });
       return 'skip';
@@ -142,5 +143,13 @@ export function createNativeSkills(options: NativeSkillsOptions) {
     }
     return readGoalSkill(name, roots.cwd, skills);
   };
-  return { extension, catalogue, context, getSkill, resolveGoalSkill };
+  const prepareReload = async (settings: Pick<NativeSkillsOptions, 'globalSettings' | 'projectSettings'>) => {
+    const candidate = readOnlyResourceSettings(settings.globalSettings ?? {}, settings.projectSettings ?? {}, options.projectTrusted);
+    const result = await catalogue(roots.cwd, candidate);
+    // Initial discovery retains upstream warnings/skip semantics. Explicit reload
+    // must not report a malformed/incomplete resource set as successfully applied.
+    if (result.diagnostics.length) throw Error('NATIVE_SKILLS_RELOAD_INVALID');
+    return { publish() { settingsManager = candidate; } };
+  };
+  return { extension, catalogue, context, getSkill, resolveGoalSkill, prepareReload };
 }

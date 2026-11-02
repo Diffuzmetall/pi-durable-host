@@ -1,0 +1,11 @@
+{
+  "status": "QUALIFIER_ERROR_NOT_PRODUCT_PATCH_FAILURE",
+  "root": "/tmp/pi-host-dm1-commit-20261102-alice-v1",
+  "consoleLog": "/tmp/alice-dm1-native-commit-qualification.log",
+  "sandboxRoot": "/tmp/pi-host-dm1-commit-20261102-alice-v1/tmp/hot-update-sandbox-hvvv6t1m",
+  "completed": ["patch-for-types exit0", "strict compilation exit0", "stock real-Harness fixture exit1 with expected unauthorized document and task-mark assertions"],
+  "error": "Qualifier assumed TAP summary, but Node selected the spec reporter. Count parser rejected the real RED log.",
+  "additionalQualificationIssue": "Inherited candidate-local TMPDIR placed the launcher scratch inside the candidate. Do not reuse this attempt as final physical-isolation evidence.",
+  "correction": "Explicit --test-reporter=tap and launcher TMPDIR=/tmp; fresh separately leased v2 copy. Native patch and fixture bytes remain unchanged.",
+  "preservation": "Initial candidate, logs and sandbox retained; no cleanup or overwrite. No shared tree or production changes."
+}

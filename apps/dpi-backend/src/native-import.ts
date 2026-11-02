@@ -52,11 +52,13 @@ export interface NativeImportTarget {
 }
 
 /**
- * Trusted offline adoption only. Does not instantiate Store/Harness, call the profile,
- * migrate native records, authorize providers or resume work. Runtime/isolation/rollback
- * acceptance remains separate. The caller pins the source fingerprints from its verified backup.
+ * Read-only inspection of a coherent immutable copy, never a live/original database.
+ * Does not instantiate Store/Harness, invoke the profile, migrate records, authorize
+ * providers or resume work. Target callbacks must be pure and belong to the exact
+ * intended complete release. An absent/unknown target is not compatibility evidence.
+ * Terminal tasks only; runtime continuation and release-switch acceptance remain separate.
  */
-export async function adoptNativeCopy(source: VerifiedNativeCopy, target: NativeImportTarget, destination: { dataDir: string; cwd: string }) {
+export async function inspectNativeCopy(source: VerifiedNativeCopy, target: NativeImportTarget) {
   const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
   const hash = /^[a-f0-9]{64}$/;
   assert.equal(source.sdkVersion, '1.4.0', 'Unsupported native source SDK');
@@ -169,7 +171,13 @@ export async function adoptNativeCopy(source: VerifiedNativeCopy, target: Native
     assert.deepEqual(models.map(row => row.conversationId).sort((a,b) => a-b), conversations.map(row => row.id), 'Every native conversation needs its unchanged saved model');
     counts = { conversations: conversations.length, entries: Number(native.prepare('SELECT count(*) AS n FROM entries').get()!.n), tasks: tasks.length, submissions: submissions.length, documents: documents.length, retiredTaskTombstones };
   } finally { native.close(); }
+  return { directory: sourceRoot, files: actualFiles, counts, models, runtimeContinuationChecked: false as const };
+}
 
+/** Adopt only after the same read-only validation; never overwrite an existing destination. */
+export async function adoptNativeCopy(source: VerifiedNativeCopy, target: NativeImportTarget, destination: { dataDir: string; cwd: string }) {
+  const { directory: sourceRoot, files: actualFiles, counts, models } = await inspectNativeCopy(source, target);
+  const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
   const root = resolve(destination.dataDir);
   const parent = await realpath(dirname(root));
   assert.equal(join(parent, basename(root)), root, 'Destination parent must be canonical');

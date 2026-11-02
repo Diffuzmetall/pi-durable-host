@@ -1,0 +1,25 @@
+{
+  "root": "/tmp/pi-host-dm1-source-20261102-alice-v1",
+  "inventorySha256": "f7224dbbca22cc7bde35f7af42b3ec64d1d9bde393a393eb2f1fcd35e6d29bba",
+  "sourceArchiveSha256": "8f4f9dab3ab4f946b6a5cb28214f748d062d493079386da8a77e72965e139244",
+  "files": 1054,
+  "excluded": 199,
+  "evidenceHashes": {
+    "experiments/hot-update-20261101/qa/PRELIMINARY-RESULTS.json": "b34f92416b65148abc112fca7f154645042359e18af91ec0ee94bd43b7dffbc3",
+    "docs/host-design/verification/hot-update-20261101/REPORT.md": "3f8a4dcd39a59754176ed337eba092e8381447014803a5f1a83a10ae540a3156",
+    "docs/host-design/hot-update/DURABLE-MODULE-PLAN.md": "5c6d2cfbb7ee3619e1cf53e9955d9b0291294b140f5a16cc5de26e935dbe31dc"
+  },
+  "artifacts": [
+    {
+      "root": "/tmp/pi-host-hot-update-preliminary-20261101-alice-v1",
+      "manifestSha256": "18724c7afeffda96d63b10c57ca77e1c280598f6fd0c6f60e778e5402c78e73a",
+      "mode": "read-only retained in place; not duplicated"
+    },
+    {
+      "root": "/tmp/pi-host-restart-candidate-20261101-alice-v2",
+      "manifestSha256": "672b7e5e746dcabfbf5ca82a571cd35f328e457f717b64e2b852b3afa3931665",
+      "mode": "read-only retained in place; not duplicated"
+    }
+  ],
+  "archiveVerification": "PASS"
+}

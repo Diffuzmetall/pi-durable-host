@@ -2,10 +2,11 @@ import { expandSkillInput } from './skill-input.mjs';
 import { setTimeout as delay } from "node:timers/promises";
 import { DpiClient } from "dpi-sdk";
 import { DpiError } from "dpi-sdk/errors";
+import { parseMessageReceipt, parseMessageReconciliation } from "dpi-sdk/observation-wire";
 import { THINKING_LEVELS, type AgentSummary, type DeviceInfo, type Frame, type ModelInfo, type SkillInfo, type SessionSummary, type TaskNode, type ThinkingLevel } from "dpi-sdk/api";
 import { TerminalProjection } from "./projection.js";
 import { SubmissionJournal, type PendingSubmission } from "./submission-journal.js";
-import type { DurableController, DurableView, DurableViewSource, Notice } from "./types.js";
+import { SubmitDeliveryError, type DurableController, type DurableView, type DurableViewSource, type Notice } from "./types.js";
 
 /** Owns only client observation and delivery state. No session owner, Harness or native task queue. */
 export class RemoteTerminal implements DurableController, DurableViewSource {
@@ -24,7 +25,7 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
   private sessionOnline = false;
   private everConnected = false;
   private fatal = false;
-  private reconciling = false;
+  private reconciling?: Promise<Map<string, boolean>>;
   private models: ModelInfo[] = [];
   private skills: SkillInfo[] = [];
 
@@ -68,13 +69,14 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
       })),
       skills: this.skills,
       models: this.models.filter(model => model.available !== false).map((model) => ({ provider: model.provider, modelId: model.id, name: model.name, contextWindow: model.contextWindow })),
-      notices: this.notices,
+      notices: [...this.projection.model.state.notices.map((message, index) => ({ id: -(index + 1), level: "warning" as const, message })), ...this.notices],
       attention: this.projection.attention,
       agentMail: this.projection.agentMail,
       externalDirectories: this.projection.externalDirectories,
       tasks: { tasks: Object.fromEntries(this.tasks.map((task) => [task.id, { ...task, abortRequested: !!task.aborting, state: { ...task.state, on: task.state.on ?? [] } }])) },
       tasksExpanded: this.expanded,
       automation: this.projection.automation,
+      delivery: { uncertainRequestIds: this.journal.uncertain.filter(item => item.kind === "message" && item.conversationId === this.conversationId).map(item => item.requestId) },
       connection: this.fatal || this.stopped.signal.aborted ? "offline" : this.agentOnline && this.sessionOnline ? "online" : this.everConnected ? "reconnecting" : "connecting",
     };
   }
@@ -85,6 +87,15 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
     this.notices.push({ id: (this.notices.at(-1)?.id ?? 0) + 1, level, message, transient });
     if (this.notices.length > 10) this.notices.shift();
     this.emit();
+  }
+  private revokeObservation() {
+    this.fatal = true;
+    this.projection.apply({ type: "agent.end", sessionId: this.session.id, conversationId: this.conversationId, reason: "revoked" });
+    this.agents = []; this.tasks = []; this.models = []; this.skills = [];
+    this.session = { ...this.session, name: "Unavailable", cwd: "", agents: [] };
+    this.notices.length = 0;
+    this.notice("Host authorization is unavailable. Protected views cleared; native execution was not cancelled.", "error");
+    this.stopped.abort();
   }
   private track(promise: Promise<void>) {
     this.watching.add(promise);
@@ -108,12 +119,21 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
           if (signal.aborted) return;
           if (frame.type === "fault") throw new DpiError(frame.error.code, "Host stream unavailable");
           apply(frame);
+          if (frame.type === "agent.end") {
+            if (frame.reason === "revoked") throw new DpiError("unauthorized", "Observation permission was revoked", 403);
+            if (frame.reason === "closed") { disconnected(); this.emit(); return; }
+          }
         }
       } catch (error) {
         if (signal.aborted) return;
-        if (error instanceof DpiError && (error.status === 401 || error.status === 403)) {
+        if (error instanceof DpiError && error.status === 426) {
           this.fatal = true;
-          this.notice("Host authorization is unavailable. Observation stopped; native execution was not cancelled.", "error");
+          disconnected();
+          this.notice("Host protocol is incompatible. Observation stopped; no request was replayed.", "error");
+          return;
+        }
+        if (error instanceof DpiError && (error.status === 401 || error.status === 403)) {
+          this.revokeObservation();
           return;
         }
       }
@@ -128,14 +148,15 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
     const epoch = ++this.selectionEpoch;
     const [detail, entries] = await Promise.all([
       this.client.agent(this.session.id, id).get(),
-      this.client.agent(this.session.id, id).entries({ scope: "active" }),
+      this.client.agent(this.session.id, id).entries({ scope: "all", limit: 100 }),
     ]);
     if (epoch !== this.selectionEpoch || this.stopped.signal.aborted) return;
     this.agentWatch.abort();
     this.agentWatch = new AbortController();
     const signal = AbortSignal.any([this.stopped.signal, this.agentWatch.signal]);
-    const projection = new TerminalProjection();
-    projection.apply({ type: "snapshot", snapshot: { ...projection.snapshot, entries: entries.items, agent: detail.config }, inbox: [] });
+    const projection = new TerminalProjection({ sessionId: this.session.id, conversationId: detail.id });
+    projection.addHistoryPage(entries);
+    projection.model.state.agent = detail.config;
     this.projection = projection;
     this.conversationId = detail.id;
     this.agentOnline = false;
@@ -147,11 +168,13 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
     this.track(this.observe(signal, () => this.client.agent(this.session.id, id).events(signal, docs), (frame) => {
       if (this.projection !== projection) return;
       if (projection.apply(frame)) {
-        if (frame.type === "snapshot") {
+        if (frame.type === "agent.end" && frame.reason === "revoked") { this.revokeObservation(); return; }
+        if (frame.type === "agent.state") {
           this.agentOnline = true;
           this.everConnected = true;
           void this.reconcile();
         }
+        if (projection.needsResync || projection.end) this.agentOnline = false;
         this.emit();
       }
     }, () => { if (this.projection === projection) this.agentOnline = false; }));
@@ -161,20 +184,31 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
     await this.selectConversation(id).catch(() => this.notice("Conversation is unavailable or outside the grant. Selection was not changed.", "error"));
   }
 
-  private async reconcile() {
-    if (this.reconciling) return;
-    this.reconciling = true;
-    try {
+  private reconcile(): Promise<Map<string, boolean>> {
+    return this.reconciling ??= (async () => {
+      const settled = new Map<string, boolean>();
       for (const item of this.journal.uncertain) {
         try {
           if (item.kind !== "message") { await this.goalReceipt(item, false); continue; }
-          await this.client.request("GET", `/v1/sessions/${encodeURIComponent(this.session.id)}/agents/${item.conversationId}/receipts/${encodeURIComponent(item.requestId)}`);
+          const path = `/v1/sessions/${encodeURIComponent(this.session.id)}/agents/${item.conversationId}/receipts/${encodeURIComponent(item.requestId)}`;
+          let accepted = true;
+          try { parseMessageReceipt(await this.client.request<unknown>("GET", path)); }
+          catch (error) {
+            if (!(error instanceof DpiError) || error.status !== 404) throw error;
+            // A missing GET alone is not proof: fence a delayed admission before releasing the journal.
+            const result = parseMessageReconciliation(await this.client.request<unknown>("POST", `${path}/reconcile`, {}), item.conversationId, item.requestId);
+            accepted = result.accepted;
+            if (!accepted) this.notice("Host did not accept the previous message. It was not replayed; you can send a new message.", "info", true);
+          }
           if (this.journal.pending.has(item.requestId)) await this.journal.accepted(item.requestId);
+          settled.set(item.requestId, accepted);
+          this.emit();
         } catch {
           if (this.journal.pending.has(item.requestId)) this.notice("A previous request has uncertain delivery. Retry its unchanged text to use the saved key; nothing was replayed automatically.");
         }
       }
-    } finally { this.reconciling = false; }
+      return settled;
+    })().finally(() => { this.reconciling = undefined; });
   }
 
   private async goalReceipt(item: PendingSubmission, submit: boolean) {
@@ -199,6 +233,7 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
   }
 
   async submit(text: string, whenBusy: "steer" | "followUp"): Promise<void> {
+    if (this.fatal || this.stopped.signal.aborted) throw Error("Terminal is detached or no longer authorized; no input was submitted");
     this.notices.splice(0, this.notices.length, ...this.notices.filter(item => !item.transient));
     this.emit();
     const input = text.trim();
@@ -226,6 +261,16 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
     }
     if (input === "/mcp off") { this.notice("MCP status hidden; this does not disconnect server tools.", "info"); return; }
     if (input === "/mcp" || input === "/mcp on") throw Error("Host MCP status projection is unavailable. No model input was submitted.");
+    const inputEpoch = this.selectionEpoch;
+    const target = this.conversationId;
+    const retry = this.journal.uncertain.find(item => item.kind === 'message' && item.conversationId === target && item.text === text && item.whenBusy === whenBusy);
+    // Preserve retry identity and selection across the reconnect wait, even if its journal is cleared.
+    const settled = await this.reconciling;
+    if (inputEpoch !== this.selectionEpoch) throw Error("Conversation changed while reconciling delivery; no input was submitted");
+    if (retry && settled?.get(retry.requestId) === true) return;
+    const pending = this.journal.uncertain.filter(item => item.kind === 'message' && item.conversationId === target);
+    if (pending.length && !pending.some(item => item.text === text && item.whenBusy === whenBusy)) await this.reconcile();
+    if (inputEpoch !== this.selectionEpoch) throw Error("Conversation changed while reconciling delivery; no input was submitted");
     let wireText: string | undefined;
     const skillCommand = /(?:^|\s)\/skill:([^\s]+)/.test(text);
     // An explicit retry uses the persisted body, even if the server skill changed since the lost ACK.
@@ -238,13 +283,17 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
     }
     const item = await this.journal.begin(this.conversationId, text, whenBusy, 'message', wireText);
     try {
-      await this.client.agent(this.session.id, item.conversationId).send(item.wireText ?? item.text, whenBusy, item.requestId);
+      const result = await this.client.agent(this.session.id, item.conversationId).send(item.wireText ?? item.text, whenBusy, item.requestId);
       if (this.journal.pending.has(item.requestId)) await this.journal.accepted(item.requestId);
+      if (result.status === "unanswered") this.notice(result.reason, "warning");
     } catch (error) {
       // A concurrent reconnect may already have reconciled this exact native receipt.
       if (!this.journal.pending.has(item.requestId)) return;
       this.journal.markUncertain(item.requestId);
-      throw error;
+      this.emit();
+      // The POST can fail while both observation streams stay online.
+      void this.reconcile();
+      throw new SubmitDeliveryError(this.session.id, item.conversationId, item.requestId);
     }
   }
   async compact(instructions?: string) {
@@ -260,19 +309,38 @@ export class RemoteTerminal implements DurableController, DurableViewSource {
       });
   }
   async reload(path?: string) {
-    if (path) throw Error("A remote terminal cannot admit an adapter path. Configure trusted profiles on the server.");
     const remote = this.client.session(this.session.id);
-    if (!this.device.capabilities.includes('profile-reload.v1'))
-      throw Error('This Host does not expose Durable reload; no local runtime was opened.');
-    await remote.reload();
-    const [models, skills] = await Promise.all([
-      this.device.capabilities.includes('scoped-models.v1') ? remote.models() : this.client.device().then(device => device.models),
-      this.device.capabilities.includes('skills.v1') ? remote.skills() : Promise.resolve([]),
-    ]);
-    this.models = models;
-    this.skills = skills;
-    this.emit();
-    this.notice("Durable providers/extensions and terminal catalogues reloaded. Host was not restarted.", "info", true);
+    let result: Awaited<ReturnType<typeof remote.reload>>;
+    try {
+      if (path) throw new DpiError('invalid', "A remote terminal cannot admit an adapter path. Configure trusted profiles on the server.");
+      if (!this.device.capabilities.includes('profile-reload.v1'))
+        throw new DpiError('invalid', 'This Host does not expose Durable reload; no local runtime was opened.');
+      result = await remote.reload();
+    } catch (error) {
+      const reason = error instanceof DpiError ? error.message : 'No receipt was received.';
+      const status = error instanceof DpiError && /\bmaintenance-required\b/i.test(reason) ? 'maintenance-required' :
+        error instanceof DpiError && (error.code === 'busy' || error.code === 'conflict') ? 'deferred (not queued)' :
+        error instanceof DpiError && (error.code === 'invalid' || (error.code !== 'offline' && error.status !== 0)) ? 'rejected' : 'unconfirmed';
+      this.notice(`Reload ${status}: ${reason} No automatic retry or model turn.`, 'warning');
+      throw error;
+    }
+    const cleanupFailed = result.cleanup === 'failed';
+    const applied = `Reload applied: ${result.models} models, ${result.extensions} extensions. Host was not restarted.` +
+      (cleanupFailed ? ' Resource cleanup failed. No rollback was performed; no automatic retry.' : '');
+    try {
+      const [models, skills] = await Promise.all([
+        this.device.capabilities.includes('scoped-models.v1') ? remote.models() : this.client.device().then(device => device.models),
+        this.device.capabilities.includes('skills.v1') ? remote.skills() : Promise.resolve([]),
+      ]);
+      this.models = models;
+      this.skills = skills;
+      this.emit();
+      this.notice(applied, cleanupFailed ? 'warning' : 'info', !cleanupFailed);
+    } catch {
+      this.notice(applied, cleanupFailed ? 'warning' : 'info', !cleanupFailed);
+      // Publication is already confirmed. A failed read must not suggest repeating the mutation.
+      this.notice('Reload applied, but terminal catalogue refresh failed. Previous menus retained; no automatic retry.', 'warning');
+    }
   }
   async setModel(model: { provider: string; modelId: string }) {
     await this.client.agent(this.session.id, this.conversationId).configure({ model });

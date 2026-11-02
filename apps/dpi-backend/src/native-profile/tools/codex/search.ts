@@ -1,6 +1,6 @@
 /** Native Codex search, navigation, PDF capture and structured lookups; no terminal hooks. */
 import { randomUUID } from "node:crypto";
-import { Type, type Static } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 import { defineDoc, defineTool, type ToolExecutionApi } from "@earendil-works/pi-durable";
 import type { Context } from "@earendil-works/chord";
 import { makeRuntime, type Host } from "./runtime.js";

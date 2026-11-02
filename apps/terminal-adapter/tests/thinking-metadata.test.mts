@@ -6,13 +6,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { DpiClient } from "dpi-sdk";
-import { THINKING_LEVELS, type Frame, type ThinkingLevel, type WireAgentState } from "dpi-sdk/api";
+import { API_VERSION, AGENT_STATE_CAPABILITY, THINKING_LEVELS, type Frame, type ThinkingLevel, type WireAgentState } from "dpi-sdk/api";
+import { full, publicState } from "../../dpi-sdk/tests/agent-state-sequence.js";
 import { RemoteTerminal } from "../src/remote-controller.js";
 
 // Protocol conformance recorder only. Actual native model clamping is tested by the owning backend.
 test("thinking cycles exact advertised order including max; missing/future metadata causes no mutation", { timeout: 10000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "dpi-thinking-wire-"));
   const streams = new Set<ServerResponse>();
+  let revision = 0;
   const configured: ThinkingLevel[] = [];
   let advertised: unknown = ["off", "max", "high"];
   let thinking: ThinkingLevel = "off";
@@ -24,16 +26,17 @@ test("thinking cycles exact advertised order including max; missing/future metad
     assert.equal(req.headers.authorization, "Bearer recording-thinking-only");
     const url = new URL(req.url!, "http://fixture");
     const json = (body: unknown) => { res.setHeader("content-type", "application/json"); res.end(JSON.stringify(body)); };
-    if (url.pathname === "/v1/protocol") return json({ apiVersion: 1, capabilities: ["events", "docs"] });
+    if (url.pathname === "/v1/protocol") return json({ apiVersion: API_VERSION, capabilities: ["events", "docs", AGENT_STATE_CAPABILITY] });
     if (url.pathname.endsWith("/events")) {
       res.writeHead(200, { "content-type": "text/event-stream" });
+      frame(res, { type: "hello", apiVersion: API_VERSION, serverTime: Date.now(), scope: url.pathname.includes("/agents/") ? { kind: "agent", sessionId: "fixture", agentId: 1 } : { kind: "session", sessionId: "fixture" } });
       if (url.pathname.includes("/agents/")) {
         streams.add(res); res.on("close", () => streams.delete(res));
-        frame(res, { type: "snapshot", snapshot: { type: "snapshot", agent: config(), entries: [], inbox: [], tools: [], compactions: [], usage: { models: {}, tools: {} } }, inbox: [] });
+        frame(res, full(`fixture:${++revision}`, publicState([], { config: config() })));
       } else frame(res, { type: "session", agents: [agent], tasks: [], usage: { models: {}, tools: {} } });
       return;
     }
-    if (url.pathname === "/v1/device") return json({ uid: "recording", name: "recording", hostname: "loopback", platform: "linux", apiVersion: 1, durableVersion: "fixture", startedAt: 0, startDirs: [],
+    if (url.pathname === "/v1/device") return json({ uid: "recording", name: "recording", hostname: "loopback", platform: "linux", apiVersion: API_VERSION, durableVersion: "fixture", startedAt: 0, startDirs: [],
       models: [{ ...model, supportedThinkingLevels: advertised }], defaultModel: "model", storage: { dataDir: "", catalogPath: "", appStatePath: "" }, capabilities: ["events", "docs"] });
     if (url.pathname === "/v1/sessions/fixture") return json({ id: "fixture", name: "fixture", cwd: "/fixture", model: "model", createdAt: 0, dbPath: "", busy: false, agents: [agent] });
     if (url.pathname.endsWith("/entries")) return json({ items: [] });
@@ -48,7 +51,7 @@ test("thinking cycles exact advertised order including max; missing/future metad
         assert(body && typeof body === "object" && "thinkingLevel" in body);
         const level = THINKING_LEVELS.find(value => value === body.thinkingLevel); assert(level);
         thinking = level; configured.push(level);
-        for (const stream of streams) frame(stream, { type: "batch", events: [{ type: "agent_changed", agent: config() }] });
+        for (const stream of streams) frame(stream, full(`fixture:${++revision}`, publicState([], { config: config() })));
         return json(config());
       }
       return json({ ...agent, sessionId: "fixture", config: config(), tools: [], extensions: [] });

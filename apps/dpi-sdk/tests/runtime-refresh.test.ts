@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { DpiClient } from '../src/client.js';
+import { API_VERSION, AGENT_STATE_CAPABILITY } from '../src/api.js';
 
 test('refreshRuntime negotiates exact capability on every call and sends only empty body to encoded session', async () => {
   let capabilities: string[] = [];
@@ -11,7 +12,7 @@ test('refreshRuntime negotiates exact capability on every call and sends only em
     let body = ''; for await (const chunk of request) body += chunk;
     requests.push({ method: request.method!, url: request.url!, body });
     response.setHeader('content-type', 'application/json');
-    response.end(JSON.stringify(request.url === '/v1/protocol' ? { apiVersion: 1, capabilities }
+    response.end(JSON.stringify(request.url === '/v1/protocol' ? { apiVersion: API_VERSION, capabilities: [AGENT_STATE_CAPABILITY, ...capabilities] }
       : { sessionId: 'exact-id', refreshed: true }));
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');

@@ -1,0 +1,10 @@
+{
+  "sourceRoot": "/home/ubuntu/Projects/master/experiments/pi-nico-mcp-candidate",
+  "manager": {
+    "preimageSha256": "afffa830723f9b18620a63c13257fc8a5c02e485d1a1b984a6dcd622a1dcbc71"
+  },
+  "adapter": {
+    "preimageSha256": "fc67788b34b111f85d4a79320fc14091c4e25dd9d7356e81b30c562310a6b7ca"
+  },
+  "namespaceSha256": "a845de8dda94ed91c4819dbd0f5b69a6e411ef47c46933690048a47214d94ae0"
+}

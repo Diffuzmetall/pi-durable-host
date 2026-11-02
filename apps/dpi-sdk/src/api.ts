@@ -9,7 +9,9 @@
 import type { JobDef } from "./jobs.js";
 export type { NativeIiiJson, NativeIiiInput, NativeIiiInfo, NativeIiiRequest, NativeIiiResultInfo, NativeIiiResultQuery, NativeIiiResultPage, NativeIiiControlOperation, NativeIiiTarget, NativeIiiJobStop, NativeIiiJobStopReceipt } from './iii.js';
 
-export const API_VERSION = 1 as const;
+export const API_VERSION = 2 as const;
+/** Sent by protocol-2 clients; Host rejects missing/unsupported versions before mutation. */
+export const API_VERSION_HEADER = "x-dpi-api-version" as const;
 
 /** Public discovery metadata; contains no host paths, credentials or session data. */
 export interface ProtocolInfo {
@@ -46,6 +48,15 @@ export const THINKING_LEVELS: readonly ThinkingLevel[] = [
   "max",
 ];
 export type WhenBusy = "followUp" | "steer" | "reject";
+
+/** Existing session reload receipt. Counts describe the published inventory, not revision IDs. */
+export interface ReloadResult {
+  sessionId: string;
+  models: number;
+  extensions: number;
+  /** Publication succeeded, but retiring the previous resources failed. No rollback is implied. */
+  cleanup?: 'failed';
+}
 
 export interface ApiErrorBody {
   error: { code: ErrorCode; message: string };
@@ -183,6 +194,8 @@ export interface SessionSummary {
   createdAt: number;
   dbPath: string;
   busy: boolean;
+  /** Runtime availability; absent on older v1 hosts. Never grants permission to mutate. */
+  readiness?: "restoring" | "ready" | "failed";
   error?: string;
   agents: AgentSummary[];
   /** Automatic compaction thresholds, shared by every agent of the session. */
@@ -308,6 +321,17 @@ export type SendResult =
   | { submissionId: number; status: "queued" | "pending" }
   | { submissionId: number; status: "done"; answer: { entryId: number; text: string } }
   | { submissionId: number; status: "unanswered"; reason: string };
+
+/** Actor-scoped lookup of the original submission. HTTP absence/timeout is not proof of non-admission. */
+export type MessageReceiptResult =
+  | { submissionId: number; status: Exclude<SendResult["status"], "unanswered"> }
+  | Extract<SendResult, { status: "unanswered" }>;
+
+/** accepted:false is issued only after atomic reconciliation has retired this actor/request key. */
+export type MessageReconciliationResult = { conversationId: number; requestId: string } & (
+  | ({ accepted: true } & MessageReceiptResult)
+  | { accepted: false }
+);
 
 export interface GoalOperatorReceipt {
   /** Canonical native request key, not a credential. */
@@ -466,73 +490,6 @@ export interface WireUsageState {
   tools: Readonly<Record<string, WireUsage>>;
 }
 
-export interface WireQueued {
-  id: number;
-  mode: string;
-}
-
-export type WireMessageChange =
-  | {
-      type: "text_start" | "thinking_start" | "toolcall_start";
-      contentIndex: number;
-      block: WireAssistantBlock;
-    }
-  | { type: "text_delta" | "thinking_delta"; contentIndex: number; delta: string }
-  | {
-      type: "toolcall_delta";
-      contentIndex: number;
-      path: readonly (string | number)[];
-      delta: string;
-    }
-  | { type: "block"; contentIndex: number; block: WireAssistantBlock }
-  | { type: "message"; message: WireAssistantMessage };
-
-export interface WireSnapshotEvent {
-  type: "snapshot";
-  entries: readonly WireEntry[];
-  run?: { inputs: readonly number[] };
-  generation?: {
-    attempt: number;
-    message?: WireAssistantMessage;
-    retry?: { at: number; error: string };
-    deferred?: { pollAt: number };
-  };
-  tools: readonly WireToolSlot[];
-  compactions: readonly WireCompaction[];
-  inbox: readonly WireQueued[];
-  agent: WireAgentState;
-  usage: WireUsageState;
-}
-
-export type WireAgentEvent =
-  | WireSnapshotEvent
-  | { type: "run_start" | "run_end"; inputs: readonly number[] }
-  | { type: "turn_start" | "turn_end" }
-  | { type: "message_start"; message: WireMessage }
-  | { type: "message_update"; usage: WireUsage; changes: readonly WireMessageChange[] }
-  | { type: "message_end"; entry: WireEntry }
-  | { type: "tool_execution_start"; toolCallId: string; toolName: string; args: unknown }
-  | {
-      type: "tool_execution_update";
-      toolCallId: string;
-      toolName: string;
-      output?: { trimStart?: number; append?: string } | { set: string };
-      details?: unknown;
-      diagnostics?: readonly unknown[];
-    }
-  | { type: "tool_execution_end"; toolCallId: string; toolName: string; entry?: WireEntry }
-  | { type: "inbox_update"; items: readonly WireQueued[] }
-  | { type: "submission"; record: { id: number; status: string } }
-  | { type: "auto_retry_start"; attempt: number; at: number; errorMessage: string }
-  | { type: "auto_retry_end"; attempt: number }
-  | { type: "deferred_poll"; pollAt: number }
-  | { type: "entry_appended"; entry: WireEntry }
-  | { type: "agent_changed"; agent: WireAgentState }
-  | { type: "usage_changed"; usage: WireUsageState }
-  | { type: "task_failed"; taskId: number; kind: string; message: string }
-  | { type: "compaction_start"; taskId: number; reason: string; blocking: boolean }
-  | { type: "compaction_end"; taskId: number; reason: string };
-
 /** Non-secret session Mail binding exposed by the optional `host.agent-mail` document (null when unconfigured). */
 export interface AgentMailIdentity {
   name: string;
@@ -545,6 +502,63 @@ export interface InboxItem {
   mode: "steer" | "followUp" | "write";
   content?: string;
 }
+
+// ---------------------------------------------------------------- application-owned agent observation
+
+export const AGENT_STATE_CAPABILITY = "agent-state.v1" as const;
+/** Per-frame public history window. Older history is fetched with entries({scope:"all",cursor}). */
+export const AGENT_HISTORY_LIMIT = 100;
+
+export interface AgentScope {
+  sessionId: string;
+  conversationId: number;
+}
+
+export interface AgentHistoryPage {
+  /** Committed history, ascending native entry ID; reset/compaction do not erase history. */
+  items: readonly WireEntry[];
+  /** Opaque cursor for the preceding history page; omitted only at the beginning of history. */
+  next?: string;
+}
+
+/** Presentation of an unfinished response, not a native generation document. */
+export interface AgentAssistantState {
+  message: WireAssistantMessage | null;
+  retry: { at: number; message: string } | null;
+  pollAt: number | null;
+}
+
+export interface AgentPublicState {
+  history: AgentHistoryPage;
+  /** Model-active context IDs are independent of the history window and older history pages. */
+  contextEntryIds: readonly number[];
+  /** An answered submission can coexist with busy:true while native child work finishes. */
+  execution: { busy: boolean; inputEntryIds: readonly number[] };
+  assistant: AgentAssistantState | null;
+  tools: readonly WireToolSlot[];
+  compactions: readonly WireCompaction[];
+  config: WireAgentState;
+  usage: WireUsageState;
+  inbox: readonly InboxItem[];
+  /** Safe user-facing notices only; never provider errors or raw runFailure details. */
+  notices: readonly string[];
+}
+
+/** Replace only named public sections. Null clears assistant; omission leaves a section unchanged.
+ * No arbitrary paths, native deltas, document trees, or synthetic execution events are accepted.
+ * A history replacement is a bounded window, not permission to discard separately paged history.
+ */
+export type AgentStateChanges = Partial<AgentPublicState>;
+
+export type AgentStateFrame = AgentScope & { type: "agent.state"; revision: string; state: AgentPublicState };
+export type AgentUpdateFrame = AgentScope & {
+  type: "agent.update"; baseRevision: string; revision: string; changes: AgentStateChanges;
+};
+/** Application observation outcomes, not upstream WatchEnd. Revoked readers must not reconnect automatically. */
+export type AgentEndFrame = AgentScope & {
+  type: "agent.end"; reason: "closed" | "resync" | "revoked" | "unavailable";
+};
+export type AgentObservationFrame = AgentStateFrame | AgentUpdateFrame | AgentEndFrame;
 
 // ---------------------------------------------------------------- stream frames
 
@@ -595,8 +609,7 @@ export type Frame =
   | { type: "tasks"; tasks: TaskNode[] }
   | { type: "usage"; usage: UsageTotals }
   // agent scope
-  | { type: "snapshot"; snapshot: WireSnapshotEvent; inbox: InboxItem[] }
-  | { type: "batch"; events: readonly WireAgentEvent[] }
+  | AgentObservationFrame
   | { type: "inbox"; items: InboxItem[] }
   // any scope that asked for documents
   | { type: "doc"; kind: string; value: unknown; revision?: number }

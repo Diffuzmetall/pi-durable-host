@@ -91,6 +91,15 @@ test('native adapter reload re-evaluates nested mjs imports', async () => {
   assert.equal((await (await loadRegistryAdapters(['adapter.mjs'], directory))[0](base)).revision, 2);
 });
 
+test('registry preparation rejects a concurrent base publication instead of hiding the newer extension', async () => {
+  const registry = new ReloadableRegistry(createRegistry());
+  const candidate = await registry.prepare([]);
+  const concurrent = defineExtension({ name: 'trusted-concurrent-base' });
+  registry.install(concurrent);
+  assert.throws(candidate.validate, /NATIVE_REGISTRY_CHANGED_DURING_PREPARATION/);
+  assert.equal(registry.snapshot().extension(concurrent.name), concurrent);
+});
+
 test('late-bound native base additions are staged, preserved across reload and protected from adapters', async () => {
   const registry = new ReloadableRegistry(createRegistry());
   const service = defineExtension({ name: 'late-native-service' });

@@ -75,8 +75,10 @@ export async function createNativeModels(source: NativeModelsOptions | (() => Na
   }
 
   async function catalogue(operation?: AuthOperationOptions): Promise<NativeModelDescriptor[]> {
-    const available = new Set((await models.getAvailable(undefined, operation)).map(model => JSON.stringify([model.provider, model.id])));
-    return models.getModels().map(model => ({
+    // Credential lookup may yield across publication; keep metadata and availability in one snapshot.
+    const snapshot = current;
+    const available = new Set((await snapshot.getAvailable(undefined, operation)).map(model => JSON.stringify([model.provider, model.id])));
+    return snapshot.getModels().map(model => ({
       id: model.id,
       provider: model.provider,
       name: model.name,

@@ -1,11 +1,34 @@
 import { pathToFileURL } from 'node:url';
+import { realpathSync, statSync } from 'node:fs';
+import { isAbsolute, relative, sep } from 'node:path';
 import { McpClient, type McpTransport } from '@earendil-works/pi-mcp';
 import type { McpCodemodeOptions } from '../guards/mcp-codemode.js';
 
-/** Actual selected native authorizeAgentMail policy, without the global environment callback. */
-export function authorizeAgentMail(name: string, args: Record<string, unknown>, project: string, agent: string): void {
-  if (args.project_key !== undefined && args.project_key !== project) throw new Error('Agent Mail project mismatch');
-  if (args.human_key !== undefined && args.human_key !== project) throw new Error('Agent Mail project mismatch');
+/** Session actor policy with bounded cross-project coordination; grants remain caller-owned. */
+export function authorizeAgentMail(name: string, args: Record<string, unknown>, project: string, agent: string): Record<string, unknown> {
+  const canonical = { ...args };
+  // Keep the existing home-project contract, including sessions outside the shared workspace.
+  // Cross-project keys must name real directories inside the operator-approved workspace.
+  // Canonical keys keep symlink aliases from creating separate lease namespaces.
+  for (const key of ['project_key', 'human_key'] as const) {
+    const requested = args[key];
+    if (requested === undefined || requested === project) continue;
+    if (typeof requested !== 'string' || !isAbsolute(requested)) throw new Error('Agent Mail project mismatch');
+    let target: string;
+    try {
+      const root = realpathSync('/home/ubuntu/Projects');
+      const home = relative(root, realpathSync(project));
+      target = realpathSync(requested);
+      const destination = relative(root, target);
+      if ([home, destination].some(path => !path || path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)) ||
+        !statSync(target).isDirectory()) throw new Error('outside workspace');
+    } catch {
+      throw new Error('Agent Mail project mismatch: cross-project access requires directories inside /home/ubuntu/Projects');
+    }
+    canonical[key] = target;
+  }
+  if (canonical.project_key !== undefined && canonical.human_key !== undefined && canonical.project_key !== canonical.human_key)
+    throw new Error('Agent Mail project mismatch: project_key and human_key must agree');
   const actor: Record<string, string> = {
     register_agent: 'name', send_message: 'sender_name', reply_message: 'sender_name',
     request_contact: 'from_agent', respond_contact: 'to_agent', macro_start_session: 'agent_name',
@@ -22,6 +45,7 @@ export function authorizeAgentMail(name: string, args: Record<string, unknown>, 
   if (['deregister_agent', 'force_release_file_reservation', 'cleanup_pane_identities', 'install_precommit_guard',
     'uninstall_precommit_guard', 'retire_agent', 'create_agent_identity'].includes(name))
     throw new Error(`Agent Mail ${name} requires separate operator approval`);
+  return canonical;
 }
 
 /** Explicit session-owned transport and already-admitted identity. This does not register a real agent or read MCP config. */
@@ -49,8 +73,10 @@ export async function openSessionMail(options: {
       authorize: async (tool, args) => {
         if (closed) throw Error('Session Agent Mail is closed');
         await options.authorize();
-        authorizeAgentMail(tool.name, args, identity.project, identity.name);
-        if (options.registrationToken && (tool.name === 'send_message' || tool.name === 'reply_message')) args.sender_token = options.registrationToken;
+        Object.assign(args, authorizeAgentMail(tool.name, args, identity.project, identity.name));
+        // A registration token belongs to its project, not to every registration of this name.
+        if (options.registrationToken && (args.project_key ?? identity.project) === identity.project &&
+          (tool.name === 'send_message' || tool.name === 'reply_message')) args.sender_token = options.registrationToken;
       },
     };
     return { source, identity, shellEnv, async close() { if (!closed) { closed = true; await client.close(); } } };

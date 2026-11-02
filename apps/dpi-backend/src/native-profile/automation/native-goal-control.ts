@@ -1,5 +1,5 @@
 import type { Context } from '@earendil-works/chord';
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import { defineExtension, defineTool, section, type ConversationId } from '@earendil-works/pi-durable';
 import type { createSessionGoalService } from './session-goals.js';
 
@@ -50,7 +50,7 @@ export function createNativeGoalControl(service: ReturnType<typeof createSession
         archive: Type.Optional(Type.Boolean()),
         evidence: Type.Optional(Type.Array(Type.Object({
           criterionId: Type.String({ minLength: 1 }), check: Type.String(), proof: Type.String(),
-          outcome: Type.Union(['pass', 'fail', 'unknown'].map(value => Type.Literal(value))),
+          outcome: Type.Union([Type.Literal('pass'), Type.Literal('fail'), Type.Literal('unknown')]),
         }, { additionalProperties: false }), { minItems: 1 })),
         summary: Type.Optional(Type.String({ minLength: 1 })),
         reason: Type.Optional(Type.String({ minLength: 1 })),

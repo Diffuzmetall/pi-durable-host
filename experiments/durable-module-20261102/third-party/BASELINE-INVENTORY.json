@@ -1,0 +1,1161 @@
+{
+  "kind": "DM1_THIRD_PARTY_SOURCE_INVENTORY",
+  "runtimeAcceptance": "NOT_TESTED",
+  "typescriptVersion": "5.9.3",
+  "voiceLock": {
+    "path": "experiments/gippity-voice/package-lock.json",
+    "sha256": "4399c6a4f9e0c6261a4ad90b8df4ca0a8e0595b70de36c816ee5d4269ea3bb0d"
+  },
+  "packages": [
+    {
+      "name": "@howaboua/pi-durable-gippity-voice",
+      "version": "0.10.0",
+      "manifestSha256": "d8e2e44198411eda3b1bee8e00eb330923ee3f88d65fed626da94565dc6784bb",
+      "dependencies": {
+        "typebox": "1.3.27",
+        "undici": "8.10.2",
+        "ws": "8.21.3",
+        "@howaboua/pi-durable-components": "0.10.0"
+      },
+      "peerDependencies": {
+        "@earendil-works/chord": "1.4.0",
+        "@earendil-works/pi-ai": "1.4.0",
+        "@earendil-works/pi-durable": "1.4.0",
+        "@modelcontextprotocol/sdk": ">=1.25.2 <2"
+      },
+      "durable": {
+        "schemaVersion": 1,
+        "kind": "extension",
+        "entry": "./component",
+        "runtimes": [
+          "node"
+        ],
+        "requires": [
+          "howaboua.audio.lease.v1",
+          "durable.audio.webrtc-native.v1",
+          "durable.node-execution.v1",
+          "durable.models.v1",
+          "durable.network.v1",
+          "durable.state.v1"
+        ],
+        "permissions": [
+          "audio",
+          "network",
+          "process",
+          "models",
+          "storage"
+        ]
+      },
+      "resolved": "https://github.com/IgorWarzocha/pi-durable-components/releases/download/v0.10.0/howaboua-pi-durable-gippity-voice-0.10.0.tgz",
+      "integrity": "sha512-p2w8l307F1/lnrHqiQ44xUV0/iHcunzn7jJdzqcplaOgBhYRsdACo4RHM0/2aGrzheDRBR29xwqtdE+GydnMCw=="
+    },
+    {
+      "name": "@howaboua/pi-durable-components",
+      "version": "0.10.0",
+      "manifestSha256": "e28ed8384d94e9659a4e2821b0ae8aeffcff3fdf0b248c99c0cd8e95a80a3f72",
+      "dependencies": {
+        "@types/node": "26.2.0",
+        "semver": "7.8.5",
+        "typebox": "1.3.27"
+      },
+      "peerDependencies": {
+        "@earendil-works/chord": "1.4.0",
+        "@earendil-works/pi-ai": "1.4.0",
+        "@earendil-works/pi-durable": "1.4.0",
+        "@modelcontextprotocol/sdk": ">=1.25.2 <2"
+      },
+      "durable": {
+        "schemaVersion": 1,
+        "kind": "library",
+        "runtimes": [
+          "node",
+          "workerd",
+          "browser"
+        ],
+        "requires": [],
+        "permissions": []
+      },
+      "resolved": "https://github.com/IgorWarzocha/pi-durable-components/releases/download/v0.10.0/howaboua-pi-durable-components-0.10.0.tgz",
+      "integrity": "sha512-KnLCxT3hgy5zrAMpDIvPm5+3iU587aN81jTA35FayS2EgiRvqxCeyaWUI3weKE0BnUBNOz3wRQdfGax7p/pHPg=="
+    }
+  ],
+  "files": [
+    {
+      "path": "experiments/gippity-voice/node_modules/@howaboua/pi-durable-gippity-voice/dist/index.js",
+      "sha256": "57dbb759b2d52e3aad24fea952582832e13622e1fffa65368fd282560eb6d105",
+      "imports": [
+        {
+          "specifier": "@earendil-works/chord/context",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "awaitWithContext",
+              "local": "awaitWithContext2",
+              "typeOnly": false
+            },
+            {
+              "imported": "BACKGROUND_CONTEXT",
+              "local": "BACKGROUND_CONTEXT",
+              "typeOnly": false
+            },
+            {
+              "imported": "withAbortSignal",
+              "local": "withAbortSignal",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineExtension",
+              "local": "defineExtension",
+              "typeOnly": false
+            },
+            {
+              "imported": "defineTask",
+              "local": "defineTask2",
+              "typeOnly": false
+            },
+            {
+              "imported": "UserEntry",
+              "local": "UserEntry",
+              "typeOnly": false
+            },
+            {
+              "imported": "watchEvents",
+              "local": "watchEvents",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineTask",
+              "local": "defineTask",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/compile",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Compile",
+              "local": "Compile2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "LiveDoc",
+              "local": "LiveDoc",
+              "typeOnly": false
+            },
+            {
+              "imported": "NestedCallDoc",
+              "local": "NestedCallDoc",
+              "typeOnly": false
+            },
+            {
+              "imported": "ToolTask",
+              "local": "ToolTask",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineDoc",
+              "local": "defineDoc",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson4",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord/context",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "awaitWithContext",
+              "local": "awaitWithContext",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson3",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord/context",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "withoutAbortSignal",
+              "local": "withoutAbortSignal",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "LiveDoc",
+              "local": "LiveDoc2",
+              "typeOnly": false
+            },
+            {
+              "imported": "NestedCallDoc",
+              "local": "NestedCallDoc2",
+              "typeOnly": false
+            },
+            {
+              "imported": "ToolTask",
+              "local": "ToolTask2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/value",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Equal",
+              "local": "Equal",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineDoc",
+              "local": "defineDoc2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-ai/utils/validation",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "validateToolArguments",
+              "local": "validateToolArguments",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "ToolTask",
+              "local": "ToolTask3",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/compile",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Compile",
+              "local": "Compile",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson5",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson6",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineEntry",
+              "local": "defineEntry",
+              "typeOnly": false
+            },
+            {
+              "imported": "UsageDoc",
+              "local": "UsageDoc",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "uuidv7",
+              "local": "uuidv7",
+              "typeOnly": false
+            },
+            {
+              "imported": "validateToolArguments",
+              "local": "validateToolArguments2",
+              "typeOnly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "experiments/gippity-voice/node_modules/@howaboua/pi-durable-gippity-voice/dist/activation.js",
+      "sha256": "da236ce9b8b7793a06775990b19d5e94e8c5a76c3ffb419af0c75aa968d16602",
+      "imports": [
+        {
+          "specifier": "@earendil-works/chord/context",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "awaitWithContext",
+              "local": "awaitWithContext2",
+              "typeOnly": false
+            },
+            {
+              "imported": "BACKGROUND_CONTEXT",
+              "local": "BACKGROUND_CONTEXT",
+              "typeOnly": false
+            },
+            {
+              "imported": "withAbortSignal",
+              "local": "withAbortSignal",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineExtension",
+              "local": "defineExtension",
+              "typeOnly": false
+            },
+            {
+              "imported": "defineTask",
+              "local": "defineTask2",
+              "typeOnly": false
+            },
+            {
+              "imported": "UserEntry",
+              "local": "UserEntry",
+              "typeOnly": false
+            },
+            {
+              "imported": "watchEvents",
+              "local": "watchEvents",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineTask",
+              "local": "defineTask",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/compile",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Compile",
+              "local": "Compile2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "LiveDoc",
+              "local": "LiveDoc",
+              "typeOnly": false
+            },
+            {
+              "imported": "NestedCallDoc",
+              "local": "NestedCallDoc",
+              "typeOnly": false
+            },
+            {
+              "imported": "ToolTask",
+              "local": "ToolTask",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineDoc",
+              "local": "defineDoc",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson4",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord/context",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "awaitWithContext",
+              "local": "awaitWithContext",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson3",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord/context",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "withoutAbortSignal",
+              "local": "withoutAbortSignal",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "LiveDoc",
+              "local": "LiveDoc2",
+              "typeOnly": false
+            },
+            {
+              "imported": "NestedCallDoc",
+              "local": "NestedCallDoc2",
+              "typeOnly": false
+            },
+            {
+              "imported": "ToolTask",
+              "local": "ToolTask2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/value",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Equal",
+              "local": "Equal",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineDoc",
+              "local": "defineDoc2",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-ai/utils/validation",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "validateToolArguments",
+              "local": "validateToolArguments",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "ToolTask",
+              "local": "ToolTask3",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/compile",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Compile",
+              "local": "Compile",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson5",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "copyJson",
+              "local": "copyJson6",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineEntry",
+              "local": "defineEntry",
+              "typeOnly": false
+            },
+            {
+              "imported": "UsageDoc",
+              "local": "UsageDoc",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "uuidv7",
+              "local": "uuidv7",
+              "typeOnly": false
+            },
+            {
+              "imported": "validateToolArguments",
+              "local": "validateToolArguments2",
+              "typeOnly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "experiments/gippity-voice/node_modules/@howaboua/pi-durable-components/dist/index.js",
+      "sha256": "346d2ffd66a844b39177c93b8501748e5671ba628f6a7e0ef56bf768d414fdff",
+      "imports": [
+        {
+          "specifier": "typebox",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/value",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Check",
+              "local": "Check",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "isJsonValue",
+              "local": "isJsonValue",
+              "typeOnly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "experiments/gippity-voice/node_modules/@howaboua/pi-durable-components/dist/node.js",
+      "sha256": "688f221c047e5e8ac1946d020ebea01dd003c076f7b581cdcd15bc2afe942252",
+      "imports": [
+        {
+          "specifier": "typebox",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/value",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Check",
+              "local": "Check",
+              "typeOnly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/tools/codex/ask.ts",
+      "sha256": "8e1fe8430b3eb3f18592331d587d785da81868cdba1c20fced795d256ddd8764",
+      "imports": [
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            },
+            {
+              "imported": "contentText",
+              "local": "contentText",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineTool",
+              "local": "defineTool",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "typebox/value",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Check",
+              "local": "Check",
+              "typeOnly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/tools/codex/search.ts",
+      "sha256": "8d613ba9665b2d25d51a90e62f9773f89d1d11b6eb32b75603915ddfd5e1ab2f",
+      "imports": [
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            },
+            {
+              "imported": "Static",
+              "local": "Static",
+              "typeOnly": true
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineDoc",
+              "local": "defineDoc",
+              "typeOnly": false
+            },
+            {
+              "imported": "defineTool",
+              "local": "defineTool",
+              "typeOnly": false
+            },
+            {
+              "imported": "ToolExecutionApi",
+              "local": "ToolExecutionApi",
+              "typeOnly": true
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": true,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Context",
+              "local": "Context",
+              "typeOnly": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/tools/codex/image.ts",
+      "sha256": "8b74642c54c03ed0317b7eaecadbad21e08017166ccb3966830c69cc9c30ce04",
+      "imports": [
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineTool",
+              "local": "defineTool",
+              "typeOnly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/tools/codex/runtime.ts",
+      "sha256": "ca925cfa895ed50803b4d631dd970df564be973373fe998ee3b89d5d3f91f339",
+      "imports": [
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": true,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Context",
+              "local": "Context",
+              "typeOnly": true
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": true,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Api",
+              "local": "Api",
+              "typeOnly": true
+            },
+            {
+              "imported": "Model",
+              "local": "Model",
+              "typeOnly": true
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineTool",
+              "local": "defineTool",
+              "typeOnly": false
+            },
+            {
+              "imported": "ToolExecutionApi",
+              "local": "ToolExecutionApi",
+              "typeOnly": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/dpi-backend/src/native-profile/tools/antigravity/index.ts",
+      "sha256": "facd9f95e695778124cd1b7bfee2cc021fc613bf3ca1b3c79e8dcde51024078a",
+      "imports": [
+        {
+          "specifier": "@earendil-works/pi-ai",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Type",
+              "local": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/pi-durable",
+          "typeOnly": false,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "defineExtension",
+              "local": "defineExtension",
+              "typeOnly": false
+            },
+            {
+              "imported": "defineTool",
+              "local": "defineTool",
+              "typeOnly": false
+            }
+          ]
+        },
+        {
+          "specifier": "@earendil-works/chord",
+          "typeOnly": true,
+          "default": null,
+          "namespace": null,
+          "named": [
+            {
+              "imported": "Context",
+              "local": "Context",
+              "typeOnly": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "workletPatch": {
+    "path": "experiments/gippity-voice/worklet-patch.mjs",
+    "sha256": "d40af875334e5097522df02c86bc82826a5efa0c40d2f3144a6b76a2ffe0815b",
+    "backups": [
+      {
+        "path": "experiments/gippity-voice/node_modules/@howaboua/pi-durable-gippity-voice/dist/index.js.before-same-origin-worklets",
+        "sha256": "24547f03a08b37065fcec4a58d7e6ef8c22c8e5a14810a282578ff9e439ea9cf"
+      },
+      {
+        "path": "experiments/gippity-voice/node_modules/@howaboua/pi-durable-gippity-voice/dist/activation.js.before-same-origin-worklets",
+        "sha256": "63f5882d99ab9e7d1a61dd03d6edbd7349c4a6a4a81312a859e34051721f983a"
+      }
+    ]
+  },
+  "limitations": [
+    "Installed 0.10.0 inputs, not a compatible 1.5 artifact.",
+    "No live imports, provider calls, auth reads, database opens or activation.",
+    "Worklet backups are identified, not assumed to be pristine tarball bytes.",
+    "Local source and selected entrypoint census, not a transitive runtime closure proof."
+  ]
+}

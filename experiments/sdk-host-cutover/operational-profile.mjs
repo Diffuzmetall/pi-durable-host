@@ -2,9 +2,10 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { lstat, readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
-import { createNativeProfile, createNativeModels, resolveAvailableModel, saveGeneratedImages, loadRegistryAdapters } from 'dpi-backend/native-profile';
+import { createNativeProfile, createNativeModels, resolveAvailableModel, saveGeneratedImages, loadRegistryAdapters, readResourceSettings } from 'dpi-backend/native-profile';
 import { defineExtension, defineTool } from '@earendil-works/pi-durable';
 import { Type } from '@earendil-works/pi-ai';
+import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import {
   AuthStorage, executeAntigravitySearch, generateAntigravityImageContent,
   antigravityApiKey, refreshAntigravityToken, loadTracingConfig, createSessionTracing,
@@ -34,10 +35,14 @@ export async function createOperationalProfile({ policy, owner, models, trustedW
   const mcpOwners = new WeakMap();
   const native = createNativeProfile({
     policy, owner, models, resolveModel: resolveAvailableModel,
-    loadAdapters: async context => loadRegistryAdapters(typeof nativeExtensions === 'function' ? await nativeExtensions() : nativeExtensions, context.cwd),
+    loadAdapters: async context => loadRegistryAdapters(typeof nativeExtensions === 'function' ? await nativeExtensions(context) : nativeExtensions, context.cwd),
     dcg: { binaryPath: process.env.DCG_BIN || join(home, '.local/bin/dcg'),
       envSource: () => ({ HOME: home, PATH: '/usr/bin:/bin' }) },
-    skills: context => ({ homeDir: home, agentDir, projectRoot: context.cwd, projectTrusted: trusted.has(resolve(context.cwd)) }),
+    skills: async context => {
+      const projectTrusted = trusted.has(resolve(context.cwd));
+      return { homeDir: home, agentDir, projectRoot: context.cwd, projectTrusted,
+        ...await readResourceSettings({ agentDir, cwd: context.cwd, projectTrusted }) };
+    },
     connectMcp: async context => {
       // Store.openAgent holds this lock and requires an existing DB for resume;
       // only its new-session path invokes the factory before creating agent.sqlite.
@@ -119,20 +124,28 @@ export async function createOperationalProfile({ policy, owner, models, trustedW
   });
   return Object.assign(async context => {
     const composition = await native(context);
-    const mcp = mcpOwners.get(context);
-    for (const server of mcp.status().servers)
-      if (server.state !== 'connected') composition.native.inventory.unavailable.push(`MCP ${server.server}: ${server.state}`);
-    const status = defineExtension({ name: 'host-mcp-status', tools: [defineTool({
-      name: 'mcp_status', description: 'Show this session’s actual MCP connection states and admitted Mail identity without credentials.',
-      parameters: Type.Object({}), replay: 'safe',
-      execute: async () => ({ output: [{ type: 'text', text: JSON.stringify(mcp.status()) }] }),
-    })] });
-    composition.registry.install(status);
-    composition.extensions.push(status);
-    if (process.env.DELM_BINDINGS_FILE) await attachDelm(composition, context, {
-      bindingFile: process.env.DELM_BINDINGS_FILE,
-      modulePath: new URL('./delm-engine/index.js', import.meta.url).pathname,
-    });
-    return composition;
+    try {
+      const mcp = mcpOwners.get(context);
+      for (const server of mcp.status().servers)
+        if (server.state !== 'connected') composition.native.inventory.unavailable.push(`MCP ${server.server}: ${server.state}`);
+      const status = defineExtension({ name: 'host-mcp-status', tools: [defineTool({
+        name: 'mcp_status', description: 'Show this session’s actual MCP connection states and admitted Mail identity without credentials.',
+        parameters: Type.Object({}), replay: 'safe',
+        execute: async () => ({ output: [{ type: 'text', text: JSON.stringify(mcp.status()) }] }),
+      })] });
+      composition.registry.install(status);
+      if (process.env.DELM_BINDINGS_FILE) await attachDelm(composition, context, {
+        bindingFile: process.env.DELM_BINDINGS_FILE,
+        modulePath: new URL('./delm-engine/index.js', import.meta.url).pathname,
+      });
+      return composition;
+    } catch (error) {
+      // Store has not received the composition and cannot close its resources.
+      const errors = [error];
+      try { await composition.shutdown?.(BACKGROUND_CONTEXT); } catch (failure) { errors.push(failure); }
+      try { await composition.cleanup?.(BACKGROUND_CONTEXT); } catch (failure) { errors.push(failure); }
+      if (errors.length > 1) throw new AggregateError(errors, 'Operational profile creation and cleanup failed', { cause: error });
+      throw error;
+    }
   }, native);
 }

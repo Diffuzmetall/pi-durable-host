@@ -1,0 +1,16 @@
+{
+  "extends": "/home/ubuntu/Projects/pi-durable-host/apps/terminal-adapter/tsconfig.build.json",
+  "compilerOptions": {
+    "typeRoots": [
+      "/home/ubuntu/Projects/pi-durable-host/apps/terminal-adapter/node_modules/@types"
+    ],
+    "paths": {
+      "dpi-sdk": [
+        "/home/ubuntu/Projects/pi-durable-host/apps/dpi-sdk/dist/client.d.ts"
+      ],
+      "dpi-sdk/*": [
+        "/home/ubuntu/Projects/pi-durable-host/apps/dpi-sdk/dist/*.d.ts"
+      ]
+    }
+  }
+}

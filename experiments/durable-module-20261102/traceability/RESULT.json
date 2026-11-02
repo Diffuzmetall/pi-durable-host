@@ -1,0 +1,34 @@
+{
+  "status": "PASS_ADDITIVE_DOCUMENT_ONLY",
+  "baseline": "/tmp/pi-host-dm1-source-20261102-alice-v1/source.tar.gz",
+  "beforeIsaSha256": "d7aa17b05f8ae45251b9535c6317cc3080ea517e86d0b0baa4863b0a316bc9a3",
+  "afterIsaSha256": "80ba661e99c34380074c812b4c5a28e57c78b4d896fd8b2eb4defb3950a4f5fe",
+  "oldLeafCount": 89,
+  "newLeafCount": 96,
+  "historicalChecked": 51,
+  "newCriteria": {
+    "DM-A": "ISC-79",
+    "DM-B": "ISC-80",
+    "DM-C": "ISC-81",
+    "DM-D": "ISC-82",
+    "DM-E": "ISC-83",
+    "DM-F": "ISC-84",
+    "DM-G": "ISC-85"
+  },
+  "checks": [
+    "old content retained in order except two explicit metadata updates",
+    "old Features F0-F9 byte-identical",
+    "old Test Strategy byte-identical",
+    "Learning and Verification byte-identical",
+    "top-level section order unchanged",
+    "96 unique leaves; 51 historical checked; seven new unchecked",
+    "seven new six-column strategy rows"
+  ],
+  "baselineDoneSequence": 574,
+  "readerReleaseSequences": {
+    "grace": 583,
+    "heidi": 589
+  },
+  "task": "1fd60ede7e9143fb9c4612095c1d9a8a",
+  "limitations": "Document traceability only. No DM runtime criterion accepted. Production NOT RUN."
+}

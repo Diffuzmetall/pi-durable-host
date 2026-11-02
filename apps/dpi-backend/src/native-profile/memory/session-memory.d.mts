@@ -1,4 +1,5 @@
 import type { Context } from '@earendil-works/chord';
+import type { NativeExtensionReplacement } from '@local/pi-durable-reload';
 import type { ConversationHandle, Harness, Registry, Storage, Submission } from '@earendil-works/pi-durable';
 
 export interface MemoryConfig {
@@ -37,6 +38,7 @@ export interface SessionMemory {
     close(timeoutMs?: number): Promise<void>;
   };
   readonly paths: Readonly<{ log: string; diag: string; usage: string }>;
+  prepareReload(): Promise<NativeExtensionReplacement[]>;
   bind(host: { session: Harness; storage: Storage; context: Context }): Promise<void>;
   drain(timeoutMs?: number): Promise<MemoryStatus[]>;
   close(timeoutMs?: number): Promise<void>;

@@ -4,27 +4,41 @@
 
 Fork [disler/durable-pi](https://github.com/disler/durable-pi), исходный baseline `37165c619573dbaf425463038bbffecfe576beec`. Backend/SDK сохранены; основное Durable-семейство зависимостей закреплено на **1.4.0**. Pocket не входит в этот проект.
 
-## Текущее состояние
+## Текущее состояние: обзорный снимок 2 ноября 2026
 
-**Срез: 31 октября 2026, 18:49 UTC. Основной Host/SDK/терминал работает; весь проект не объявлен полностью принятым.**
+**[Архитектура с четырьмя диаграммами — `docs/architecture/README.md`](docs/architecture/README.md)** · **[Статус и свежие проверки](docs/architecture/STATUS.md)** · [Состав публикации](docs/architecture/PUBLICATION.md).
+
+Ветка `review/current-state-2026-11-02` содержит снимок разработки на **19:24:25 UTC**. Здесь уже есть новый runtime-модуль и материалы миграции на Durable 1.5, но основной backend ещё закреплён на 1.4.0, а routes/streams не переведены полностью. Это **WIP, не готовый релиз**.
+
+Свежий `tsc --noEmit` с имеющимися зависимостями: SDK, iii и durable-reload — PASS; backend и terminal — FAIL. Подробности и границы проверки приведены в [STATUS.md](docs/architecture/STATUS.md). Публикация не меняет `main`, установленный Host, конфигурацию или рабочие базы; activation/restart scripts не запускались.
+
+## Историческая эксплуатационная сверка: 31 октября 2026
+
+Далее сохранён прежний отчёт. Его PID, HTTP-ответы и числа сессий **не являются свежей проверкой** опубликованного снимка.
+
+**Последняя эксплуатационная сверка: 31 октября 2026, 21:56 UTC — 1 ноября, 00:56 МСК. Host и iii worker работают после восстановления, `/healthz` отвечает 200. Подписанный read-only iii PASS получен в 21:42, до следующего restart; task/retry/recovery приёмка остаётся открытой.**
 
 | Часть | Статус |
 |---|---|
-| Основной Host | Активен `c0019d7-unified-sse-mcp140-20261031-v1` |
-| Наш SDK-терминал | Подключён к Host, без automatic local/legacy fallback |
+| Основной Host | `active/running`, PID `637699`; настроен GipPity Voice entrypoint поверх прежней установки, его полная приёмка не выполнена |
+| Наш SDK-терминал | SDK-клиент Host без automatic local/legacy fallback; reconnect после последнего restart отдельно не перепроверен |
 | Большая SSE-история | Исправлена: реальный snapshot 3,09 МБ + 4 документа на одном соединении |
-| pi-mcp / Nico | pi-mcp 1.4.0 активен, принятая Nico integration сохранена |
+| pi-mcp / Nico | pi-mcp 1.4.0 и Nico проверены для прежнего sealed release; новая полная проверка после изменения entrypoint не выполнялась |
 | Сохранность cutover | 42 прежние sessions, 47 conversations, 4984 записи и task state сохранены |
-| Текущие sessions/conversations | 46 / 51; это более поздний live snapshot |
-| Каталог моделей | Terra 6.1 и Antigravity Gemini Flash доступны; saved IDs не подменялись |
-| MCP | **Частично:** Langfuse/Open Design inventory восстановлен не везде; не все операции проверены |
-| iii | Engine работает, **worker остановлен**; полного живого route acceptance нет |
+| Исторический metadata-срез, 20:08 UTC | 54 sessions / 70 conversations; 6 busy. После нового restart этот обход не повторялся |
+| Каталог моделей | Проверен отдельно в 18:49: Terra 6.1 и Antigravity Gemini Flash доступны; saved IDs не подменялись |
+| MCP | Регистрация: Langfuse 38/70, Open Design 69/70; причины различий неизвестны. `offered: false` для CodeMode не означает отсутствие tools |
+| iii | Engine PID `3779510`, worker PID `663985` активны. До нового restart: signed `info` PASS, 17/17 функций, jobs 1 → 1, без модельных запросов |
+| Shutdown/restart Host | После остановки/неудачного запуска Host восстановлен; причина shutdown hang не исправлена |
 | BB | **Отложен**; adapter/fixtures не означают принятие BB UI |
 | Прочие исторические базы и произвольные plugins | Универсальная миграция/совместимость не заявлена |
 
+По последнему указанию пользователя обновляется только Markdown. Новые проверки iii и диагностика shutdown не выполнялись; состояния служб выше относятся к срезу 21:56 UTC, а не к времени редактирования документа.
+
 Начать здесь:
 
-- **[Подробный статус: сделано, работает, не работает, evidence и восстановление](docs/host-status-2026-10-31.md)**.
+- **[Подробный статус: сделано, проверено, неизвестно и что делать дальше](docs/host-status-2026-10-31.md)** — MCP, история запусков/восстановления, следующие действия и критерии приёмки. Эта правка — только документация, без новых runtime-операций и commit/push.
+- **[iii worker: запуск, 17 функций, signed read-only PASS и последующее восстановление](docs/iii-worker-verification-2026-10-31.md)** — методика, sanitized evidence и непроверенные сценарии.
 - **[Текущая архитектура и компоненты](docs/host-architecture.md)**.
 - [Compound: почему исправление должно попасть и в package archive](docs/solutions/workflow-issues/sealed-host-release-must-include-package-archives.md).
 - [ISA](ISA.md), [план milestones](docs/host-design/PLAN.md), [словарь](CONCEPTS.md).

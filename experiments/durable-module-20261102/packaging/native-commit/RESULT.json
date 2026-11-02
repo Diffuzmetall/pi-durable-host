@@ -1,0 +1,363 @@
+{
+  "status": "PASS_PINNED_COMPONENT_CLOSURE",
+  "root": "/tmp/pi-host-dm1-commit-20261102-alice-v2",
+  "seed": "/tmp/pi-host-dm1-build-20261102-alice-v1",
+  "seedLockSha256": "46482cfa4ca28e91d4a43de4b799ecc22be5b64e5949fc7af3cfa23f894f77eb",
+  "producerOutput": "acfe12b567d8495281b2226fa8565a97",
+  "patch": {
+    "revision": "host-commit-authorization-v1",
+    "package": "@earendil-works/pi-durable",
+    "version": "1.5.0",
+    "files": [
+      {
+        "file": "session/session.js",
+        "before": "a2429d4bad5ae08a7dfae32fe05e74cb881d9100d9035a6784eedca3f92d7496",
+        "after": "35bae612a14d3e7ba8cb49036d8baea3bb2902f477bf60452526c51c446106c1"
+      },
+      {
+        "file": "session/session.d.ts",
+        "before": "86deacb4998d62838e75302b61e100cd44510f7a3be6db6ef622982c43b7290f",
+        "after": "572be93648e02aa10a7fb7ac4245909033ad088c2aeb45a6844abd68f8295e9d"
+      },
+      {
+        "file": "harness/harness.js",
+        "before": "4096cbb0756c59606a0b6437909a879b5c603fde2d2a9bc25854398e30b25e47",
+        "after": "8c24049dfdf4546d9fa12491f1534f5bbc40e2f0a06d63f85678b915aaebdd2b"
+      },
+      {
+        "file": "harness/types.d.ts",
+        "before": "eff2fd6232680d3367a9e7c69fe158b38e1aff2d5f182086bfe6bfc1f2b1bb66",
+        "after": "de6d3406c73a3f2d07609683ace6162aca0328d88971bf0c4c547a4020c016c9"
+      },
+      {
+        "file": "index.js",
+        "before": "5ca348ed464ecc7f1017f8a988bda277621d33b9591cf9c8f385a2fa3d331318",
+        "after": "5946ad3d666ce38ff1795d8a75ad9148598d85672524883af809dc36307b0a21"
+      },
+      {
+        "file": "index.d.ts",
+        "before": "1f3ce1b8789b6257c6e50b9ac8db4f18c6bcc51461da2bb4d51350040cf9c5fa",
+        "after": "8837a27c4181adac781648d0221018f6704fcf5dcfdc46bf53e58ea7558deba9"
+      }
+    ]
+  },
+  "inputHashes": {
+    "patch-commit-authorization.mjs": "5822850cc788311d09e43dbb11ae297b40036683b5f85c374518c515642e1b5d",
+    "native-commit-authorization.json": "7daa7b1074594c4966471647173b64cac7788c626278335be5245514218b1c60",
+    "native-commit-authorization.test.ts": "6f2a83edf501c47f02c4c410d038e342403e6e060446879e24b666c302e4001c",
+    "COMMIT-AUTHORIZATION.md": "4e53cb9980a689e0a3c13e3b163f406487a5b3ca4ad6704fa2dff451944b4cf3"
+  },
+  "compiledFixtureSha256": "201fc8f00482815268d2653a84ee1a7d5a91c555fe92fb58005ac9e7f059c7b9",
+  "initialAttempt": {
+    "status": "QUALIFIER_ERROR_NOT_PRODUCT_PATCH_FAILURE",
+    "root": "/tmp/pi-host-dm1-commit-20261102-alice-v1",
+    "consoleLog": "/tmp/alice-dm1-native-commit-qualification.log",
+    "sandboxRoot": "/tmp/pi-host-dm1-commit-20261102-alice-v1/tmp/hot-update-sandbox-hvvv6t1m",
+    "completed": [
+      "patch-for-types exit0",
+      "strict compilation exit0",
+      "stock real-Harness fixture exit1 with expected unauthorized document and task-mark assertions"
+    ],
+    "error": "Qualifier assumed TAP summary, but Node selected the spec reporter. Count parser rejected the real RED log.",
+    "additionalQualificationIssue": "Inherited candidate-local TMPDIR placed the launcher scratch inside the candidate. Do not reuse this attempt as final physical-isolation evidence.",
+    "correction": "Explicit --test-reporter=tap and launcher TMPDIR=/tmp; fresh separately leased v2 copy. Native patch and fixture bytes remain unchanged.",
+    "preservation": "Initial candidate, logs and sandbox retained; no cleanup or overwrite. No shared tree or production changes."
+  },
+  "fauxSourceSha256": "28011e3ff29d5795108d81bd69aa67e66eee4f5ec020c24bfb3b95dc0e4483b2",
+  "steps": [
+    {
+      "label": "patch-for-types",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/patch-for-types.log",
+      "logSha256": "bd5678952bb55544f874d020f3d426f3fa22db8afc412d1e0a2929ead767a822"
+    },
+    {
+      "label": "strict-compile",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/node_modules/typescript/bin/tsc",
+        "--strict",
+        "--module",
+        "NodeNext",
+        "--moduleResolution",
+        "NodeNext",
+        "--target",
+        "ES2023",
+        "--skipLibCheck",
+        "--types",
+        "node",
+        "--typeRoots",
+        "node_modules/@types",
+        "--rootDir",
+        ".",
+        "--outDir",
+        "qualification-tests",
+        "experiments/durable-module-20261102/runtime/native-commit-authorization.test.ts"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/strict-compile.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "stock-red",
+      "argv": [
+        "python3",
+        "/home/ubuntu/Projects/pi-durable-host/experiments/hot-update-20261101/sandbox/run.py",
+        "--candidate",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2",
+        "--timeout",
+        "120",
+        "--",
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "--test-concurrency=1",
+        "/candidate/qualification-tests/experiments/durable-module-20261102/runtime/native-commit-authorization.test.js"
+      ],
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/stock-red.log",
+      "logSha256": "05a19a5652234a04a3fdaa741c65755037a8662331d0d81de623e4d485d5df3f",
+      "sandboxRoot": "/tmp/hot-update-sandbox-4wt4huyu",
+      "isolation": {
+        "status": "PASS",
+        "parent": {
+          "deniedPaths": [
+            "/home/ubuntu/.pi/agent/auth.json",
+            "/home/ubuntu/.config",
+            "/home/ubuntu/.local/share/pi-durable",
+            "/home/ubuntu/.local/share/pi-durable-host",
+            "/run/user/1000",
+            "/var/tmp",
+            "/tmp/hot-update-sandbox-4wt4huyu/outside-sentinel"
+          ],
+          "productionWritesDenied": true,
+          "secretFreeEnvironment": true,
+          "writableHomeAndData": true,
+          "loopbackOnly": true,
+          "procRootEscapeDenied": true
+        },
+        "child": "PASS",
+        "loopbackConnection": "PASS",
+        "hostProcVisible": false,
+        "productionActivation": "NOT RUN"
+      },
+      "runtimeLogSha256": "aca4c962f25f431e0e233d7b3d7d892bc69c027c1920764e1c13d30e5e39012f"
+    },
+    {
+      "label": "reject-version",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/reject-version.log",
+      "logSha256": "a6adef96ec68996045213f81ab1f84ad46e9573d240891712692a14a9e4b6203"
+    },
+    {
+      "label": "reject-preimage",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/reject-preimage.log",
+      "logSha256": "f1537f3f3e63d68c805d7379a8f58bef0a17c4debf4f23e740e7a5d7469a8a42"
+    },
+    {
+      "label": "prepare-partial",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/prepare-partial.log",
+      "logSha256": "bd5678952bb55544f874d020f3d426f3fa22db8afc412d1e0a2929ead767a822"
+    },
+    {
+      "label": "reject-partial",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/reject-partial.log",
+      "logSha256": "3361baef3bf65d15cb1775bed0ecc060931081a99817b8e882815fb914856328"
+    },
+    {
+      "label": "final-patch",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/final-patch.log",
+      "logSha256": "bd5678952bb55544f874d020f3d426f3fa22db8afc412d1e0a2929ead767a822"
+    },
+    {
+      "label": "patched-green",
+      "argv": [
+        "python3",
+        "/home/ubuntu/Projects/pi-durable-host/experiments/hot-update-20261101/sandbox/run.py",
+        "--candidate",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2",
+        "--timeout",
+        "120",
+        "--",
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "--test-concurrency=1",
+        "/candidate/qualification-tests/experiments/durable-module-20261102/runtime/native-commit-authorization.test.js"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/patched-green.log",
+      "logSha256": "df9572df5fd8ec98e1c7f29ce290d976497ab335356fd2c9596c515d2d68c569",
+      "sandboxRoot": "/tmp/hot-update-sandbox-arc0zj1r",
+      "isolation": {
+        "status": "PASS",
+        "parent": {
+          "deniedPaths": [
+            "/home/ubuntu/.pi/agent/auth.json",
+            "/home/ubuntu/.config",
+            "/home/ubuntu/.local/share/pi-durable",
+            "/home/ubuntu/.local/share/pi-durable-host",
+            "/run/user/1000",
+            "/var/tmp",
+            "/tmp/hot-update-sandbox-arc0zj1r/outside-sentinel"
+          ],
+          "productionWritesDenied": true,
+          "secretFreeEnvironment": true,
+          "writableHomeAndData": true,
+          "loopbackOnly": true,
+          "procRootEscapeDenied": true
+        },
+        "child": "PASS",
+        "loopbackConnection": "PASS",
+        "hostProcVisible": false,
+        "productionActivation": "NOT RUN"
+      },
+      "runtimeLogSha256": "dca6507c5000429cfc6babefbd9ffce796322234f7429b54fa94e4d032568df3"
+    },
+    {
+      "label": "patched-imports",
+      "argv": [
+        "python3",
+        "/home/ubuntu/Projects/pi-durable-host/experiments/hot-update-20261101/sandbox/run.py",
+        "--candidate",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2",
+        "--timeout",
+        "120",
+        "--",
+        "node",
+        "--experimental-import-meta-resolve",
+        "/candidate/qualification-probe.mjs"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/patched-imports.log",
+      "logSha256": "fd8e0193752932468ba7bb993f04d7045a994b686c5b53ce7e928d0457b9cf8a",
+      "sandboxRoot": "/tmp/hot-update-sandbox-47sagtj9",
+      "isolation": {
+        "status": "PASS",
+        "parent": {
+          "deniedPaths": [
+            "/home/ubuntu/.pi/agent/auth.json",
+            "/home/ubuntu/.config",
+            "/home/ubuntu/.local/share/pi-durable",
+            "/home/ubuntu/.local/share/pi-durable-host",
+            "/run/user/1000",
+            "/var/tmp",
+            "/tmp/hot-update-sandbox-47sagtj9/outside-sentinel"
+          ],
+          "productionWritesDenied": true,
+          "secretFreeEnvironment": true,
+          "writableHomeAndData": true,
+          "loopbackOnly": true,
+          "procRootEscapeDenied": true
+        },
+        "child": "PASS",
+        "loopbackConnection": "PASS",
+        "hostProcVisible": false,
+        "productionActivation": "NOT RUN"
+      },
+      "runtimeLogSha256": "2bde79d9e52e5429d60b9bdee9780a32061ceaaa126ed697358d800bb7b4894b"
+    },
+    {
+      "label": "patched-marker",
+      "argv": [
+        "python3",
+        "/home/ubuntu/Projects/pi-durable-host/experiments/hot-update-20261101/sandbox/run.py",
+        "--candidate",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2",
+        "--timeout",
+        "120",
+        "--",
+        "node",
+        "--experimental-import-meta-resolve",
+        "/candidate/qualification-marker.mjs"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/patched-marker.log",
+      "logSha256": "4ac7aceb2e0d98063aae262be242e0fdd4db1f9a0cfe3be2cd3808411294f56e",
+      "sandboxRoot": "/tmp/hot-update-sandbox-10oxvqa1",
+      "isolation": {
+        "status": "PASS",
+        "parent": {
+          "deniedPaths": [
+            "/home/ubuntu/.pi/agent/auth.json",
+            "/home/ubuntu/.config",
+            "/home/ubuntu/.local/share/pi-durable",
+            "/home/ubuntu/.local/share/pi-durable-host",
+            "/run/user/1000",
+            "/var/tmp",
+            "/tmp/hot-update-sandbox-10oxvqa1/outside-sentinel"
+          ],
+          "productionWritesDenied": true,
+          "secretFreeEnvironment": true,
+          "writableHomeAndData": true,
+          "loopbackOnly": true,
+          "procRootEscapeDenied": true
+        },
+        "child": "PASS",
+        "loopbackConnection": "PASS",
+        "hostProcVisible": false,
+        "productionActivation": "NOT RUN"
+      },
+      "runtimeLogSha256": "2fd5a3e35098a48a80f2a3e93643850e52049faf276f1b8122bf12fb98d8ceac"
+    },
+    {
+      "label": "reject-reapplication",
+      "argv": [
+        "node",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2/experiments/durable-module-20261102/runtime/patch-commit-authorization.mjs",
+        "/tmp/pi-host-dm1-commit-20261102-alice-v2"
+      ],
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "log": "/tmp/pi-host-dm1-commit-20261102-alice-v2/qualification-logs/reject-reapplication.log",
+      "logSha256": "9b60ae46a1d0d55109cad43f221af12937db556499a6ebe4df4400a33fca2f89"
+    }
+  ],
+  "scope": "Independent packaging reassembly; RED2/GREEN2 real Harness/SQLite, rollback and healthy operation. Not full Host or full-profile qualification.",
+  "productionActivation": "NOT RUN"
+}

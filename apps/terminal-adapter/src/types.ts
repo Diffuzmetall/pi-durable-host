@@ -1,4 +1,4 @@
-import type { AgentMailIdentity, InboxItem, SessionSummary, TaskNode, WireAgentState, WireAssistantMessage, WireEntry, WireMessage, WireSnapshotEvent, WireToolResultMessage, WireUserMessage } from "dpi-sdk/api";
+import type { AgentMailIdentity, InboxItem, SessionSummary, TaskNode, WireAgentState, WireAssistantMessage, WireEntry, WireMessage, WireToolSlot, WireCompaction, WireToolResultMessage, WireUserMessage } from "dpi-sdk/api";
 
 export type { WireImage as ImageContent, WireText as TextContent, ThinkingLevel } from "dpi-sdk/api";
 export type ConversationId = number;
@@ -27,7 +27,14 @@ export type AgentState = WireAgentState;
 export type AssistantMessage = WireAssistantMessage & { durationMs?: number };
 export type ToolResultMessage = WireToolResultMessage;
 export type UserMessage = WireUserMessage;
-export type LiveState = Partial<Pick<WireSnapshotEvent, "run" | "generation" | "tools" | "compactions">> & { nestedTools?: readonly (WireSnapshotEvent["tools"][number] & { arguments?: unknown })[] };
+/** Local renderer input, derived from public execution/assistant state; not a transport event. */
+export interface LiveState {
+  run?: { inputs: readonly number[] };
+  generation?: { message?: WireAssistantMessage; retry?: { at: number; error: string }; deferred?: { pollAt: number } };
+  tools?: readonly WireToolSlot[];
+  compactions?: readonly WireCompaction[];
+  nestedTools?: readonly (WireToolSlot & { arguments?: unknown })[];
+}
 export type InboxState = { items: readonly (InboxItem & { entry: { kind: string } })[] };
 export type TaskGraphNode = Omit<TaskNode, "state"> & { abortRequested: boolean; state: TaskNode["state"] & { on: readonly number[]; outcome?: string } };
 export type TaskGraph = { tasks: Readonly<Record<string, TaskGraphNode>> };
@@ -60,6 +67,13 @@ export interface AttentionView {
   requests: readonly { id: string; child: number; name: string; reason: "need_decision" | "interview_request"; message: string }[];
   unavailable?: boolean;
 }
+/** A failed message POST whose exact journal key still needs authoritative reconciliation. */
+export class SubmitDeliveryError extends Error {
+  constructor(readonly sessionId: string, readonly conversationId: number, readonly requestId: string) {
+    super("Message delivery is uncertain. Reconnecting will check its saved request; nothing will be replayed automatically.");
+    this.name = "SubmitDeliveryError";
+  }
+}
 export interface DurableView {
   session: { id: string; directory: string; cwd: string; name: string };
   conversation: ConversationView;
@@ -72,6 +86,8 @@ export interface DurableView {
   agentMail?: AgentMailIdentity;
   externalDirectories?: readonly import('./external-directories.js').ExternalDirectory[];
   automation: { scheduled: number; failed: number; unavailable?: boolean; goal?: { status: string; attempts: number; maxAttempts: number }; nativeGoals?: NativeGoalsState };
+  /** Absent on older view sources: online alone never proves delivery was reconciled. */
+  delivery?: { uncertainRequestIds: readonly string[] };
   connection: "connecting" | "online" | "reconnecting" | "offline";
 }
 export interface DurableViewSource { current(): DurableView; subscribe(listener: () => void): () => void }

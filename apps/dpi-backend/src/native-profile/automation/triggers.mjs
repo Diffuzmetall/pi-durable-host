@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import { createRegistry, defineDoc, defineExtension, defineTask, defineTool } from '@earendil-works/pi-durable';
 import { awaitWithContext, withAbortSignal } from '@earendil-works/chord/context';
 

@@ -166,7 +166,7 @@ export function createSessionGoalService(options: Parameters<typeof createNative
     } while (cursor);
     return { key: `${owner}:empty`, text: '' };
   };
-  const admit = async (api: HookApi, key: string, context: Context) => {
+  const admit = async (api: Pick<HookApi, 'taskId' | 'conversationId'>, key: string, context: Context) => {
     if ((await bound().snapshot(Requests, key, context))?.charged) throw Error('GOAL_REQUEST_REPLAY_REQUIRES_REVIEW');
     const boundary = await boundaryFor(api.conversationId, context);
     if ((await bound().snapshot(Boundaries, boundary.key, context))?.blocked) throw Error('GOAL_REQUEST_BOUNDARY_CLOSED');
@@ -356,16 +356,17 @@ export function createSessionGoalService(options: Parameters<typeof createNative
       const goal = await currentFor(api.conversationId, context);
       const boundary = await boundaryFor(api.conversationId, context);
       if (!goal && !boundary.text.startsWith('[Goal reminder ') && !(await bound().snapshot(Boundaries, boundary.key, context))?.blocked) return;
-      // SDK 1.2 compaction has no per-request hook. Supply one bounded summary
+      // Native compaction has no per-request hook. Supply one bounded summary
       // rather than letting its internal retry loop bypass the shared admission gate.
       try {
         const agent = await (await bound().conversation(api.conversationId, context))!.agent(context);
         const model = agent.model && api.models.getModel(agent.model.provider, agent.model.modelId);
         if (!model) return { decline: true };
-        // Pinned SDK 1.2 passes its TaskRuntime to this hook; public HookApi omits
-        // settings. Use only that known runtime seam, and decline if unavailable.
+        // Pinned SDK 1.5 passes its TaskRuntime to this hook; public HookApi omits
+        // settings. Decline if unavailable; use the native per-model policy.
         const settings = (api as HookApi & { readonly settings?: Settings }).settings;
-        const reserve = settings?.compaction?.reserveTokens;
+        const reserve = settings?.compaction?.modelOverrides?.[`${model.provider}/${model.id}`]?.reserveTokens
+          ?? settings?.compaction?.reserveTokens;
         if (!settings?.stream || reserve === undefined || !Number.isFinite(reserve) || reserve <= 0) return { decline: true };
         const { deferred: _deferred, ...forwarded } = settings.stream;
         const maxTokens = Math.min(Math.floor(0.8 * reserve), model.maxTokens > 0 ? model.maxTokens : Number.POSITIVE_INFINITY);
@@ -387,7 +388,8 @@ export function createSessionGoalService(options: Parameters<typeof createNative
             const total = totals[key]; const usage = message.usage;
             for (const field of ['input', 'output', 'cacheRead', 'cacheWrite', 'cacheWrite1h', 'reasoning', 'totalTokens'] as const)
               if (usage[field] !== undefined) total[field] = (total[field] ?? 0) + usage[field];
-            for (const field of Object.keys(usage.cost) as (keyof Usage['cost'])[]) total.cost[field] += usage.cost[field];
+            for (const field of ['input', 'output', 'cacheRead', 'cacheWrite', 'total'] as const) total.cost[field] += usage.cost[field];
+            total.cost.totalFromProvider = total.cost.totalFromProvider === true && usage.cost.totalFromProvider === true;
           }
         }, context);
         const summary = message.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('');
