@@ -1,0 +1,12 @@
+PASS: four forbidden host paths absent; runtime probe uses no model, Harness, or database.
+✔ BuiltinExtensionRegistry: registers, gets, and lists built-in extensions (2.51658ms)
+✔ BuiltinExtensionRegistry: throws on duplicate extension id (0.871384ms)
+✔ BuiltinExtensionRegistry: runs teardownAll in reverse order (0.427166ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 208.056248

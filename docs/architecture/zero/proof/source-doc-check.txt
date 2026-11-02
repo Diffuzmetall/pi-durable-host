@@ -1,0 +1,7 @@
+SOURCE: pinned clean Zero; selected public exports present in source and shipped bundle.
+SOURCE: additive native seam exists; required injection options absent; resume occurs before return.
+SOURCE: Host requires bind-before-resume, original storage and native commit authorization.
+DOCS: 6 documents, balanced fences, 24 existing local links.
+PASS: research/source checks only; full Zero/Host/extension runtime acceptance NOT RUN.
+
+exit=0

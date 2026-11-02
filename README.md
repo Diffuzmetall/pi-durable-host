@@ -6,7 +6,7 @@ Fork [disler/durable-pi](https://github.com/disler/durable-pi), исходный
 
 ## Текущее состояние: обзорный снимок 2 ноября 2026
 
-**[Архитектура с четырьмя диаграммами — `docs/architecture/README.md`](docs/architecture/README.md)** · **[Статус и свежие проверки](docs/architecture/STATUS.md)** · [Состав публикации](docs/architecture/PUBLICATION.md).
+**[Весь архитектурный пакет в одной папке — `docs/architecture/`](docs/architecture/README.md)**: текущий Host и карта файлов, отличия от Disler и патчи, входные изображения и Express, **вариант перехода на неизменённый Zero**. [Статус и проверки](docs/architecture/STATUS.md) · [Состав публикации](docs/architecture/PUBLICATION.md).
 
 Ветка `review/current-state-2026-11-02` содержит снимок разработки на **19:24:25 UTC**. Здесь уже есть новый runtime-модуль и материалы миграции на Durable 1.5, но основной backend ещё закреплён на 1.4.0, а routes/streams не переведены полностью. Это **WIP, не готовый релиз**.
 
