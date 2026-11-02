@@ -1,13 +1,15 @@
-# Evidence — durable-zero packages research
+# Доказательства исследования пакетов durable-zero
 
-Дата исследования: 2026-11-02. Scope: исходники, существующие проектные документы, узкие dependency-free тесты registry, архитектурный анализ. Ни один результат не является production или full-profile acceptance.
+Документ служит справочником результатов исследования от 2026-11-02. Исследование охватывало исходники, проектные документы, отдельные тесты registry без зависимостей и архитектурный анализ. Ни один результат не подтверждает приёмку production или полного профиля.
+
+При редактуре новые проверки не проводились. Результаты ниже относятся к исходному исследованию.
 
 ## 1. Ревизии
 
 - Zero: `v0.7.0`, `b2e21df882a6a4426d0f469d2305b842522d37bd`.
 - Checkout: `/var/tmp/durable-zero-research-20261102-v070`.
-- Host HEAD: `bb51571bbc3a545226cf2c1aacaf649ac6456112`; checkout dirty и продолжает использоваться текущей командой.
-- Таблица ниже снята в `2026-11-02T19:55:51.690403+00:00`. Она идентифицирует прочитанные входы, не объявляет весь shared tree immutable.
+- Host HEAD на момент исследования был `bb51571bbc3a545226cf2c1aacaf649ac6456112`. Checkout содержал незакоммиченные изменения, и команда продолжала его использовать.
+- Таблица зафиксирована в `2026-11-02T19:55:51.690403+00:00`. Она идентифицирует прочитанные файлы. Таблица не подтверждает неизменность всего общего дерева.
 
 | SHA256 | Host input |
 |---|---|
@@ -20,17 +22,17 @@
 | `8b15a0e405ecd27fd4cd1a32249644db7dbc48f4a30c03716345597e7d55b894` | `apps/dpi-backend/src/durable/session.ts` |
 | `1f42e1402630ef3c5b3ddf485740754273a59a0cffc289addaff8d12492af3cd` | `packages/durable-reload/src/index.ts` |
 
-## 2. Свежий тест registry
+## 2. Результат теста registry от 2026-11-02
 
-Команда внутри физического sandbox:
+Исследователь выполнил следующую команду в изолированной среде.
 
 ```sh
 /node /probe.mjs && /node --test packages/core/test/builtin-extension-registry.test.ts
 ```
 
-Node: `24.19.0`. Launcher использовал `bwrap --unshare-all --new-session --die-with-parent --clearenv`, read-only `/usr`, отдельный Node binary и read-only checkout Zero. `/tmp` — tmpfs; HOME — пустой `/home/sandbox`; network namespace изолирован.
+Версия Node была `24.19.0`. Средство запуска использовало `bwrap --unshare-all --new-session --die-with-parent --clearenv`, отдельный исполняемый файл Node и доступ только для чтения к `/usr`. Checkout Zero также был доступен только для чтения. `/tmp` использовал tmpfs. HOME указывал на пустой `/home/sandbox`. Сетевое пространство имён было изолировано.
 
-До тестов проверено отсутствие `/home/ubuntu/.pi`, `/home/ubuntu/.config`, `/home/ubuntu/Projects/pi-durable-host`, `/run/user/1000`. Тесты не открывают Harness/SQLite и не вызывают модели.
+До тестов исследователь проверил отсутствие `/home/ubuntu/.pi`, `/home/ubuntu/.config`, `/home/ubuntu/Projects/pi-durable-host`, `/run/user/1000`. Тесты не открывают Harness или SQLite и не вызывают модели.
 
 Результат: **exit 0; 3 PASS, 0 FAIL, 0 skipped**.
 
@@ -43,11 +45,11 @@ Node: `24.19.0`. Launcher использовал `bwrap --unshare-all --new-sess
 - `/var/tmp/durable-zero-package-registry-tests-20261102.log`, SHA256 `53ad48770f2487570d77b34c675ffd89bb6eb0b451cf8d8f988ddc7a8949f8db`.
 - `/var/tmp/durable-zero-package-isolation-20261102.mjs`, SHA256 `4df506fe6c3c743e52f3a11b9f5392bfbe2c73ef883d2305d570eea3c46186ec`.
 
-Копии и воспроизводимая команда находятся в [proof](proof/). Это unit evidence механизма Zero, не проверка package install, native registration или совместимости наших extensions.
+Копии и команда воспроизведения описаны в [справочнике файлов доказательств](proof/README.md). Результат подтверждает только модульную проверку механизма Zero. Он не подтверждает установку пакетов, native registration или совместимость наших расширений.
 
 ## 3. Проверка документальных утверждений
 
-[verify.py](verify.py) читает pinned source и текущие owning files, не импортирует продуктовый код. Проверяет:
+[verify.py](verify.py) читает закреплённые исходники и файлы Host, которые отвечают за проверяемое поведение. Скрипт не импортирует продуктовый код. Проверки включают следующие условия.
 
 - commit и чистоту checkout Zero;
 - выбранные exports в source и shipped bundle;
@@ -56,17 +58,17 @@ Node: `24.19.0`. Launcher использовал `bwrap --unshare-all --new-sess
 - собственные before-resume/storage/authorization требования Host;
 - наличие шести документов, парность fenced blocks и существование локальных Markdown links.
 
-Запуск:
+Команда проверки в исходном пакете документации:
 
 ```sh
 python3 docs/architecture/zero/verify.py
 ```
 
-Проверка не доказывает отсутствие всех возможных неизвестных обходных путей. Она фиксирует конкретный публичный контракт исследованного source. Схемы в документах текстовые; browser/Mermaid rendering не заявляется.
+Проверка не доказывает отсутствие всех неизвестных обходных путей. Она фиксирует конкретный публичный контракт исследованного исходника. Схемы в документах текстовые. Проверка отображения в браузере или Mermaid не заявляется.
 
 ## 4. Предыдущие узкие пробы — не новые результаты
 
-В этой же исследовательской сессии ранее были выполнены:
+Ранее в исходной исследовательской сессии исследователь выполнил следующие проверки.
 
 - `session-socket-daemon.test.ts` + `extension-cli-multi.test.ts`: 3 PASS;
 - probe: `parseCliArgs(['serve', '--session', ...]).cwd === 'serve'`;
@@ -74,7 +76,7 @@ python3 docs/architecture/zero/verify.py
 
 Логи: `/var/tmp/durable-zero-upstream-unit-tests-20261102.log`, `/var/tmp/durable-zero-boundary-probe-20261102.log`; probe `/var/tmp/durable-zero-research-20261102-probe.mjs`.
 
-Они не перезапускались для нового отчёта. Socket probe не открывал native DB и не доказывал двойное выполнение Harness. Parser probe не равен full CLI end-to-end. Эти результаты не обосновывают готовность daemon из README.
+Эти проверки не перезапускались для нового отчёта. Проба сокета не открывала native DB и не доказывала двойное исполнение Harness. Проба parser не является сквозной проверкой CLI. Эти результаты не подтверждают готовность daemon, которую описывает README.
 
 ## 5. Использованные прошлые component reports
 
@@ -83,19 +85,19 @@ python3 docs/architecture/zero/verify.py
 - [Native authorization](../../../experiments/durable-module-20261102/runtime/COMMIT-AUTHORIZATION.md): patch identity и component RED/GREEN; не stock equivalence.
 - [Third-party](../../../experiments/durable-module-20261102/third-party/REPORT.md): GipPity/native version gap; не готовая Zero integration.
 
-Это прочитанные отчёты, а не заново исполненные результаты. Их PASS не суммируются с тремя текущими registry tests в показатель готовности продукта.
+Исследователь прочитал эти отчёты, но не повторял описанные проверки. Их PASS и три теста registry не образуют общий показатель готовности продукта.
 
 ## 6. Ограничения методов
 
-- CodeGraph использован для Host. Его поиск дал часть нерелевантных BB matches; важные выводы подтверждены нужными текущими source snippets.
-- Для Zero индекс отсутствовал по предыдущей проверке; повторный вызов и rebuild не выполнялись. Использованы pinned source navigation и bundle export inspection.
-- Hindsight использован для исторического component map, с атрибуцией в OBSERVE; live state по памяти не заявляется.
+- Исследователь использовал CodeGraph для Host. Поиск вернул часть нерелевантных совпадений BB. Важные выводы подтверждены текущими фрагментами исходников.
+- По предыдущей проверке индекс Zero отсутствовал. Повторный вызов и перестроение индекса не выполнялись. Исследователь прочитал закреплённые исходники и проверил exports сборки.
+- Исследователь использовал Hindsight для исторической карты компонентов. Атрибуция сохранена в OBSERVE. Память не подтверждает текущее состояние.
 - `observe-pack` и `arch` прочитаны и применены. Для THINK прочитан доступный контракт `packs/Workflows/think-pack.md`; его ссылка на canonical `ThinkPack/Workflows/Root.md` не разрешилась. THINK выполнен как явное сравнение вариантов и ограничений с arch, без заявления о запуске отсутствующего workflow.
-- Не создавались subagents; независимого review/QA этого пакета нет.
-- Новых web/version claims нет: использована уже закреплённая исследовательская ревизия. Будущее поведение README не считается выполненным.
+- Подагенты не создавались. Независимое ревью и QA этого пакета не проводились.
+- Новых утверждений о версиях или сведениях из интернета нет. Исследователь использовал уже закреплённую ревизию. Описанное в README будущее поведение не считается реализованным.
 
 ## 7. Что не выполнялось
 
-Нет нового dependency install, полного package import/build, Host-on-Zero roundtrip, запуска новых native extension packages, UI/PTY acceptance, BB/iii подключения, hot reload, data migration или live provider calls.
+Новые зависимости не устанавливались. Полный импорт и сборка пакетов не проводились. Сквозной обмен Host с Zero и запуск новых native-пакетов расширений не проверялись. Приёмка интерфейса и PTY, подключение BB и iii, горячее обновление и миграция данных не выполнялись. Вызовов реальных провайдеров не было.
 
-Zero source/dist, product code, общий dependency tree, installed Host, ISA/PLAN/DM1 и DeLM board не изменялись этой работой. Создан только новый research-каталог и scratch evidence. Нет commit, push или npm publication.
+Работа не меняла исходники и сборку Zero, продуктовый код, общее дерево зависимостей или установленный Host. ISA, PLAN, DM1 и DeLM board также не менялись. Исследователь создал только отдельный каталог исследования и временные доказательства. Commit, push и публикация npm не выполнялись.

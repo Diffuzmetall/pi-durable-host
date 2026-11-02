@@ -1,16 +1,16 @@
-# Extensions — перенос в отдельные пакеты
+# Справочник расширений и предлагаемых пакетов
 
-Статус: inventory и предлагаемый package layout. Пакеты не созданы и не опубликованы. Пути относятся к исследованному Host; это не разрешение менять файлы других участников.
+Документ описывает текущие компоненты и предлагаемое распределение по пакетам. Пакеты не созданы и не опубликованы. Пути относятся к исследованному Host. Документ не разрешает менять файлы других участников.
 
-## 1. Два entrypoint, а не один выдуманный plugin API
+## 1. Две точки входа
 
-**Обычный Pi entrypoint:** `export default function(pi: ExtensionAPI)`. Подходит для реально совместимых tools/hooks. Загружается штатным Pi loader Zero через trusted entrypoint path.
+Обычная точка входа Pi имеет вид `export default function(pi: ExtensionAPI)`. Она подходит для совместимых инструментов и hooks. Штатный загрузчик Pi в Zero получает доверенный путь этой точки входа.
 
-**Native composition entrypoint:** экспортирует factory native definitions и необходимые session-local lifecycle функции. В simple/additive случае factory предоставляет существующий Zero `BuiltinExtension`; в полном профиле composition root связывает lifecycle до resume.
+Точка входа native-композиции экспортирует фабрику native definitions и функции lifecycle для отдельной сессии. Для простого добавления компонента фабрика возвращает существующий `BuiltinExtension` Zero. В полном профиле код сборки связывает lifecycle до `resume`.
 
-Не надо насильно превращать каждый native task в Pi tool или каждый Pi tool — в новый framework object. Общий внешний SDK расширений не создаётся. Минимальные callable contracts остаются у реальных потребителей.
+Такое разделение не требует превращать каждый native task в Pi tool или каждый инструмент в новый объект framework. Общий внешний SDK расширений не создаётся. Контракты вызова определяют реальные потребители.
 
-## 2. Предлагаемый package layout
+## 2. Предлагаемое распределение по пакетам
 
 | Пакет / владелец | Текущие owning paths | Что переносится | Как подключается |
 |---|---|---|---|
@@ -23,13 +23,13 @@
 | `@dpi/profile-personal` | Конкретная сборка `native-profile/profile.ts` | Выбор пакетов, trusted resolvers и policies | Composition root; не второе выполнение |
 | `packages/durable-reload` | Существующий пакет | Compatibility и prepare/publish/drain для native registry/models | Внутренний dependency runtime integration; новый reload daemon не нужен |
 
-`native-profile/` — сокращение для `apps/dpi-backend/src/native-profile/`. Package grouping уточняется фактическими imports, а не механическим перемещением директорий. Guards env, owner authority, subagent admission и safe projection остаются обязательными частями runtime integration, не произвольно отключаемыми user plugins.
+`native-profile/` обозначает `apps/dpi-backend/src/native-profile/`. Границы пакетов зависят от фактических imports, а не от расположения каталогов. Защита среды исполнения, полномочия владельца, допуск подагентов и безопасная проекция остаются обязательными частями интеграции. Пользователь не может произвольно отключать их как plugins.
 
-Tools package не должен принудительно устанавливать все провайдеры: optional entrypoints/config позволяют не подключать Codex/Antigravity/Context7 без нужной конфигурации. Credentials не встраиваются в package.
+Пакет инструментов не требует установки всех провайдеров. Необязательные точки входа и конфигурация позволяют не подключать Codex, Antigravity и Context7 без нужных настроек. Credentials не входят в пакет.
 
-## 3. Самый простой реальный native entrypoint
+## 3. Пример native-точки входа
 
-Ниже иллюстрация формы API, не выполненный native integration test:
+Пример ниже показывает форму API. Это не результат интеграционного теста.
 
 ```ts
 import type { BuiltinExtension } from 'durable-zero/core';
@@ -51,7 +51,7 @@ export function createToolsBuiltin(dependencies): BuiltinExtension {
 }
 ```
 
-Публичный SOURCE-путь Zero:
+Следующий пример использует публичный API исходников Zero.
 
 ```ts
 import { openDurable } from 'durable-zero/core';
@@ -64,13 +64,20 @@ const opened = await openDurable({
 });
 ```
 
-Это показывает, где подключается отдельный package. Оно **не** решает memory before-resume, security environment, hot reload или UI compatibility. Package resolution/install и реальный Harness smoke ещё не выполнены.
+Пример показывает подключение отдельного пакета. Он не обеспечивает привязку memory до `resume`, защищённую среду, горячее обновление или совместимость интерфейса. Разрешение зависимостей, установка пакета и пробный запуск Harness ещё не проверены.
 
-Не использовать `DurableEngine.open({builtins: ...})`: такого option у facade в исследованном source нет. Не передавать одинаковый mutable singleton builtin в разные sessions.
+В исследованном исходнике `DurableEngine.open` не принимает `builtins`. Вызов `DurableEngine.open({builtins: ...})` не поддерживается. Передача общего изменяемого builtin в разные сессии не обеспечивает изоляцию состояния.
 
 ## 4. Матрица совместимости компонентов
 
-Легенда: **A** — public registration seam есть; **B** — нужна адресная адаптация нашего пакета; **C** — stock `openDurable` не даёт обязательный текущий lifecycle/security input; **U** — внешний compatibility gate не закрыт. Ни одна буква не означает runtime PASS.
+Обозначения матрицы имеют следующий смысл.
+
+- **A** обозначает наличие публичной точки регистрации.
+- **B** обозначает необходимость адаптации нашего пакета.
+- **C** обозначает отсутствие обязательного параметра lifecycle или безопасности в штатном `openDurable`.
+- **U** обозначает отсутствие подтверждения внешней совместимости.
+
+Ни одно обозначение не подтверждает успешную проверку работающей системы.
 
 | Компонент | Класс | Что сохранять | Точная работа |
 |---|---|---|---|
@@ -87,57 +94,46 @@ const opened = await openDurable({
 | GipPity voice | U | Controller semantics, audio/worklet/CSP behavior, lifecycle | Отдельный совместимый native artifact; упаковка не устраняет watch API mismatch |
 | Status/widgets/dialogs | B/C | Human input semantics, client disconnect, safe rendering | Наш callback-port/terminal companion; stock headless UI недостаточен |
 
-Текущие dependency-specific результаты memory/MCP, automation и third-party находятся в [отчётах DM1](../../../experiments/durable-module-20261102/). Они полезны как inputs, но не квалифицируют Zero-based package tuple.
+Результаты отдельных зависимостей memory, MCP, automation и сторонних компонентов приведены в [отчётах DM1](../../../experiments/durable-module-20261102/). Эти отчёты дают исходные сведения, но не подтверждают совместимость набора пакетов на основе Zero.
 
-## 5. Memory — наиболее показательный перенос
+## 5. Состав пакета memory
 
-Независимые части: config/bank policy, client transport, acceptance bookkeeping, session-local logs, ordering и uncertain-effect rules.
+Независимые части включают политику конфигурации и банка памяти, клиентский транспорт, учёт приёмки и журналы отдельной сессии. К ним относятся порядок операций и правила для эффектов с неизвестным результатом.
 
-Native части: `hindsight.namespace`, `hindsight.delivery`, `hindsight.context`, `hindsight.lifecycle`, task `hindsight.deliver`, hooks/sections и observer. Их текущие identities/versions сохраняются до явной data migration.
+Native-части включают `hindsight.namespace`, `hindsight.delivery`, `hindsight.context`, `hindsight.lifecycle`, task `hindsight.deliver`, hooks, sections и observer. Их текущие идентификаторы и версии сохраняются до явной миграции данных.
 
-Существующий `createSessionMemory` уже имеет factory и функции bind, prepareReload, drain, close. Не нужен второй memory framework. Пакет получает explicit directory/config/client resolver; никакого поиска пользовательских credentials при import.
+`createSessionMemory` уже предоставляет фабрику и функции `bind`, `prepareReload`, `drain`, `close`. Второй framework памяти не нужен. Пакет явно получает каталог, конфигурацию и resolver клиента. Импорт пакета не должен искать пользовательские credentials.
 
-Полный перенос требует исходного Storage и правильной привязки **до** исполнения восстановленных задач. Переименование папки, поздний bind или создание отдельной «memory DB» не являются эквивалентом.
+Полный перенос требует исходного Storage и правильной привязки до исполнения восстановленных задач. Переименование папки, поздний `bind` или отдельная база памяти не обеспечивают эквивалентного поведения.
 
-Reload обязан сохранить session scope callback-ов и существующий delivery kernel. Проверять реальные bank/session пары и отсутствие повторной доставки после lost ACK/uncertain, а не только наличие зарегистрированного инструмента.
+Обновление сохраняет область действия callback-функций сессии и существующий механизм доставки. Подтверждение переноса требует проверки реальных пар банка и сессии. Доставка не должна повторяться после потери подтверждения или неизвестного результата. Наличия инструмента в registry недостаточно.
 
-## 6. MCP и инструменты — не потерять policy в адаптере
+## 6. Ограничения MCP и инструментов
 
-Zero имеет штатную MCP factory и nested execution. Наш manager дополнительно обеспечивает ограничения конкретных sources, Mail identity, lifecycle reload и одинаковую авторизацию direct/nested.
+Zero предоставляет штатную фабрику MCP и вложенное исполнение инструментов. Наш manager дополнительно ограничивает отдельные sources, определяет Mail identity и управляет обновлением. Прямые и вложенные вызовы проходят одинаковую авторизацию.
 
-В полном profile назначается **один** transport owner на source. Нельзя загрузить наш `@dpi/extension-mcp` и оставить альтернативный stock tool path, позволяющий обойти ограничения.
+В полном профиле каждый source имеет одного владельца транспорта. Загрузка `@dpi/extension-mcp` не должна оставлять альтернативный штатный путь вызова инструмента в обход ограничений.
 
-Подмена `@sinclair/typebox` на standalone `typebox` или наоборот не является косметикой. Проверяется фактическая schema/runtime совместимость: required/optional, extra properties, coercion, formats и structured output. Не закрывать typecheck через `any` и не выдавать это за совместимость.
+Замена `@sinclair/typebox` на отдельный `typebox` или обратная замена требует проверки совместимости схем и среды исполнения. Проверка охватывает обязательность полей, лишние свойства, преобразование типов, форматы и структурированный вывод. Замена типов на `any` не подтверждает совместимость.
 
-Сетевые clients — session-scoped или явно безопасно разделяемые. Их close/drain выполняет владелец, а не UI disconnect.
+Сетевые клиенты принадлежат отдельной сессии либо допускают безопасное совместное использование, которое подтверждено отдельно. Владелец выполняет их `close` и `drain`. Отключение интерфейса не закрывает эти ресурсы.
 
-## 7. Automation и DeLM — пакет, но не отдельный движок
+## 7. Automation и DeLM без отдельного движка
 
-Goal, schedules и triggers сохраняют native definitions и durable identity. Клиенты не запускают расписания и не переприсваивают authority. Human-only approval не превращается в boolean, который может передать iii или child agent.
+Goal, schedules и triggers сохраняют native definitions и устойчивые идентификаторы. Клиенты не запускают расписания и не назначают полномочия заново. Решение, которое может принять только человек, нельзя заменить логическим значением от iii или дочернего агента.
 
-DeLM engine уже существует отдельно: сохраняем его package/provenance, адаптируем binding, а не копируем engine в Zero. Board остаётся authority для процесса разработки; это исследование не изменяет текущие actor/task assignments.
+Движок DeLM уже существует отдельно. Предложение сохраняет пакет и сведения о его происхождении. Адаптации требует привязка, а не копия движка внутри Zero. Board определяет процесс разработки. Это исследование не меняет текущие назначения исполнителей и задач.
 
-Повторная доставка wake или trigger с тем же identity не создаёт новую работу. Отсутствие ACK не доказывает, что работа не принята. Ни package split, ни HTTP transport не должны менять этот контракт.
+Повторная доставка wake или trigger с прежним идентификатором не создаёт новую работу. Отсутствие подтверждения не доказывает отказ в приёме работы. Разделение пакетов и HTTP-транспорт сохраняют этот контракт.
 
 ## 8. UI-пакеты
 
-Для обычных уведомлений и запросов наши server packages получают небольшие injected callbacks. Они не импортируют terminal widgets. UI capabilities и допустимый recipient определяет Host.
+Для обычных уведомлений и запросов серверные пакеты получают небольшие callback-функции через параметры. Они не импортируют элементы интерфейса терминала. Host определяет возможности интерфейса и допустимого получателя.
 
-Если extension содержит полноценный custom terminal component, выносим только renderer в client-side entrypoint. Native tools/hooks/tasks остаются на сервере. Это адаптация конкретного расширения, не обещание выполнить произвольный Pi UI код в любом frontend.
+Если расширение содержит собственный компонент терминала, только renderer переносится в клиентскую точку входа. Native tools, hooks и tasks остаются на сервере. Это адаптация конкретного расширения. Произвольный Pi UI код не получает обещания исполнения в любом клиенте.
 
-BB использует собственную projection, iii — headless behavior с явным ожиданием человека или отказом. Нельзя по умолчанию подтверждать опасное действие ради автоматизации.
+BB использует собственную проекцию. iii работает без интерфейса и явно сообщает об ожидании человека или отказе. Автоматизация не разрешает подтверждать опасные действия по умолчанию.
 
-## 9. Обязательные package checks перед переносом полного профиля
+## 9. Состояние проверок
 
-1. Установка в пустой каталог из закреплённых artifacts без HOME aliases и исходного workspace.
-2. Только публичные Zero exports; отсутствие postinstall patch/deep imports/второго SDK closure.
-3. Package import без запуска controller, network, credentials discovery или открытия session.
-4. Две factories с разными session inputs не разделяют mutable state.
-5. Native definitions зарегистрированы до open; bindings выполнены до resume.
-6. Reopen сохраняет identities, pending work и receipts; worker/client restart не дублирует эффекты.
-7. Direct и nested tool calls одинаково соблюдают grants/revoke/guards.
-8. Teardown одного instance не закрывает другого; failed initialization очищает созданные ресурсы.
-9. Reload сохраняет scope и subscriptions, rejected candidate не публикуется, failed drain не объявляется rollback.
-10. LICENSE/NOTICE/provenance входят в archive; credentials и private paths не входят.
-
-Эти проверки ещё не выполнены для новых пакетов. Три теста registry проверяют только сам механизм регистрации Zero.
+Обязательные действия вынесены в [инструкцию проверки пакетов](CHECKS.md). Для новых пакетов эти проверки ещё не выполнены. Три теста registry проверяют только механизм регистрации Zero.

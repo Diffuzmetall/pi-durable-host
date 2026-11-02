@@ -1,46 +1,54 @@
-# Pi Durable Host: как проект устроен сейчас
+# Pi Durable Host: состояние проекта
 
-**Одна папка для передачи проекта: текущий Host, карта изменений и вариант Zero.** Основная карта описывает код, а подкаталог `zero/` — отдельно помеченное предложение, не выполненную миграцию.
+Этот справочник описывает существующий Host, изменения относительно Disler и документы о варианте Zero. Подкаталог `zero/` содержит предложение, а не реализованную миграцию.
 
-**Снимок исходников: 2 ноября 2026 года, 19:24:25 UTC**, commit `830ad61af22b1585f1358896f286acd40492c7ca`. Дополнение документации не меняет этот код и не подтверждает состояние запущенных служб.
+Снимок исходников создан 2 ноября 2026 года в 19:24:25 UTC, commit `830ad61af22b1585f1358896f286acd40492c7ca`. Дополнение документации не меняет этот код и не подтверждает состояние запущенных служб.
 
-> **Статус: разработка, не релиз.** Основной backend ещё закреплён на Durable **1.4.0**. Новый runtime-модуль и отдельная сборочная конфигурация **1.5.0** уже есть, но полный HTTP-путь на новую границу ещё не переведён. Нельзя считать этот снимок готовой заменой установленного Host.
+> Проект находится в разработке. Это не релиз. Основной backend использует Durable 1.4.0. Новый runtime-модуль и отдельная сборочная конфигурация 1.5.0 существуют, но полный HTTP-путь ещё не использует новую границу.
+>
+> Снимок нельзя считать готовой заменой установленного Host.
 
-## Быстрый вход для внешнего разработчика
+## Документы пакета
 
 | Вопрос | Документ |
 |---|---|
-| Как устроен Host и какие файлы менять? | **[MAP — карта текущего кода](MAP.md)** |
-| Что осталось от Disler, что добавили и что патчили? | **[CHANGES — изменения и происхождение](CHANGES.md)** |
-| Принимает ли наш fork картинки? Остался ли Express? | **[IMAGES-AND-HTTP — проверка по коду](IMAGES-AND-HTTP.md)** |
-| Как перейти на неизменённый Zero? | **[Zero: OBSERVE → THINK → ARCHITECTURE](zero/README.md)** |
-| Какие расширения куда переносить? | [Матрица расширений и будущих пакетов](zero/EXTENSIONS.md) |
-| Что проверено и почему это не релиз? | [STATUS](STATUS.md), [Zero EVIDENCE](zero/EVIDENCE.md) |
-| Как и что опубликовано? | [PUBLICATION](PUBLICATION.md) |
+| Как устроен Host и где находятся его компоненты? | [MAP: карта текущего кода](MAP.md) |
+| Что унаследовано от Disler, добавлено или изменено патчами? | [CHANGES: изменения и происхождение](CHANGES.md) |
+| Принимает ли наш fork изображения и использует ли Express? | [IMAGES-AND-HTTP: выводы по исходникам](IMAGES-AND-HTTP.md) |
+| Как устроено предложение перехода на неизменённый Zero? | [Zero: OBSERVE, THINK, ARCHITECTURE](zero/README.md) |
+| Куда предлагается перенести расширения? | [Матрица расширений и будущих пакетов](zero/EXTENSIONS.md) |
+| Как BB подключается без второго runtime? | [BB: provider adapter, SDK и Host](BB-ADAPTER.md) |
+| Какой готовый backend выбрать и какие компоненты заимствовать? | [Сравнение семи кандидатов](host-options-20261102/README.md) |
+| Что проверено и почему проект не готов к релизу? | [STATUS](STATUS.md), [Zero EVIDENCE](zero/EVIDENCE.md) |
+| Как опубликован пакет? | [PUBLICATION](PUBLICATION.md) |
 
-**Ссылка на весь пакет:** https://github.com/Diffuzmetall/pi-durable-host/tree/review/current-state-2026-11-02/docs/architecture
+Весь пакет: https://github.com/Diffuzmetall/pi-durable-host/tree/review/current-state-2026-11-02/docs/architecture
 
-Ниже — обзор текущего Host с диаграммами. [Код backend](../../apps/dpi-backend/src) · [Корневой README](../../README.md).
+Исходники: [backend](../../apps/dpi-backend/src), [корневой README](../../README.md).
 
-## 1. Коротко
+## 1. Исполнение и клиенты
 
-Pi Durable Host — серверная среда для агентных сессий. Терминал и другие клиенты отправляют команды через HTTP и получают изменения через SSE. Исполнение, задачи, история и восстановление принадлежат Durable внутри Host; SDK — клиентская библиотека, не отдельный сервер.
+Pi Durable Host выполняет агентные сессии на сервере. Терминал и другие клиенты отправляют команды через HTTP и получают изменения через Server-Sent Events (SSE). Durable внутри Host владеет исполнением, задачами, историей и восстановлением. SDK является клиентской библиотекой, а не отдельным сервером.
 
-Один процесс Host может обслуживать несколько сессий. У каждой открытой сессии свой Harness и своё хранилище. Закрытие терминального окна не должно создавать нового владельца сессии или отменять уже принятую сервером работу.
+Один процесс Host может обслуживать несколько сессий. У каждой открытой сессии свой Harness и своё хранилище. Закрытие терминала не должно создавать нового владельца сессии или отменять работу, которую сервер уже принял.
 
-### Процессы и внешние связи
+### Процессы и внешние связи
 
 ```mermaid
 flowchart LR
   subgraph Clients[Клиентские процессы]
     T[Терминал и terminal-adapter]
     I[iii-adapter]
+    BA[bb-adapter: provider process]
   end
   E[iii engine] --> I
+  BB[BB Core и UI] -. JSON-RPC stdio: подключение не принято .-> BA
   T --> S1[dpi-sdk]
   I --> S2[dpi-sdk]
+  BA -.-> S3[dpi-sdk]
   S1 -->|HTTP /v1 и SSE| API
   S2 -->|HTTP /v1 и SSE| API
+  S3 -. HTTP /v1 и SSE .-> API
   subgraph Host[Один процесс Host]
     API[HTTP, авторизация и маршруты]
     ST[Store: каталог и жизненный цикл]
@@ -56,27 +64,31 @@ flowchart LR
   P --> M[MCP и внешние сервисы]
 ```
 
-На схеме iii engine и MCP-сервисы — отдельные внешние системы. Они не становятся вторым Durable-движком. Подключения зависят от настроенного профиля и прав; наличие интеграции в коде не доказывает доступность конкретного сервиса.
+BB Core/UI, iii engine и MCP-сервисы являются внешними системами. Они не становятся вторым Durable-движком. Пунктир обозначает подготовленную, но непринятую интеграцию BB. Адаптер существует, однако полная интеграция с BB ещё не прошла приёмку.
 
-## 2. Где что находится
+Подключения зависят от профиля и прав. Наличие кода не доказывает доступность сервиса. BB запускает отдельный `dpi-bb-provider` и передаёт JSON-RPC через stdin/stdout. Адаптер обращается к существующему Host через SDK, не открывая Harness или session SQLite.
+
+Настройки, привязка Root/children и ограничения описаны в [BB-ADAPTER.md](BB-ADAPTER.md).
+
+## 2. Компоненты и исходники
 
 | Компонент | Ответственность | Исходники |
 |---|---|---|
-| Backend | HTTP-сервер, авторизация, каталог сессий, запуск и восстановление | [`apps/dpi-backend`](../../apps/dpi-backend) |
-| SDK | Публичные типы, HTTP-клиент, SSE, обработка ответов и состояния | [`apps/dpi-sdk`](../../apps/dpi-sdk) |
-| Терминальный адаптер | TUI, выбор модели и skills, черновик, журнал отправки, отображение состояния | [`apps/terminal-adapter`](../../apps/terminal-adapter) |
-| iii-адаптер | Подписанные внешние вызовы к уже работающему Host | [`apps/iii-adapter`](../../apps/iii-adapter) |
-| Native profile | Инструменты, подагенты, Goal, schedules, skills, memory, tracing и MCP | [`native-profile/profile.ts`](../../apps/dpi-backend/src/native-profile/profile.ts) |
-| Reload | Подготовка и публикация совместимых моделей и расширений | [`packages/durable-reload`](../../packages/durable-reload) |
-| Новый runtime-модуль | Семантические операции над сессией и адаптация native API | [`src/durable`](../../apps/dpi-backend/src/durable) — интеграция не закончена |
-| BB-адаптер | Отложенное направление; присутствие кода не означает приёмку UI | [`apps/bb-adapter`](../../apps/bb-adapter) |
-| Experiments | Сборочные сценарии, миграционные фикстуры и датированные отчёты | [`experiments`](../../experiments) |
+| Backend | HTTP, авторизация, каталог сессий, запуск и восстановление | [`apps/dpi-backend`](../../apps/dpi-backend) |
+| SDK | Публичные типы, HTTP-клиент, SSE, обработка ответов и состояния | [`apps/dpi-sdk`](../../apps/dpi-sdk) |
+| Терминальный адаптер | TUI, выбор модели и skills, черновик, журнал отправки, отображение состояния | [`apps/terminal-adapter`](../../apps/terminal-adapter) |
+| iii-адаптер | Подписанные внешние вызовы к работающему Host | [`apps/iii-adapter`](../../apps/iii-adapter) |
+| Native profile | Инструменты, подагенты, Goal, schedules, skills, memory, tracing и MCP | [`native-profile/profile.ts`](../../apps/dpi-backend/src/native-profile/profile.ts) |
+| Reload | Подготовка и публикация совместимых моделей и расширений | [`packages/durable-reload`](../../packages/durable-reload) |
+| Новый runtime-модуль | Семантические операции сессии и адаптация native API; интеграция не завершена | [`src/durable`](../../apps/dpi-backend/src/durable) |
+| BB-адаптер | Отложенное подключение BB; наличие кода не означает приёмку UI | [`apps/bb-adapter`](../../apps/bb-adapter) |
+| Experiments | Сборочные сценарии, миграционные фикстуры и датированные отчёты | [`experiments`](../../experiments) |
 
-`apps/dpi-tui`, playground и demo сохранены как унаследованные примеры. Это не основной operational installer данного Host.
+`apps/dpi-tui`, playground и demo сохранены как унаследованные примеры. Они не являются основным установщиком operational-профиля Host.
 
-## 3. Реальная граница кода — пока переходная
+## 3. Незавершённая граница runtime
 
-Нельзя нарисовать новый runtime-модуль как уже единственную связь между HTTP и Durable: это было бы неверно для опубликованного снимка.
+Новый runtime-модуль ещё не является единственной связью между HTTP и Durable. Опубликованный снимок сохраняет прямые обращения к native API.
 
 ```mermaid
 flowchart TD
@@ -98,18 +110,18 @@ flowchart TD
   STORE -. перенос полного session-пути ещё не завершён .-> PORT
 ```
 
-**Что подтверждает код:**
+Исходники подтверждают следующие зависимости.
 
-- [`routes.ts`](../../apps/dpi-backend/src/routes.ts) импортирует `Conversation` и `Harness`, а маршруты получают native handles через Store.
-- [`streams.ts`](../../apps/dpi-backend/src/streams.ts) импортирует и вызывает `watchEvents`, а также использует `subscribeCommits`.
-- [`store.ts`](../../apps/dpi-backend/src/store.ts) по-прежнему содержит открытие Harness, конфигурацию, admission и native операции.
-- [`shared-state.ts`](../../apps/dpi-backend/src/shared-state.ts) уже передаёт реализацию общих документов в `durable/shared-state.ts`.
-- [`DurableSession`](../../apps/dpi-backend/src/durable/session.ts) определяет `send`, `receipt`, `reconcile`, `history`, `context`, `observe`, `configure`, `reload` и parent-control операции.
-- [`native-session.ts`](../../apps/dpi-backend/src/durable/native-session.ts) реализует **часть** этого интерфейса через `Pick<DurableSession, …>`. Наличие файла не означает подключение всех методов к Host.
+- [`routes.ts`](../../apps/dpi-backend/src/routes.ts) импортирует `Conversation` и `Harness`. Маршруты получают native handles через Store.
+- [`streams.ts`](../../apps/dpi-backend/src/streams.ts) импортирует и вызывает `watchEvents`, а также использует `subscribeCommits`.
+- [`store.ts`](../../apps/dpi-backend/src/store.ts) открывает Harness, выполняет конфигурацию, admission и native операции.
+- [`shared-state.ts`](../../apps/dpi-backend/src/shared-state.ts) уже передаёт общие документы в `durable/shared-state.ts`.
+- [`DurableSession`](../../apps/dpi-backend/src/durable/session.ts) определяет `send`, `receipt`, `reconcile`, `history`, `context`, `observe`, `configure`, `reload` и parent-control операции.
+- [`native-session.ts`](../../apps/dpi-backend/src/durable/native-session.ts) реализует часть интерфейса через `Pick<DurableSession, …>`. Наличие файла не означает подключение всех методов к Host.
 
-Цель переноса — скрыть меняющийся upstream API в одном владельце, а не добавить daemon, планировщик или универсальную систему плагинов. Подробный действующий план: [DM1](../host-design/hot-update/DURABLE-MODULE-PLAN.md).
+Перенос должен сосредоточить работу с меняющимся upstream API в одном модуле. Он не добавляет daemon, планировщик или универсальную систему плагинов. Работа описана в [плане DM1](../host-design/hot-update/DURABLE-MODULE-PLAN.md).
 
-## 4. Как проходит запрос
+## 4. Путь запроса и подтверждения
 
 ```mermaid
 sequenceDiagram
@@ -138,34 +150,35 @@ sequenceDiagram
   end
 ```
 
-Это схема разделения ответственности, а не утверждение о полной приёмке всех ветвей. Подробности реализации находятся в [`idempotency.ts`](../../apps/dpi-backend/src/idempotency.ts), [`Store`](../../apps/dpi-backend/src/store.ts), [`remote-controller.ts`](../../apps/terminal-adapter/src/remote-controller.ts) и [`submission-journal.ts`](../../apps/terminal-adapter/src/submission-journal.ts).
+Схема показывает разделение ответственности, но не подтверждает полную приёмку всех ветвей. Реализация находится в следующих файлах:
 
-Важные различия:
+- [`idempotency.ts`](../../apps/dpi-backend/src/idempotency.ts);
+- [`Store`](../../apps/dpi-backend/src/store.ts);
+- [`remote-controller.ts`](../../apps/terminal-adapter/src/remote-controller.ts);
+- [`submission-journal.ts`](../../apps/terminal-adapter/src/submission-journal.ts).
 
-- **Принято** не значит **завершено**. Соединение может быть открыто, пока задача ещё выполняется.
-- Потерянный ACK не разрешает отправить то же действие под новым ID. Сначала нужен receipt/reconcile.
-- Отключение SSE закрывает наблюдение, а не даёт разрешение остановить native задачу.
-- История разговора и контекст, выбранный для модели, — разные данные.
-- Idempotency admission не гарантирует exactly-once для произвольного внешнего эффекта инструмента.
+Принятие запроса и завершение задачи являются разными событиями. Соединение может оставаться открытым, пока задача выполняется. Потеря подтверждения (ACK) не разрешает отправить то же действие с новым ID. Сначала требуется `receipt` или `reconcile`.
 
-## 5. Кто владеет данными
+Отключение SSE закрывает наблюдение. Оно не разрешает останавливать native задачу. История разговора отличается от контекста, который выбран для модели. Идемпотентный admission не гарантирует однократное выполнение произвольного внешнего эффекта инструмента.
 
-| Данные | Владелец | Чего клиент не должен делать |
+## 5. Владельцы данных
+
+| Данные | Владелец | Ограничение для клиента |
 |---|---|---|
-| Каталог сессий и метаданные | Store, `catalog.sqlite` | Менять строки напрямую |
-| Общие документы устройства | SharedState, `app-state.sqlite` | Открывать native storage из адаптера |
-| История, tasks, checkpoints сессии | Durable и session SQLite | Создавать второго владельца той же базы |
-| Черновик и намерение отправки | Терминальный клиент | Считать локальную запись подтверждением сервера |
-| Grants и проверка полномочий | Host | Передавать `source` или `authority` как самодостаточное разрешение |
-| Provider credentials | Доверенная серверная конфигурация | Копировать секреты в SDK, README или клиентские bundles |
+| Каталог сессий и метаданные | Store, `catalog.sqlite` | Клиент не меняет строки напрямую |
+| Общие документы устройства | SharedState, `app-state.sqlite` | Адаптер не открывает native storage |
+| История, tasks и checkpoints сессии | Durable и session SQLite | Клиент не создаёт второго владельца базы |
+| Черновик и намерение отправки | Терминальный клиент | Локальная запись не является подтверждением сервера |
+| Grants и проверка полномочий | Host | `source` или `authority` сами по себе не дают разрешения |
+| Provider credentials | Доверенная серверная конфигурация | Секреты не копируются в SDK, README или клиентские bundles |
 
-[`Store.openCatalog`](../../apps/dpi-backend/src/store.ts) открывает каталог и общие ресурсы, а сессии восстанавливает в фоне с ограниченной параллельностью. В коде есть состояния `restoring`, `ready`, `failed`, `closing`, `closed`; HTTP-слой не должен принимать мутации в неготовую сессию.
+[`Store.openCatalog`](../../apps/dpi-backend/src/store.ts) открывает каталог и общие ресурсы. Сессии восстанавливаются в фоне с ограниченной параллельностью. Код содержит состояния `restoring`, `ready`, `failed`, `closing`, `closed`. HTTP-слой не должен принимать мутации для неготовой сессии.
 
-Границы прав применяются и к чтению: публичная проекция должна скрывать закрытые данные из snapshots и последующих изменений. Наличие sanitization в одном ответе не доказывает безопасность всех потоков; это отдельный предмет проверок.
+Права ограничивают и чтение. Публичная проекция должна скрывать закрытые данные в snapshots и последующих изменениях. Очистка одного ответа не доказывает безопасность остальных потоков. Для них нужны отдельные проверки.
 
-## 6. Расширения и горячее обновление
+## 6. Расширения и reload
 
-Native profile собирает tools, модели, skills, memory, tracing, automation и MCP в существующем Harness. Конфигурация передаётся сервером; HTTP `/reload` не принимает произвольный путь к модулю от клиента.
+Native profile собирает tools, модели, skills, memory, tracing, automation и MCP в существующем Harness. Сервер передаёт конфигурацию. HTTP `/reload` не принимает от клиента произвольный путь к модулю.
 
 ```mermaid
 flowchart LR
@@ -179,31 +192,38 @@ flowchart LR
   G -->|Нет| I[Applied с ошибкой cleanup: не повторять автоматически]
 ```
 
-Это механизм [`reloadDurable`](../../packages/durable-reload/src/index.ts): подготовка, проверка, синхронная публикация и последующее освобождение ресурсов. Для части resource/selection handoff нужен idle-барьер; обновление чистых definitions/provider snapshots не всегда требует остановки всей сессии.
+[`reloadDurable`](../../packages/durable-reload/src/index.ts) подготавливает кандидат, проверяет его, синхронно публикует и затем освобождает старые ресурсы. Для части операций передачи ресурсов или выбора требуется idle-барьер. Обновление definitions или provider snapshots не всегда требует остановки всей сессии.
 
-**Три разные операции:**
+Следующие операции имеют разные границы.
 
-1. Обновление клиента — новая версия терминала или SDK при совместимом протоколе.
-2. Reload совместимых расширений — изменение зарегистрированных definitions и ресурсов внутри прежнего Host.
-3. Обновление ядра Durable — отдельный проверяемый release и миграционный процесс. Этот снимок не обещает горячую замену ядра.
+1. Обновление клиента устанавливает новую версию терминала или SDK при совместимом протоколе.
+2. Reload совместимых расширений меняет зарегистрированные definitions и ресурсы внутри прежнего Host.
+3. Обновление ядра Durable требует отдельного проверяемого релиза и миграции. Снимок не обещает горячую замену ядра.
 
-## 7. Версии и пределы совместимости
+## 7. Версии и открытые проверки
 
-Основной [`package.json` backend](../../apps/dpi-backend/package.json) всё ещё закрепляет Durable, Chord, pi-ai, pi-codemode и pi-mcp на **1.4.0**. Отдельные [target manifests](../../experiments/durable-module-20261102/packaging/target-manifests) задают **1.5.0** для миграционного кандидата. Нельзя смешать эти две сборки и назвать результат принятым релизом.
+Основной [manifest backend](../../apps/dpi-backend/package.json) закрепляет Durable, Chord, pi-ai, pi-codemode и pi-mcp на 1.4.0. Отдельные [target manifests](../../experiments/durable-module-20261102/packaging/target-manifests) задают 1.5.0 для миграционного кандидата. Смешение этих сборок не создаёт принятый релиз.
 
-Новый `native-session.ts` требует `COMMIT_AUTHORIZATION_REVISION = "host-commit-authorization-v1"`. Это **локальный патч 1.5**, а не неизменённый upstream-пакет; [основание и точная адаптация](../../experiments/durable-module-20261102/runtime/COMMIT-AUTHORIZATION.md) опубликованы отдельно.
+Новый `native-session.ts` требует `COMMIT_AUTHORIZATION_REVISION = "host-commit-authorization-v1"`. Это локальный патч 1.5, а не неизменённый upstream-пакет. [Основание и точная адаптация](../../experiments/durable-module-20261102/runtime/COMMIT-AUTHORIZATION.md) опубликованы отдельно.
 
-`API_VERSION = 2`, URL `/v1` и версия Durable обозначают разные вещи. Совместимость определяется контрактом и capabilities, а не совпадением одной цифры.
+`API_VERSION = 2`, URL `/v1` и версия Durable обозначают разные вещи. Совместимость определяется контрактом и capabilities, а не совпадением цифры.
 
-**Остаётся проверить:** полный Host/SDK roundtrip на 1.5, один и тот же клиент против изолированных 1.4/1.5 сборок, совместимость сторонних компонентов, installed-package состав, shutdown/recovery и возврат к предыдущему release. Открытые ограничения перечислены в [STATUS.md](STATUS.md).
+Открыты следующие проверки:
 
-## 8. Как читать этот репозиторий
+- полный обмен Host и SDK на 1.5;
+- один клиент против изолированных сборок 1.4 и 1.5;
+- совместимость сторонних компонентов;
+- состав установленных пакетов;
+- shutdown, recovery и возврат к предыдущему релизу.
 
-- Для знакомства начните с [карты файлов](MAP.md), [изменений относительно Disler](CHANGES.md) и [STATUS.md](STATUS.md).
-- Для перехода на неизменённый Zero читайте [отдельный пакет исследования](zero/README.md). Внешняя композиция C — рекомендация для обсуждения, не окончательно выбранная или реализованная миграция.
-- Для реализации смотрите ссылки на исходники: они ведут в ту же Git-ветку.
-- Для целей проекта есть [ISA](../../ISA.md) и [план DM1](../host-design/hot-update/DURABLE-MODULE-PLAN.md).
-- Для сравнения вариантов есть [архитектурная рекомендация R1](../host-design/runtime-architecture-20261102/ARCHITECTURE.md) и [HTML с иллюстрациями](../host-design/runtime-architecture-20261102/architecture.html). R1 — **предложение**, не описание уже законченного переноса.
-- Отчёты в `experiments/` относятся к указанным там кандидатам. Локальные raw logs, приватные данные и сборочные каталоги не входят в публичный снимок.
+Остальные ограничения перечислены в [STATUS.md](STATUS.md).
 
-**Не запускайте activation/restart/migration scripts из `experiments/` на рабочем Host для знакомства с проектом.** Просмотр кода и публикация ветки не разрешают такие операции.
+## 8. Назначение остальных материалов
+
+[MAP](MAP.md), [CHANGES](CHANGES.md) и [STATUS](STATUS.md) описывают текущий проект. [Пакет Zero](zero/README.md) описывает возможный переход. Внешняя композиция C остаётся рекомендацией для обсуждения, а не окончательно выбранной или реализованной миграцией.
+
+Ссылки на исходники ведут в ту же Git-ветку. Цели проекта записаны в [ISA](../../ISA.md) и [плане DM1](../host-design/hot-update/DURABLE-MODULE-PLAN.md). [Архитектурная рекомендация R1](../host-design/runtime-architecture-20261102/ARCHITECTURE.md) и [HTML с иллюстрациями](../host-design/runtime-architecture-20261102/architecture.html) также являются предложением.
+
+Отчёты в `experiments/` относятся к указанным кандидатам. Локальные raw logs, приватные данные и сборочные каталоги не входят в публичный снимок.
+
+> Не запускайте activation/restart/migration scripts из `experiments/` на рабочем Host для знакомства с проектом. Просмотр кода и публикация ветки не разрешают эти операции.
